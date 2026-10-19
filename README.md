@@ -50,9 +50,10 @@ sudo bash scripts/backup-settings.sh
 
 ```bash
 bash scripts/edge-setup.sh --profile home-static --public-ip 94.29.44.211 --lan-ip 192.168.1.115 --lan-cidr 192.168.1.0/24 --lan-https
-python3 scripts/public-ipctl.py plan --public-ip 94.29.44.211
 python3 scripts/domainctl.py plan --domain lab.alikinas.ru --public-ip 94.29.44.211
 ```
+
+По умолчанию второй этап после готовой ASA Lab включает закрытый MCP `readonly` и шестичасовой монитор краткоживущего IP HTTPS. При наличии ограничений на эти компоненты используйте `--no-mcp` или `--no-cert-monitor`; ни один из них не публикует порт в WAN.
 
 Домен в примере не считается подтверждённым доменом тестового сервера: реальные DNS/сертификат применяются **только после выбора имени владельцем, подготовки origin ASA Lab и проверки NAT**.
 

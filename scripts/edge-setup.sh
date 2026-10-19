@@ -9,6 +9,8 @@ PUBLIC_IP=''
 LAN_IP=''
 LAN_CIDR=''
 LAN_HTTPS=0
+MCP_READONLY=1
+CERT_MONITOR=1
 ORIGIN_PREPARED=0
 APPLY=0
 while (($#));do
@@ -19,6 +21,8 @@ while (($#));do
     --lan-ip) [[ $# -ge 2 ]] || exit 2;LAN_IP="$2";shift 2 ;;
     --lan-cidr) [[ $# -ge 2 ]] || exit 2;LAN_CIDR="$2";shift 2 ;;
     --lan-https) LAN_HTTPS=1;shift ;;
+    --no-mcp) MCP_READONLY=0;shift ;;
+    --no-cert-monitor) CERT_MONITOR=0;shift ;;
     --origin-prepared) ORIGIN_PREPARED=1;shift ;;
     --apply) APPLY=1;shift ;;
     *) echo "Неизвестная опция: $1" >&2;exit 2 ;;
@@ -44,6 +48,10 @@ if [[ -n "$DOMAIN" ]];then
 fi
 if ((LAN_HTTPS));then
   bash "$ROOT/scripts/lan-https.sh" --lan-ip "$LAN_IP" --lan-cidr "$LAN_CIDR"
+fi
+if ((MCP_READONLY));then echo 'ПЛАН: локальный readonly MCP 127.0.0.1:39443 (без публичного входа)';fi
+if ((CERT_MONITOR)) && [[ -n "$PUBLIC_IP" && "$PROFILE" != home-dynamic ]];then
+  bash "$ROOT/scripts/install-cert-monitor.sh" --host "$PUBLIC_IP"
 fi
 if (( ! APPLY ));then
   echo 'РЕЖИМ ПРОСМОТРА: никаких настроек не изменено; --apply после проверок.'
@@ -73,6 +81,21 @@ if [[ -n "$DOMAIN" ]];then
 fi
 if ((LAN_HTTPS));then
   bash "$ROOT/scripts/lan-https.sh" --lan-ip "$LAN_IP" --lan-cidr "$LAN_CIDR" --apply
+fi
+if ((MCP_READONLY));then
+  if ! systemctl is-active --quiet server-settings-1panel-mcp.service;then
+    [[ ! -e /etc/systemd/system/server-settings-1panel-mcp.service ]] || { echo 'Есть сломанная MCP служба: требуется ремонт, не перезаписываю' >&2;exit 1; }
+    bash "$ROOT/scripts/setup-mcp.sh" --readonly --apply
+  else
+    echo 'MCP уже запущен: повторную установку не выполняю'
+  fi
+fi
+if ((CERT_MONITOR)) && [[ -n "$PUBLIC_IP" && "$PROFILE" != home-dynamic ]];then
+  if [[ ! -e /etc/systemd/system/server-settings-cert-check.service ]];then
+    bash "$ROOT/scripts/install-cert-monitor.sh" --host "$PUBLIC_IP" --apply
+  else
+    echo 'Монитор срока SSL уже установлен; параметры проверяйте вручную'
+  fi
 fi
 python3 "$ROOT/scripts/panelctl.py" inspect
 printf '%s\n' 'Второй этап завершён. Финальная приемка: публичный HTTPS с внешней сети, TLS-сертификат, логин/CSRF, проекты, Scratch, reboot.'
