@@ -1,0 +1,16 @@
+{
+  "name": "home-dynamic",
+  "description": "Домашний сервер с меняющимся адресом или CGNAT: Tailscale для администрирования",
+  "os": "ubuntu-24.04",
+  "panel_version": "v2.3.2",
+  "panel_port": 19192,
+  "panel_user": "asaadmin",
+  "lan_cidrs": ["192.168.1.0/24"],
+  "ssh_port": 22,
+  "install_docker": true,
+  "install_tailscale": true,
+  "allow_public_web": false,
+  "install_1panel": true,
+  "admin_over_tailscale": true,
+  "websites": []
+}

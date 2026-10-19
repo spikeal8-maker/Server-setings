@@ -1,0 +1,24 @@
+[Unit]
+Description=ASA Lab: HTTPS только внутри локальной сети
+Wants=network-online.target
+After=network-online.target docker.service
+[Service]
+ExecStart=/opt/asa-lan-https/caddy run --config /opt/asa-lan-https/Caddyfile --adapter caddyfile
+DynamicUser=yes
+StateDirectory=asa-lan-https
+StateDirectoryMode=0700
+Environment=XDG_DATA_HOME=/var/lib/asa-lan-https
+Environment=XDG_CONFIG_HOME=/var/lib/asa-lan-https
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+Restart=on-failure
+RestartSec=3s
+[Install]
+WantedBy=multi-user.target

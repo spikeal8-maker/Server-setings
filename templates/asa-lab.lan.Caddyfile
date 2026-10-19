@@ -1,0 +1,18 @@
+{
+    admin off
+    auto_https disable_redirects
+    skip_install_trust
+    servers {
+        protocols h1 h2
+        listener_wrappers {
+            http_redirect
+            tls
+        }
+    }
+}
+# Эталон тестовой LAN 192.168.1.115; при переносе указать новый LAN IP.
+https://192.168.1.115:4610 {
+    bind 192.168.1.115
+    tls internal
+    reverse_proxy 127.0.0.1:4610
+}

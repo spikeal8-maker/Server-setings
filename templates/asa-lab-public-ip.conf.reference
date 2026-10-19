@@ -1,0 +1,13 @@
+# Эталон vhost, фактическое состояние 19.10.2026; НЕ копировать вместо файлов, которыми управляет 1Panel.
+server {
+    listen 80 default_server;
+    listen 443 ssl default_server;
+    server_name 94.29.44.211;
+    ssl_certificate /www/sites/asa-lab-public-ip/ssl/fullchain.pem;
+    ssl_certificate_key /www/sites/asa-lab-public-ip/ssl/privkey.pem;
+    ssl_protocols TLSv1.3 TLSv1.2;
+    http2 on;
+    if ($scheme = http) { return 301 https://$host$request_uri; }
+    add_header Strict-Transport-Security "max-age=31536000";
+    include /www/sites/asa-lab-public-ip/proxy/*.conf;
+}

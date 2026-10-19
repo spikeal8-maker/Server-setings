@@ -1,0 +1,27 @@
+name: Пакет серверных настроек — статические проверки
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Проверка Bash
+        run: bash -n install.sh scripts/*.sh
+      - name: Python синтаксис
+        run: python3 -m compileall -q scripts tests
+      - name: Unit-тесты без доступа к серверу
+        run: python3 -m unittest discover -s tests -v
+      - name: Три сценария без установки
+        run: |
+          python3 scripts/serverctl.py plan --profile home-static
+          python3 scripts/serverctl.py plan --profile home-dynamic
+          python3 scripts/serverctl.py plan --profile vps
+      - name: Проверка диффа
+        run: git diff --check HEAD

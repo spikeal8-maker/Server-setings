@@ -1,0 +1,18 @@
+{
+  "1panel": {
+    "version": "v2.3.2",
+    "official_repository": "https://resource.1panel.pro/v2/stable",
+    "checksums_manifest_verified_on": "2026-10-19",
+    "sha256": {
+      "amd64": "f1265a4fadeaab3d7066dd71e3c6904ac54bb687baab1b205a23c369abb61cac",
+      "arm64": "e147b2ad27053eaef25db41779368a28d31ca2aa79221b37ce5ed62b9e5fa054"
+    }
+  },
+  "mcp-1panel": {
+    "git_commit": "6cd495d74010e762e0ab6ce3ead31730f8ba572a"
+  },
+  "openresty": {
+    "tag": "1.27.1.2-5-1-focal",
+    "observed_on_test_ubuntu_image_digest": "sha256:ee8c5117c291c7384a381c32068e1d9a50adc8bf392f9157c42d14bedbbe018b"
+  }
+}
