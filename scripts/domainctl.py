@@ -189,11 +189,31 @@ def wait_for_certificate(api: PanelAPI, domain: str, issued_id: int, max_wait: i
     raise DomainError("1Panel не завершила получение сертификата за отведённое время")
 
 
+def attached_certificate_id(config: dict) -> int | None:
+    """В 1Panel v2.3.2 GET /websites/{id}/https возвращает {"SSL":{"id":...}}.
+
+    Нельзя подменять это поле несуществующим websiteSSLId и называть сайт исправным.
+    """
+    if not isinstance(config, dict):
+        return None
+    certificate = config.get("SSL")
+    if not isinstance(certificate, dict):
+        return None
+    try:
+        identifier = int(certificate.get("id", 0))
+    except (TypeError, ValueError):
+        return None
+    return identifier if identifier > 0 else None
+
+
 def attach_https(api: PanelAPI, site_id: int, certificate_id: int) -> None:
     existing = api.request("GET", f"/websites/{site_id}/https") or {}
-    if existing.get("enable") and int(existing.get("websiteSSLId", 0)) == certificate_id:
-        return
     if existing.get("enable"):
+        attached = attached_certificate_id(existing)
+        if attached is None:
+            raise DomainError("У работающего HTTPS нет подтверждённого SSL.id в API 1Panel — ручная проверка")
+        if attached == certificate_id:
+            return
         raise DomainError("У сайта уже включён HTTPS с другим сертификатом — ручная проверка обязательна")
     api.request("POST", f"/websites/{site_id}/https", {
         "websiteId": site_id, "enable": True, "websiteSSLId": certificate_id,
@@ -202,8 +222,8 @@ def attach_https(api: PanelAPI, site_id: int, certificate_id: int) -> None:
         "httpsPorts": [443], "http3": False,
     })
     now = api.request("GET", f"/websites/{site_id}/https") or {}
-    if not now.get("enable"):
-        raise DomainError("1Panel не подтвердила HTTPS после применения")
+    if not now.get("enable") or attached_certificate_id(now) != certificate_id:
+        raise DomainError("1Panel не подтвердила HTTPS с ожидаемым SSL.id после применения")
 
 
 def provision(api: PanelAPI, domain: str, public_ip: str, port: int, alias: str,

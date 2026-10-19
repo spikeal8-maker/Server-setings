@@ -9,7 +9,7 @@ import argparse
 import json
 import sys
 from domainctl import (
-    DomainError, acme_account, attach_https, expected_public_ipv4,
+    DomainError, acme_account, attach_https, attached_certificate_id, expected_public_ipv4,
     matching_certificate, matching_site, require_dns_ready, ssl_id,
     upstream_ready, validate_alias, validate_upstream, wait_for_certificate,
     website_group,
@@ -31,6 +31,9 @@ def provision_ip(api: PanelAPI, ip: str, port: int, alias: str) -> dict:
         existing = api.request("GET", f"/websites/{int(found['id'])}/https") or {}
         if not existing.get("enable"):
             raise DomainError("HTTPS IP-сайта выключен: остановка без вмешательства")
+        attached = attached_certificate_id(existing)
+        if attached is None or attached != int(cert["id"]):
+            raise DomainError("Не подтверждена привязка ожидаемого SSL.id к HTTPS IP-сайта")
         return {"status": "existing_site_not_modified", "ip": ip, "site_id": found["id"],
                 "ssl_id": cert["id"], "autoRenew": True, "unchanged": True,
                 "needs_backend_and_browser_verification": True}

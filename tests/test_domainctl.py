@@ -92,11 +92,41 @@ class DomainProvisionTests(unittest.TestCase):
             def request(self, *args): return [{"id": 1, "isDefault": True}, {"id": 2, "isDefault": True}]
         with self.assertRaises(domainctl.DomainError): domainctl.website_group(API())
 
+    def test_existing_matching_ssl_is_idempotent(self):
+        class API:
+            def __init__(self): self.calls = []
+            def request(self, verb, url, body=None):
+                self.calls.append((verb, url))
+                return {"enable": True, "SSL": {"id": 19}}
+        api = API()
+        domainctl.attach_https(api, 5, 19)
+        self.assertEqual([("GET", "/websites/5/https")], api.calls)
+
+    def test_unidentified_ssl_on_existing_https_rejected(self):
+        class API:
+            def request(self, verb, url, body=None):
+                if verb != "GET": raise AssertionError("Unexpected write")
+                return {"enable": True, "websiteSSLId": 19}
+        with self.assertRaisesRegex(domainctl.DomainError, "SSL.id"):
+            domainctl.attach_https(API(), 5, 19)
+
+    def test_new_https_requires_bound_ssl_id_proof(self):
+        class API:
+            def __init__(self): self.count=0
+            def request(self, verb, url, body=None):
+                if verb == "GET":
+                    self.count += 1
+                    return {"enable": False} if self.count == 1 else {"enable": True, "SSL": {"id": 11}}
+                if verb == "POST": return None
+                raise AssertionError("Unexpected read")
+        with self.assertRaisesRegex(domainctl.DomainError, "ожидаемым SSL.id"):
+            domainctl.attach_https(API(), 5, 19)
+
     def test_does_not_attach_different_ssl_to_live_website(self):
         class API:
             def request(self, verb, url, body=None):
                 self.calls.append((verb, url))
-                return {"enable": True, "websiteSSLId": 21}
+                return {"enable": True, "SSL": {"id": 21}}
             calls = []
         api = API()
         with self.assertRaisesRegex(domainctl.DomainError, "другим сертификатом"):

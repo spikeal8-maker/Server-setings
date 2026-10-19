@@ -37,13 +37,24 @@ class TestPublicIPCtl(unittest.TestCase):
                 self.calls.append((verb, path))
                 if path == "/websites/search":return {"total":1,"items":[{"id":2,"primaryDomain":"94.29.44.211","type":"proxy","alias":"asa-lab-public-ip"}]}
                 if path == "/websites/ssl/search":return {"total":1,"items":[{"id":3,"primaryDomain":"94.29.44.211","status":"ready","autoRenew":True}]}
-                if path == "/websites/2/https":return {"enable":True,"websiteSSLId":3}
+                if path == "/websites/2/https":return {"enable":True,"SSL":{"id":3}}
                 raise AssertionError("Unexpected mutation: "+path)
         api = API()
         with mock.patch.object(iptool,"require_local_write"), mock.patch.object(iptool,"upstream_ready"):
             out=iptool.provision_ip(api,"94.29.44.211",4610,"asa-lab-public-ip")
         self.assertTrue(out["unchanged"])
         self.assertTrue(all(method == "GET" or path.endswith("/search") for method,path in api.calls))
+
+    def test_existing_https_with_other_certificate_fails(self):
+        class API:
+            def request(self, verb, path, body=None):
+                if path == "/websites/search": return {"total":1,"items":[{"id":2,"primaryDomain":"94.29.44.211","type":"proxy","alias":"asa-lab-public-ip"}]}
+                if path == "/websites/ssl/search": return {"total":1,"items":[{"id":3,"primaryDomain":"94.29.44.211","status":"ready","autoRenew":True}]}
+                if path == "/websites/2/https": return {"enable":True,"SSL":{"id":4}}
+                raise AssertionError("Unexpected mutation: "+path)
+        with mock.patch.object(iptool,"require_local_write"), mock.patch.object(iptool,"upstream_ready"):
+            with self.assertRaisesRegex(iptool.DomainError,"SSL.id"):
+                iptool.provision_ip(API(),"94.29.44.211",4610,"asa-lab-public-ip")
 
     def test_incomplete_existing_certificate_fails_without_writes(self):
         class API:
@@ -69,7 +80,7 @@ class TestPublicIPCtl(unittest.TestCase):
                 if path == "/websites/ssl":
                     assert body["isIp"] is True and body["autoRenew"] is True
                     self.cert=True;self.mutations.append(path);return {"id":7}
-                if path == "/websites/4/https" and verb == "GET":return {"enable":self.https,"websiteSSLId":7 if self.https else 0}
+                if path == "/websites/4/https" and verb == "GET":return {"enable":self.https,"SSL":{"id":7 if self.https else 0}}
                 if path == "/websites/4/https" and verb == "POST":
                     assert body["httpConfig"] == "HTTPToHTTPS"
                     self.https=True;self.mutations.append(path);return None
