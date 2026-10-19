@@ -68,6 +68,34 @@ class TestProfiles(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Ubuntu"):
                 serverctl.verify_host(serverctl.load_profile("vps"))
 
+    def test_ufw_detects_global_allow_but_not_tailscale(self):
+        leaked = ("Status: active\nDefault: deny (incoming), allow (outgoing)\n"
+                  "19192/tcp ALLOW IN Anywhere\n19192/tcp (v6) ALLOW IN Anywhere (v6)\n")
+        self.assertTrue(serverctl.panel_has_global_allow(leaked, 19192))
+        trusted = ("Status: active\nDefault: deny (incoming), allow (outgoing)\n"
+                   "19192/tcp ALLOW IN 192.168.1.0/24\n"
+                   "19192/tcp on tailscale0 ALLOW IN Anywhere\n"
+                   "19192/tcp DENY IN Anywhere\n")
+        self.assertFalse(serverctl.panel_has_global_allow(trusted, 19192))
+
+    def test_postinstall_blocks_unrestricted_panel(self):
+        removed = subprocess.CompletedProcess(["ufw"], 0, "", "")
+        leaked = subprocess.CompletedProcess(["ufw"], 0, "Status: active\nDefault: deny (incoming), allow (outgoing)\n19192/tcp ALLOW IN Anywhere\n", "")
+        with mock.patch.object(serverctl.subprocess, "run", side_effect=[removed, leaked]):
+            with self.assertRaisesRegex(RuntimeError, "ОПАСНО"):
+                serverctl.enforce_panel_firewall(19192, cleanup=True)
+
+    def test_firewall_deny_order_and_ssh_continuity(self):
+        removed = subprocess.CompletedProcess(["ufw"], 1, "", "")
+        safe_status = subprocess.CompletedProcess(["ufw"], 0, "Status: active\nDefault: deny (incoming), allow (outgoing)\n19192/tcp DENY IN Anywhere\n", "")
+        with mock.patch.object(serverctl.subprocess, "run", side_effect=[removed, safe_status]):
+            with mock.patch.object(serverctl, "command") as updates:
+                serverctl.apply_firewall(serverctl.load_profile("vps"), ["198.51.100.9/32"])
+        calls = [call.args for call in updates.call_args_list]
+        self.assertIn(("ufw", "allow", "from", "198.51.100.9/32", "to", "any", "port", "22", "proto", "tcp"), calls)
+        self.assertLess(calls.index(("ufw", "deny", "19192/tcp")),
+                        calls.index(("ufw", "--force", "enable")))
+
     def test_repair_old_caddy_only_when_inactive(self):
         with mock.patch.object(serverctl, "service_state", return_value="active"):
             with self.assertRaises(RuntimeError):

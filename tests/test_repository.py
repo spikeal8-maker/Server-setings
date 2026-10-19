@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -6,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class TestHygiene(unittest.TestCase):
     def test_secret_never_committed_in_source(self):
-        forbidden = ["1129" + "8347", "6ded5a6d" + "ff87f2de" + "0334a5b3" + "7b485084", "-----BEGIN " + "OPENSSH PRIVATE KEY-----", "-----BEGIN " + "PRIVATE KEY-----"]
+        # Не хранить реальные секреты даже в форме конкатенации строк.
+        forbidden = ["-----BEGIN " + "OPENSSH PRIVATE KEY-----", "-----BEGIN " + "PRIVATE KEY-----"]
+        standalone_32hex = re.compile(r"(?<![0-9a-fA-F])[0-9a-fA-F]{32}(?![0-9a-fA-F])")
         for path in ROOT.rglob("*"):
             if not path.is_file() or ".git" in path.parts or "__pycache__" in path.parts:
                 continue
@@ -14,6 +17,8 @@ class TestHygiene(unittest.TestCase):
             except UnicodeError: continue
             for token in forbidden:
                 self.assertNotIn(token, content, str(path))
+            # 1Panel API-ключи имеют 32 hex символа; SHA1/SHA256 длиной 40/64 допускаются.
+            self.assertIsNone(standalone_32hex.search(content), str(path))
 
     def test_required_docs(self):
         self.assertTrue((ROOT / "AGENTS.md").exists())
