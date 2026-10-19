@@ -1,0 +1,39 @@
+name: MCP OAuth — проверка RFC 9728
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/patch-upstream-mcp-oauth.py"
+      - "docs/16-MCP-OAUTH-RFC9728.md"
+      - ".github/workflows/mcp-oauth-rfc9728.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.2"
+          cache: false
+      - name: Клонировать закреплённый upstream
+        run: |
+          git clone https://github.com/sigbit/mcp-auth-proxy.git vendor/mcp-auth-proxy
+          git -C vendor/mcp-auth-proxy checkout --detach c8868adee557e793b73c7e8a3b3d37e080854c20
+          test "$(git -C vendor/mcp-auth-proxy rev-parse HEAD)" = "c8868adee557e793b73c7e8a3b3d37e080854c20"
+      - name: Применить патч к exact source
+        run: |
+          python3 scripts/patch-upstream-mcp-oauth.py vendor/mcp-auth-proxy
+          gofmt -w vendor/mcp-auth-proxy/pkg/proxy/proxy.go vendor/mcp-auth-proxy/pkg/idp/idp.go vendor/mcp-auth-proxy/pkg/proxy/proxy_test.go vendor/mcp-auth-proxy/pkg/idp/idp_test.go
+          git -C vendor/mcp-auth-proxy diff --check
+      - name: OAuth, PKCE, audience и metadata тесты
+        working-directory: vendor/mcp-auth-proxy
+        run: go test -count=1 ./pkg/proxy ./pkg/idp
+      - name: Docker build без публикации
+        run: docker build -t asa-mcp-auth-proxy-rfc9728:ci vendor/mcp-auth-proxy
