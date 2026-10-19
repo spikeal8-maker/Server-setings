@@ -14,6 +14,13 @@ spec.loader.exec_module(serverctl)
 
 
 class TestProfiles(unittest.TestCase):
+    def test_pinned_1panel_hashes(self):
+        locked=json.loads((BASE/'versions.lock.json').read_text(encoding='utf-8'))
+        self.assertEqual('v2.3.2', locked['1panel']['version'])
+        for digest in locked['1panel']['sha256'].values():
+            self.assertEqual(64, len(digest))
+            int(digest, 16)
+
     def test_all_profiles_valid(self):
         for name in ("home-static", "home-dynamic", "vps"):
             with self.subTest(name=name):

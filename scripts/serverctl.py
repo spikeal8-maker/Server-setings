@@ -224,7 +224,7 @@ def install_panel(data: dict, arch: str):
             root = folder.resolve()
             for member in tar.getmembers():
                 target = (folder / member.name).resolve()
-                if not target.is_relative_to(root) or member.issym() or member.islnk():
+                if not target.is_relative_to(root) or member.isdev():
                     raise RuntimeError("Недоверенная структура установочного архива")
             tar.extractall(folder, filter="data")
         installer = folder / f"1panel-{version}-linux-{arch}" / "install.sh"

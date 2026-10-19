@@ -62,3 +62,5 @@ python3 -m compileall -q scripts
 ```
 
 [Полная матрица доказательств и ограничений](docs/08-ПРОВЕРКИ-И-ОГРАНИЧЕНИЯ.md). Секреты и персональные данные в GitHub **не хранить**, даже в private repository.
+
+Проверка обновления короткого IP SSL: `python3 scripts/check-certificate.py --host 94.29.44.211`; при необходимости ставится локальный systemd timer `sudo bash scripts/install-cert-monitor.sh --host 94.29.44.211 --apply` (логи без внешних уведомлений).
