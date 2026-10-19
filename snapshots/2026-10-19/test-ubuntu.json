@@ -1,0 +1,99 @@
+{
+  "snapshot_date": "2026-10-19T14:54:00+03:00",
+  "status": "СНЯТО С РЕАЛЬНОЙ МАШИНЫ; это не готовый образ для клонирования",
+  "source": "авторизованный SSH + чтение 1Panel API + локальная HTTP диагностика",
+  "hostname": "admins-MS-7D22",
+  "os": "Ubuntu 24.04.4 LTS",
+  "kernel": "7.0.0-31-generic",
+  "network": {
+    "lan": "192.168.1.115/24",
+    "wan_router_ip": "94.29.44.211",
+    "router": "192.168.1.1",
+    "tailscale": "100.75.149.26",
+    "public_ip_is_router_nat": true,
+    "lan_interface": "eno1",
+    "router_nat_currently_reverified": false
+  },
+  "panel": {
+    "name": "1Panel OSS",
+    "version": "v2.3.2",
+    "port": 19192,
+    "listen": "0.0.0.0:19192",
+    "lan_login": "asaadmin",
+    "api_key_name": "asa-lab-private-mcp",
+    "api_key_is_active": true,
+    "api_signing_window_minutes": 5,
+    "api_allowlist": ["127.0.0.1", "192.168.1.111", "100.96.255.113"],
+    "api_last_verified": "2026-10-19",
+    "api_key_secret_stored_in_git": false
+  },
+  "openresty": {
+    "name": "1Panel-openresty-fc55",
+    "version": "1.27.1.2-5-1-focal",
+    "image": "1panel/openresty:1.27.1.2-5-1-focal",
+    "local_image_digest": "sha256:ee8c5117c291c7384a381c32068e1d9a50adc8bf392f9157c42d14bedbbe018b",
+    "bind": ["0.0.0.0:80", "0.0.0.0:443"],
+    "compose": "/opt/1panel/apps/openresty/openresty/docker-compose.yml",
+    "vhost": "/opt/1panel/www/conf.d/asa-lab-public-ip.conf",
+    "site_proxy": "/opt/1panel/www/sites/asa-lab-public-ip/proxy/root.conf",
+    "site_domain": "94.29.44.211",
+    "site_type": "proxy",
+    "upstream": "http://127.0.0.1:4610",
+    "site_http_result": 200
+  },
+  "tls": {
+    "issuer": "Let's Encrypt YE1",
+    "san": "IP Address:94.29.44.211",
+    "valid_from_utc": "2026-10-19T08:18:48Z",
+    "valid_to_utc": "2026-10-26T00:18:47Z",
+    "auto_renew": true,
+    "next_real_renewal_test": "НЕ ПОДТВЕРЖДЁН",
+    "certificate_path": "/opt/1panel/www/sites/asa-lab-public-ip/ssl/fullchain.pem"
+  },
+  "asa_lab": {
+    "repo": "https://github.com/spikeal8-maker/asa-lab",
+    "checkout": "/srv/asa-lab",
+    "last_checked_out_commit": "314078ba",
+    "compose_project": "asa-lab-dev",
+    "profile": "production",
+    "web_bind": "127.0.0.1:4610",
+    "local_https_bind": "192.168.1.115:4610",
+    "api_container": "asa-lab-dev-api-1",
+    "web_container": "asa-lab-dev-web-1",
+    "scratch_container": "asa-lab-dev-scratch-1",
+    "postgres": "postgres:17.7-bookworm",
+    "postgres_network": "Docker internal only",
+    "minio_network": "Docker internal only",
+    "compose_files": ["/srv/asa-lab/compose.yaml", "/srv/asa-lab/compose.production.yaml"],
+    "local_https_config": "/opt/asa-lan-https/Caddyfile",
+    "local_https_service": "asa-lab-lan-https.service",
+    "health_ready_http": 200
+  },
+  "legacy_public_caddy": {
+    "service": "asa-lab-public-ip.service",
+    "is_active": false,
+    "is_enabled": true,
+    "config": "/opt/asa-public-ip/Caddyfile",
+    "finding": "ДЕФЕКТ: одновременно с OpenResty указан автозапуск старого публичного Caddy, возможен конфликт 80/443 после reboot",
+    "fixed_on_original_server": false
+  },
+  "firewall": {
+    "enabled": true,
+    "default_incoming": "deny",
+    "default_outgoing": "allow",
+    "lan_ssh": "22/tcp from 192.168.1.0/24",
+    "tailnet_ssh": "22/tcp on tailscale0",
+    "lan_panel": "19192/tcp from 192.168.1.0/24",
+    "tailnet_panel": "19192/tcp on tailscale0",
+    "lan_asa": "4610/tcp on eno1 from 192.168.1.0/24",
+    "public_http_https": [80, 443],
+    "public_postgres_or_minio": false
+  },
+  "backup": {
+    "latest_found_restored_snapshot_dir": "/srv/asa-restore/20261017T231505Z-65b68074",
+    "backups_present": ["/var/backups/asa-public-ip-20261018", "/var/backups/asa-1panel-cutover-20261019", "/var/backups/asa-restore-rehearsal"],
+    "backup_integrity_and_restore_latest_rechecked": false
+  },
+  "verified_as_clean_install": false,
+  "secrets_or_personal_data_included": false
+}
