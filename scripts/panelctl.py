@@ -107,7 +107,14 @@ def inspect(api: PanelAPI):
     }
 
 
+def require_local_write(api: PanelAPI):
+    if os.name != "posix" or urllib.parse.urlsplit(api.host).hostname not in ("127.0.0.1", "localhost"):
+        raise PanelError("Изменение разрешено только на самой Ubuntu через локальный API 1Panel. Используйте SSH")
+
+
 def openresty_install(api: PanelAPI, apply: bool, desired: str):
+    if apply:
+        require_local_write(api)
     if os.name == "posix":
         import subprocess
         res = subprocess.run(["ss", "-lntp"], check=False, text=True, capture_output=True)
@@ -155,6 +162,8 @@ def validate_site(host: str, upstream: str, alias: str):
 
 
 def create_site(api: PanelAPI, host: str, upstream: str, alias: str, apply: bool):
+    if apply:
+        require_local_write(api)
     validate_site(host, upstream, alias)
     existing = [x for x in websites(api) if x.get("primaryDomain") == host or x.get("alias") == alias]
     if existing:

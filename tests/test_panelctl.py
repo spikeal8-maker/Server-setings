@@ -14,6 +14,11 @@ spec.loader.exec_module(panelctl)
 
 
 class TestPanelAPI(unittest.TestCase):
+    def test_write_requires_local_api(self):
+        remote=panelctl.PanelAPI("http://192.168.1.115:19192", "a" * 32)
+        with self.assertRaisesRegex(panelctl.PanelError, "локальный"):
+            panelctl.require_local_write(remote)
+
     def test_signature_and_headers(self):
         cap = {}
         class FakeReply:
@@ -60,7 +65,7 @@ class TestPanelAPI(unittest.TestCase):
             def request(self, method, endpoint, payload=None):
                 if endpoint == "/websites/search": return {"items": [{"primaryDomain": "94.29.44.211", "alias": "asa-lab-public-ip", "type": "proxy"}], "total": 1}
                 raise AssertionError("write called for existing site")
-        panelctl.create_site(FakeAPI(), "94.29.44.211", "http://127.0.0.1:4610", "asa-lab-public-ip", apply=True)
+        panelctl.create_site(FakeAPI(), "94.29.44.211", "http://127.0.0.1:4610", "asa-lab-public-ip", apply=False)
 
     def test_observe_sites_and_certs(self):
         class FakeAPI:
