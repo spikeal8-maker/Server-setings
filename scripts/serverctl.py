@@ -242,9 +242,51 @@ def install_panel(data: dict, arch: str):
         print("1Panel установлен. Временные файлы скачивания удалены. Корневые credentials: ", credentials)
 
 
+def panel_has_global_allow(ufw_status: str, port: int) -> bool:
+    """Ищем разрешение панели из любого IP вне специально доверенного интерфейса."""
+    port_names = {str(port), f"{port}/tcp"}
+    for line in ufw_status.splitlines():
+        words = line.split()
+        if not words or words[0] not in port_names or "ALLOW" not in words:
+            continue
+        if not any(word in ("Anywhere", "0.0.0.0/0", "::/0") for word in words):
+            continue
+        if "on" in words and "tailscale0" in words:
+            continue
+        return True
+    return False
+
+
+def remove_global_panel_allow(port: int) -> None:
+    """Только широкое ufw allow PORT/tcp, без удаления LAN/Tailscale-правил."""
+    result = subprocess.run(["ufw", "--force", "delete", "allow", f"{port}/tcp"],
+                            text=True, capture_output=True, check=False)
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"Не удалось удалить широкое UFW-правило панели (код {result.returncode})")
+
+
+def enforce_panel_firewall(port: int, cleanup: bool = False) -> None:
+    """Не считать установку безопасной без независимой проверки правил UFW."""
+    if cleanup:
+        remove_global_panel_allow(port)
+    english_env = dict(os.environ, LANG="C", LC_ALL="C")
+    res = subprocess.run(["ufw", "status", "verbose"], text=True, capture_output=True,
+                         check=True, env=english_env)
+    status = res.stdout
+    if not re.search(r"(?m)^Status:\s+active\s*$", status):
+        raise RuntimeError("UFW не активен: административный интерфейс может быть доступен извне")
+    if not re.search(r"(?m)^Default:\s+deny\s+\(incoming\)", status):
+        raise RuntimeError("UFW не использует deny incoming")
+    if panel_has_global_allow(status, port):
+        raise RuntimeError(f"ОПАСНО: административный порт {port}/tcp разрешён из Anywhere")
+
+
 def apply_firewall(data: dict, cidrs: list[str]):
     if not cidrs:
         raise RuntimeError("Блокировка UFW: нет безопасного CIDR для SSH. Используйте --admin-cidr")
+    panel_port = int(data["panel_port"])
+    # На новом сервере удаляем прежний общий ALLOW до добавления ограничений.
+    remove_global_panel_allow(panel_port)
     for port in resolve_ssh_ports(data):
         for cidr in cidrs:
             command("ufw", "allow", "from", cidr, "to", "any", "port", str(port), "proto", "tcp")
@@ -253,12 +295,16 @@ def apply_firewall(data: dict, cidrs: list[str]):
     if data["admin_over_tailscale"] and data["install_tailscale"]:
         for port in {*resolve_ssh_ports(data), data["panel_port"]}:
             command("ufw", "allow", "in", "on", "tailscale0", "to", "any", "port", str(port), "proto", "tcp")
+    # Правило deny ниже разрешений LAN/Tailscale, но выше потенциального
+    # разрешающего правила, добавляемого официальным установщиком 1Panel.
+    command("ufw", "deny", f"{panel_port}/tcp")
     if data["allow_public_web"]:
         command("ufw", "allow", "80/tcp")
         command("ufw", "allow", "443/tcp")
     command("ufw", "default", "deny", "incoming")
     command("ufw", "default", "allow", "outgoing")
     command("ufw", "--force", "enable")
+    enforce_panel_firewall(panel_port)
 
 
 def read_command(args: list[str], limit: int = 10000) -> str:
@@ -331,9 +377,14 @@ def main():
         install_docker()
     if data["install_tailscale"]:
         install_tailscale()
-    if data["install_1panel"]:
-        install_panel(data, arch)
+    # До установки 1Panel разрешён только административный доступ.
     apply_firewall(data, cidrs)
+    if data["install_1panel"]:
+        try:
+            install_panel(data, arch)
+        finally:
+            # 1Panel может добавить ufw allow PORT/tcp сама, даже при ошибке.
+            enforce_panel_firewall(int(data["panel_port"]), cleanup=True)
     print("БАЗОВАЯ УСТАНОВКА ЗАВЕРШЕНА. Проверьте 1Panel, затем установите OpenResty и сайты через панель/API.")
     print("Доступ к панели (порт):", data["panel_port"])
     print("Для диагностики: sudo python3 scripts/serverctl.py doctor")
