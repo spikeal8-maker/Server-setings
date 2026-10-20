@@ -91,8 +91,6 @@ the original 11 tools and ASA readiness. Do not delete the durable store, OAuth
 state, application volumes or backups. Do not stop the backend while its jobs
 run. The private backend may remain installed during gateway rollback.
 
-## Verification boundary
-
 ## Reproduce the published deployment
 
 The reviewed deployment source is commit
