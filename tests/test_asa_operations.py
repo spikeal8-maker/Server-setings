@@ -53,7 +53,7 @@ class OperationStoreTests(unittest.TestCase):
     def test_dead_worker_requires_recovery_and_blocks_new_update(self):
         record, _ = self.start()
         with self.store.db() as db:
-            db.execute("UPDATE operations SET updated=?,pid=?,process_identity=? WHERE id=?",
+            db.execute("UPDATE operations SET status='running',updated=?,pid=?,process_identity=? WHERE id=?",
                        ('2020-01-01T00:00:00+00:00', 99999999, 'foreign-boot:start', record['operation_id']))
         self.store.reconcile()
         self.assertEqual(self.store.get(record['operation_id'])['status'], 'recovery_required')
@@ -76,6 +76,17 @@ class OperationStoreTests(unittest.TestCase):
         self.assertEqual(recovered['status'], 'failed')
         self.assertEqual(recovered['phase'], 'never_started')
         self.assertTrue(self.start('new-explicit-start-0001')[1])
+
+    def test_queued_worker_dies_after_pid_write_without_replay(self):
+        record, _ = self.start()
+        self.store.update(record['operation_id'], updated='2020-01-01T00:00:00+00:00',
+                          pid=99999999, process_identity='foreign-boot:start')
+        self.store.reconcile()
+        self.assertEqual(self.store.get(record['operation_id'])['phase'], 'never_started')
+        original, created = self.start()
+        self.assertFalse(created)
+        self.assertEqual(original['operation_id'], record['operation_id'])
+        self.assertTrue(self.start('new-explicit-start-0002')[1])
 
     def test_immutable_plan_detects_tampering(self):
         with self.store.db() as db:

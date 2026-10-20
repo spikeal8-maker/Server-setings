@@ -161,7 +161,7 @@ class Store:
                 if age < 30:
                     continue
                 if not row['pid'] or process_identity(row['pid']) != row['process_identity']:
-                    # A queued transaction with no recorded worker and no first
+                    # A queued transaction with no live worker and no first
                     # event can be abandoned without executing or replaying it.
                     # Check /proc for the narrow Popen→PID-write interruption.
                     found = False
@@ -174,7 +174,7 @@ class Store:
                             continue
                     if found:
                         continue
-                    never_started = row['status'] == 'queued' and not row['pid'] and not (self.root/(row['id']+'.jsonl')).exists()
+                    never_started = row['status'] == 'queued' and not (self.root/(row['id']+'.jsonl')).exists()
                     state, phase = ('failed', 'never_started') if never_started else ('recovery_required', 'worker_lost')
                     db.execute('UPDATE operations SET status=?,phase=?,updated=? WHERE id=?', (state, phase, now(), row['id']))
 
