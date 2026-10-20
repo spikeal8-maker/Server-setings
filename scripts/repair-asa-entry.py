@@ -39,6 +39,7 @@ def owner_stage(apply):
     public.add(ORIGIN)
     expected['ASA_PUBLIC_WEB_ORIGINS'] = ','.join(sorted(public))
     attest_editor_env(*(expected[key] for key in KEYS), install.profile)
+    install.env = expected
     install.process_env.update(expected)
     validate_resolved_images(install, release)
     if not apply:
