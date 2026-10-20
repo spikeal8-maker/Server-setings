@@ -170,6 +170,52 @@ operation ID, gateway rollback directory and test evidence.
 
 ## Limits of the recorded verification
 
+### Controlled entry repair, 2026-10-21
+
+`scripts/repair-asa-entry.py` is a separate operator maintenance command, not
+an arbitrary command exposed by MCP. On the recorded existing Ubuntu host:
+
+```bash
+sudo python3 scripts/repair-asa-entry.py
+sudo python3 scripts/repair-asa-entry.py --apply
+```
+
+Default mode validates the proposed configuration without changing it. Apply
+holds the canonical manager lock, privately saves `/etc/hosts`, the existing
+`.env` and manager state under `/var/backups/asa-entry-<UTC timestamp>`, adds
+only `test.asa-lab.ru -> 127.0.0.1` on Ubuntu (to avoid public-IP hairpin timeout),
+and aligns the three entry/editor origins with `https://test.asa-lab.ru`.
+It preserves explicit existing allowed web origins and adds this domain.
+It recreates only API/Scratch/Web with the currently running release's digest
+pins and schema, no dependencies/build/pull/migration. PostgreSQL/MinIO container
+IDs and mounts, image pins and trusted domain entry are verified afterward.
+The Windows PC's resolver/network configuration is not changed.
+
+The first live attempt exposed an old `ASA_EXPECTED_SCHEMA_VERSION=213` hint
+overriding the selected schema225 during environment merging and briefly made
+readiness return503. Pin precedence was corrected, API configuration reapplied
+without migration, and the corrected repair command rerun successfully.
+Selected release pins now override private build/schema hints after merging.
+The original backup is retained; successful repeat verification is recorded at
+`/var/backups/asa-entry-20261020T224948Z`.
+
+Rollback is an explicit configuration transition: preserve a fresh copy first,
+restore the chosen private hosts/env files, then use the same running release
+pins to recreate only the affected three services and verify entry/data identity.
+Do not restore stale receipts or run a database restoration to roll back origins.
+
+After repair, a fresh MCP plan passes trusted TLS and editor-origin checks;
+only `FAILED_RECEIPT` remains. Recovery plans now recheck the current state
+while retaining the existing operation and its original release pins.
+Actual MCP finalization returns `ACCEPTANCE_PENDING`, stage
+`teacher_registration_or_login`, code `API_STATUS_403`: the current acceptance
+runner's API registration omits the production BotCheck proof. Its fixture also
+needs legitimate verified-account/course prerequisites before later user flows
+can pass. Do not forge a proof, weaken auth, or mark that receipt successful.
+Failed finalization retains `recovery_required` even when old manager marker
+files have previously been acknowledged. New runs must use a new finalization
+key; reusing the old key returns its original result.
+
 Unit/integration tests cover transactional concurrency, restart discovery,
 immutable-plan tampering, durable idempotency, rejected arbitrary parameters,
 blocked plans, bounded manager handoff and actual stdio protocol forwarding.
