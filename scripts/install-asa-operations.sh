@@ -22,6 +22,11 @@ assert i['state_root']=='/var/lib/server-settings/asa-operations'
 assert c['port']==39446
 assert c['official_command']==['/opt/server-settings/bin/mcp-1panel','-transport','stdio','-access-level','full']
 PY
+# Existing server-settings directories may be private root-only. Grant only
+# traversal and execution of the official binary to the installation owner.
+command -v setfacl >/dev/null
+setfacl -m u:admins:--x /opt/server-settings /opt/server-settings/bin
+setfacl -m u:admins:r-x /opt/server-settings/bin/mcp-1panel
 install -d -m 0755 /opt/server-settings/asa-operations/asa_ops
 install -m 0644 "$SOURCE"/scripts/asa_ops/*.py /opt/server-settings/asa-operations/asa_ops/
 install -d -m 0700 -o admins -g admins /var/lib/server-settings/asa-operations
