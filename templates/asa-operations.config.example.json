@@ -1,0 +1,16 @@
+{
+  "port": 39446,
+  "plan_ttl_seconds": 3600,
+  "official_command": ["/opt/server-settings/bin/mcp-1panel", "-transport", "stdio", "-access-level", "full"],
+  "installation": {
+    "id": "asa-test",
+    "root": "/srv/asa-lab",
+    "project": "asa-lab-dev",
+    "profile": "production",
+    "owner_uid": 1000,
+    "state_root": "/var/lib/server-settings/asa-operations",
+    "entry_origin": "https://test.asa-lab.ru",
+    "minimum_free_bytes": 4294967296,
+    "acceptance_command": ["/opt/server-settings/asa-browser-venv/bin/python", "/opt/server-settings/asa-operations/asa_ops/browser_acceptance.py", "--fixture", "/var/lib/server-settings/asa-operations/browser-fixture.json"]
+  }
+}
