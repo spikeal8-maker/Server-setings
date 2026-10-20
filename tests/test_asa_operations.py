@@ -79,8 +79,9 @@ class OperationStoreTests(unittest.TestCase):
 
     def test_queued_worker_dies_after_pid_write_without_replay(self):
         record, _ = self.start()
-        self.store.update(record['operation_id'], updated='2020-01-01T00:00:00+00:00',
-                          pid=99999999, process_identity='foreign-boot:start')
+        with self.store.db() as db:
+            db.execute('UPDATE operations SET updated=?,pid=?,process_identity=? WHERE id=?',
+                       ('2020-01-01T00:00:00+00:00', 99999999, 'foreign-boot:start', record['operation_id']))
         self.store.reconcile()
         self.assertEqual(self.store.get(record['operation_id'])['phase'], 'never_started')
         original, created = self.start()
