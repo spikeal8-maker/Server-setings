@@ -30,6 +30,7 @@ setfacl -m u:admins:r-x /opt/server-settings/bin/mcp-1panel
 install -d -m 0755 /opt/server-settings/asa-operations/asa_ops
 install -m 0644 "$SOURCE"/scripts/asa_ops/*.py /opt/server-settings/asa-operations/asa_ops/
 install -d -m 0700 -o admins -g admins /var/lib/server-settings/asa-operations
+setfacl -m u:admins:--x /var/lib/server-settings
 install -m 0644 "$SOURCE/templates/asa-operations.service" /etc/systemd/system/asa-operations.service
 python3 -m compileall -q /opt/server-settings/asa-operations/asa_ops
 systemctl daemon-reload
