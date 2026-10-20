@@ -1,5 +1,5 @@
 {
-  "status": "BACKEND_AND_OAUTH_DEPLOYED_CHATGPT_REFRESH_PENDING",
+  "status": "DEPLOYED_17_TOOLS_CHATGPT_REFRESH_VERIFIED",
   "source_revision": "1df60558e6ca001179431e67df9db35e74ceee95",
   "installed_python_source_revision": "3ad1cd9",
   "installer_permission_reconciliation": "Named admins traversal ACL on private parent directories; exact official binary read/execute. Private files remain private.",
@@ -25,6 +25,7 @@
   "browser_acceptance": "failed at release_provenance timeout; teacher/student/course/project/save/reopen NOT accepted",
   "test_fixture_authorization": "Owner explicitly permits separate test accounts and projects; no existing user work modified",
   "chatgpt_plugin_id": "plugin_asdk_app_6ad7a7fb60788191b6e0d5d00ccca127",
-  "chatgpt_refresh": "pending action-time confirmation",
+  "chatgpt_refresh": "Owner confirmed; native refresh completed; ChatGPT modal shows Write8 and Read9 with all six ASA operations",
   "end_to_end_update_acceptance": "NOT COMPLETE"
 }
+
