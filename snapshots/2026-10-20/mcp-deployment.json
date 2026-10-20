@@ -37,9 +37,9 @@
   "independent_review": "Read-only review of exact source completed; no definite new code/security defect found; Go/race evidence from existing successful CI",
   "security_followup": "Compose-search diagnostic accidentally included secrets in tool output; subsequent output filtered. No secrets committed. Credential rotation remains separate work.",
   "secrets_included": false,
-  "chatgpt_plugin_name": "1Panel — ASA Lab (только чтение)",
+  "chatgpt_plugin_name": "1Panel вЂ” ASA Lab (С‚РѕР»СЊРєРѕ С‡С‚РµРЅРёРµ)",
   "chatgpt_oauth_progress": "Owner approved creation; ChatGPT DCR returned 201. Existing password login and consent succeeded via certificate-verified IP due to local DNS failure. Authorization code returned to ChatGPT callback. No subsequent ChatGPT token exchange observed.",
-  "remaining_blocker": "Chrome callback remains blank; catalog partially loads; browser control repeatedly times out after recovery. Direct ChatGPT tool calls not yet verified.",
+  "remaining_blocker": "After callback reload, ChatGPT returned to /plugins but shows Не удалось загрузить плагины and profile loading; native Retry used once. No ChatGPT token exchange or tool calls observed. Browser control recovered enough to capture the error.",
   "local_dns": "test.asa-lab.ru: Chrome ERR_NAME_NOT_RESOLVED; DNS/VPN/hosts unchanged",
   "latest_documentation_ci": "a209e93: static, patch-and-test, candidate build and publish all PASS; deployed source remains a79c32c",
   "rollback_script": "/var/backups/asa-mcp-20261020/rollback_remote.py --apply"
