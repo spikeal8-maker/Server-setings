@@ -42,6 +42,7 @@ def owner_stage(apply):
     attest_editor_env(*(expected[key] for key in KEYS), install.profile)
     install.env = expected
     install.process_env.update(expected)
+    apply_release_environment(install, release)  # release pins override stale private build/schema hints
     validate_resolved_images(install, release)
     if not apply:
         return {'origin': ORIGIN, 'revision': ready['revision'], 'schema': ready['schema'],
