@@ -1,0 +1,130 @@
+name: MCP candidate — tests, image and private release
+
+on:
+  push:
+    branches: [fix/mcp-oauth-rfc9728-resource-20261020]
+    paths:
+      - scripts/patch-upstream-mcp-oauth.py
+      - scripts/prepare-mcp-release.py
+      - .github/workflows/mcp-candidate-release.yml
+      - docs/17-MCP-CANDIDATE-RELEASE.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'spikeal8-maker/Server-setings' && github.ref == 'refs/heads/fix/mcp-oauth-rfc9728-resource-20261020'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.2'
+          cache: false
+      - name: Prepare exact upstream and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/sigbit/mcp-auth-proxy.git vendor/mcp-auth-proxy
+          git -C vendor/mcp-auth-proxy checkout --detach c8868adee557e793b73c7e8a3b3d37e080854c20
+          python3 scripts/prepare-mcp-release.py vendor/mcp-auth-proxy
+          gofmt -w vendor/mcp-auth-proxy/pkg/proxy/*.go vendor/mcp-auth-proxy/pkg/idp/*.go
+          git -C vendor/mcp-auth-proxy diff --check
+      - name: Test existing package and OAuth candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          python3 -m unittest discover -s tests -v
+          python3 -m compileall -q scripts
+          (cd vendor/mcp-auth-proxy && go test -count=1 ./...) 2>&1 | tee release/go-tests.log
+          (cd vendor/mcp-auth-proxy && go test -race -count=1 ./pkg/proxy ./pkg/idp) 2>&1 | tee release/go-race-tests.log
+      - name: Build candidate, preserve source and image
+        shell: bash
+        env:
+          IMAGE: ghcr.io/spikeal8-maker/asa-mcp-auth-proxy:candidate-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --platform linux/amd64 --build-arg TARGETOS=linux --build-arg TARGETARCH=amd64 \
+            --label org.opencontainers.image.source=https://github.com/spikeal8-maker/Server-setings \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --label asa.status=candidate-not-deployed \
+            -t "$IMAGE" vendor/mcp-auth-proxy
+          docker run --rm "$IMAGE" --help > release/binary-help.txt
+          docker save "$IMAGE" | gzip -1 > release/asa-mcp-auth-proxy-linux-amd64.tar.gz
+          tar --exclude=.git -czf release/patched-upstream-source.tar.gz -C vendor mcp-auth-proxy
+          git -C vendor/mcp-auth-proxy diff --binary > release/upstream.patch
+          cp vendor/mcp-auth-proxy/LICENSE release/UPSTREAM-LICENSE
+          cp docs/17-MCP-CANDIDATE-RELEASE.md release/READ-ME.md
+          printf '%s\n' "$IMAGE" > release/image-tag.txt
+          docker image inspect --format '{{.Id}}' "$IMAGE" > release/image-id.txt
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = {
+              'status': 'CANDIDATE_NOT_DEPLOYED',
+              'source_revision': os.environ['GITHUB_SHA'],
+              'upstream_revision': 'c8868adee557e793b73c7e8a3b3d37e080854c20',
+              'platform': 'linux/amd64',
+              'image_tag': os.environ['IMAGE'],
+              'image_id': Path('release/image-id.txt').read_text().strip(),
+              'live_server_contacted': False,
+              'independent_review': 'pending',
+              'chatgpt_tools_verified': False,
+          }
+          Path('release/manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PY
+          (cd release && sha256sum * > SHA256SUMS)
+          cat release/manifest.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asa-mcp-candidate-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: asa-mcp-candidate-${{ github.sha }}
+          path: release
+      - name: Verify archive and push private candidate
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          (cd release && sha256sum --check SHA256SUMS)
+          image="ghcr.io/spikeal8-maker/asa-mcp-auth-proxy:candidate-${GITHUB_SHA}"
+          test "$(cat release/image-tag.txt)" = "$image"
+          gzip -dc release/asa-mcp-auth-proxy-linux-amd64.tar.gz | docker load
+          test "$(docker image inspect --format '{{.Id}}' "$image")" = "$(cat release/image-id.txt)"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          docker push "$image"
+          docker image inspect --format '{{index .RepoDigests 0}}' "$image" > release/published-digest.txt
+          grep -E '^ghcr.io/spikeal8-maker/asa-mcp-auth-proxy@sha256:[0-9a-f]{64}$' release/published-digest.txt
+          cat release/published-digest.txt >> "$GITHUB_STEP_SUMMARY"
+          printf '\nCandidate only. No live deployment or ChatGPT connection was performed.\n' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asa-mcp-published-digest-${{ github.sha }}
+          path: release/published-digest.txt
+          if-no-files-found: error
+          retention-days: 14
