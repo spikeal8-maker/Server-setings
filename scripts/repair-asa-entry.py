@@ -33,6 +33,7 @@ def owner_stage(apply):
     assert release['revision'] == ready['revision'] and release['schema'] == ready['schema']
     assert all(before[name]['image'] == release['images'][name] for name in ('api', 'web', 'scratch', 'minio'))
     apply_release_environment(install, release)  # never use the stale installed receipt's images
+    previous_origins = {k: install.env.get(k) for k in KEYS}
     expected = dict(install.env)
     expected.update({key: ORIGIN for key in KEYS})
     public = {x.strip() for x in expected.get('ASA_PUBLIC_WEB_ORIGINS', '').split(',') if x.strip()}
@@ -44,7 +45,7 @@ def owner_stage(apply):
     validate_resolved_images(install, release)
     if not apply:
         return {'origin': ORIGIN, 'revision': ready['revision'], 'schema': ready['schema'],
-                'services': ['api', 'web', 'scratch'], 'previous_origins': {k: install.env.get(k) for k in KEYS}}
+                'services': ['api', 'web', 'scratch'], 'previous_origins': previous_origins}
     target = ROOT/'.env'
     lines = target.read_text().splitlines()
     changes = {k: expected[k] for k in (*KEYS, 'ASA_PUBLIC_WEB_ORIGINS')}
