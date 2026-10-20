@@ -1,7 +1,7 @@
 {
-  "observed_at": "2026-10-20T20:52:00+03:00",
+  "observed_at": "2026-10-20T21:16:21.692104+03:00",
   "host": "admins-MS-7D22",
-  "status": "DEPLOYED_FULL_11_TOOLS_CHATGPT_REFRESH_PENDING",
+  "status": "DEPLOYED_FULL_11_TOOLS_CHATGPT_ALLOW_ALL_VERIFIED",
   "source_revision": "a79c32c54fdf31e3c6e1fc5ef63fc6349373617f",
   "compose_project": "asa-1panel-mcp",
   "container": "asa-1panel-mcp-gateway",
@@ -42,7 +42,7 @@
   "independent_review": "Read-only review of exact source completed; no definite new code/security defect found; Go/race evidence from existing successful CI",
   "security_followup": "Compose-search diagnostic accidentally included secrets in tool output; subsequent output filtered. No secrets committed. Credential rotation remains separate work.",
   "secrets_included": false,
-  "chatgpt_plugin_name": "1Panel РІР‚вЂќ ASA Lab (РЎвЂљР С•Р В»РЎРЉР С”Р С• РЎвЂЎРЎвЂљР ВµР Р…Р С‘Р Вµ)",
+  "chatgpt_plugin_name": "1Panel — ASA Lab (полный доступ)",
   "chatgpt_oauth_progress": "SUCCESS: ChatGPT POST /.idp/token 200 at 20:49:18 MSK; authenticated MCP POSTs 200/202 at 20:49:19–20. UI shows installed plugin and Try in chat.",
   "remaining_blocker": "New plugin tools are not present in this running Codex tool inventory; three end-user tool calls from connected ChatGPT still pending. Three actual 1Panel tool calls passed using the automated client.",
   "local_dns": "test.asa-lab.ru: Chrome ERR_NAME_NOT_RESOLVED; DNS/VPN/hosts unchanged",
@@ -57,5 +57,8 @@
   "full_access_backup": "/var/backups/asa-mcp-full-20261020T180606Z",
   "full_acceptance": "26 PASS; exact 11 tool names; three read calls code=200; image/OAuth secrets/mounts/network unchanged; ASA ready 200",
   "full_limit": "Official full provides 11 implemented tools; no arbitrary Linux shell or Docker lifecycle tools",
-  "chatgpt_tools_refresh": "UI still showed cached six readonly tools; refresh in progress"
+  "chatgpt_tools_refresh": "PASS: reloaded ChatGPT UI displays Write5 and Read6, all 11 expected tool names",
+  "chatgpt_permission_mode": "full_access",
+  "chatgpt_permission_ui": "Разрешать все действия; selected and verified in browser",
+  "chatgpt_full_ui_authorization": "Owner explicitly confirmed tool refresh and allow-all mode in follow-up"
 }
