@@ -100,7 +100,8 @@ ChatGPT refresh. Use this exact source when reproducing the recorded result,
 not an unpinned branch tip. The live Python modules match `3ad1cd9`; the later
 installer commits add the required narrowly scoped host-directory ACLs.
 
-Prerequisites on the existing Ubuntu installation: Python 3.12, Git, `acl`
+Prerequisites on the existing Ubuntu installation: Python 3.12 with Ubuntu's
+matching `python3.12-venv` package, Git, `acl`
 (`setfacl`), systemd, the existing Docker engine accessible to `admins`, the
 canonical ASA checkout/manager at revision
 `e142835ed087995235d53f714f8185dfdfb00e0e`, the existing official 1Panel binary
@@ -108,7 +109,8 @@ and the already configured OAuth gateway. This is an extension of that host,
 not a clean-host bootstrap. Its fixed host paths, UID and Compose identity must
 be checked against `templates/asa-operations.config.example.json` first.
 
-From the pinned checkout, run the non-mutating checks:
+From the pinned checkout, run these checks without changing services or the
+application (`compileall` creates local bytecode):
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -128,6 +130,9 @@ sudo env PLAYWRIGHT_BROWSERS_PATH=/opt/server-settings/asa-browsers \
 
 Install any missing Chromium OS libraries using the official Playwright
 prerequisite procedure; do not disable the sandbox or TLS to mask a failure.
+Before activating the gateway, launch and close Chromium as `admins` with
+`PLAYWRIGHT_BROWSERS_PATH=/opt/server-settings/asa-browsers` to check the actual
+service user's permissions and browser libraries.
 Create the private configuration and environment files described above, with
 root ownership, JSON mode `0640` and group `admins`, environment mode `0600`.
 Generate a fresh backend bearer token of at least 32 characters on the host;
