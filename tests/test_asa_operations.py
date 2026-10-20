@@ -164,6 +164,19 @@ class ControllerTests(unittest.TestCase):
             self.assertTrue(repeated['reused'])
             self.assertEqual(launch.call_count, 1)
 
+    def test_recovery_plan_rechecks_repaired_configuration_without_replacing_operation(self):
+        old = self.plan(False)
+        record, _ = self.c.store.start('asa-test', 'update', old['plan_id'], 'recovery-fixture-key-001', {})
+        self.c.store.update(record['operation_id'], status='recovery_required')
+        with patch('asa_ops.server.adapter', return_value={'ready': False, 'release': old['release'],
+                   'blockers': [{'code': 'FAILED_RECEIPT'}]}) as check:
+            result = self.c.dispatch('asa_update_plan', {'installation_id': 'asa-test', 'data_mode': 'preserve'})
+        check.assert_called_once_with(self.c.config_path, 'plan', {'pinned_release': old['release']})
+        self.assertNotEqual(result['plan']['plan_id'], old['plan_id'])
+        self.assertEqual(result['plan']['blockers'], [{'code': 'FAILED_RECEIPT'}])
+        self.assertEqual(result['recovery_operation']['operation_id'], record['operation_id'])
+        self.assertEqual(self.c.store.get(record['operation_id'])['plan_id'], old['plan_id'])
+
     def test_schemas_closed_and_structured_error(self):
         for tool in tools():
             self.assertFalse(tool['inputSchema']['additionalProperties'])

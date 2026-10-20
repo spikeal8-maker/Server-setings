@@ -111,7 +111,10 @@ class Controller:
                 active = [r for r in self.store.list(args['installation_id'], 100) if r['status'] in ('queued', 'running', 'recovery_required')]
                 if active:
                     if active[0]['status'] == 'recovery_required':
-                        return {'plan': self.store.get_plan(active[0]['plan_id']), 'recovery_operation': active[0]}
+                        previous = self.store.get_plan(active[0]['plan_id'])
+                        value = adapter(self.config_path, 'plan', {'pinned_release': previous['release']})
+                        planned = self.store.plan(args['installation_id'], value)
+                        return {'plan': planned, 'recovery_operation': active[0]}
                     raise OpsError('BUSY', 'Inspect the active operation before preparing another plan')
                 value = adapter(self.config_path, 'plan', {})
                 planned = self.store.plan(args['installation_id'], value)
