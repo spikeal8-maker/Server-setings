@@ -153,7 +153,8 @@ def main():
                 checks['existing_project_open'] = True
                 fresh.close()
         except Exception as exc:
-            report['error'] = {'stage': stage, 'code': type(exc).__name__}
+            code = str(exc) if re.fullmatch(r'API_STATUS_[0-9]{3}', str(exc)) else type(exc).__name__
+            report['error'] = {'stage': stage, 'code': code}
             try:
                 page.screenshot(path=str(fixture_path.parent/'browser-acceptance-failure.png'))
             except Exception:

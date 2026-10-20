@@ -109,8 +109,13 @@ def browser_check(config, release):
           and report.get('entry_origin') == config['entry_origin']
           and required <= set(report.get('checks', {}))
           and all(report['checks'][k] is True for k in required))
+    import re
+    error = report.get('error') or {}
+    safe_error = {k: v for k, v in error.items() if k in ('stage', 'code')
+                  and isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9_]{1,80}', v)}
     return {'status': 'passed' if ok else 'failed', 'checks': {k: report.get('checks', {}).get(k) is True for k in sorted(required)},
-            'started_at': started, 'finished_at': now(), 'revision': release['revision'], 'entry_origin': config['entry_origin']}
+            'error': safe_error or None, 'started_at': started, 'finished_at': now(),
+            'revision': release['revision'], 'entry_origin': config['entry_origin']}
 
 
 def plan(config, payload):
@@ -302,7 +307,9 @@ def finalize(config, payload):
         event('verify_before_finalize')
         accepted = verify(config, {'release': release})
         if not accepted['accepted']:
-            raise OpsError('ACCEPTANCE_PENDING', 'Required browser acceptance has not passed')
+            error = (accepted.get('browser') or {}).get('error') or {}
+            detail = ('; stage='+error['stage']+', code='+error.get('code', 'unknown')) if error.get('stage') else ''
+            raise OpsError('ACCEPTANCE_PENDING', 'Required browser acceptance has not passed'+detail)
         last_path = install.state/'last-operation.json'
         last = json.loads(last_path.read_text()) if last_path.exists() else {}
         candidates = [last]

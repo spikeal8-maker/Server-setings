@@ -78,6 +78,12 @@ def work(config_path, opid, action):
         # If a manager switch began, keep the installation locked for recovery.
         state = Path(config['installation']['root'])/'.asa'
         recovering = any((state/n).exists() for n in ('maintenance.json', 'failed-switch.json'))
+        receipt = state/'last-operation.json'
+        if receipt.exists():
+            try:
+                recovering = recovering or json.loads(receipt.read_text()).get('status') == 'failed_switch'
+            except (OSError, ValueError):
+                recovering = True  # an unreadable receipt must not release a possibly interrupted switch
         status = 'recovery_required' if recovering else 'failed'
         store.update(opid, status=status, phase='error', result={'error': {'code': code,
                      'message': str(exc) if isinstance(exc, OpsError) else 'Inspect server operation stage'}})

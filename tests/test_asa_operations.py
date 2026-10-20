@@ -201,6 +201,16 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(calls[0][1]['plan']['release'], calls[2][1]['plan']['release'])
         self.assertEqual(self.c.store.get(record['operation_id'])['status'], 'failed')
 
+    def test_failed_acceptance_retains_recovery_for_unacknowledged_receipt(self):
+        state = Path(self.temp.name)/'.asa'
+        state.mkdir()
+        (state/'last-operation.json').write_text(json.dumps({'status': 'failed_switch'}))
+        plan = self.plan(False)
+        record, _ = self.c.store.start('asa-test', 'update', plan['plan_id'], 'recovery-test-key-002', {})
+        with patch('asa_ops.worker.adapter', side_effect=OpsError('ACCEPTANCE_PENDING', 'Not passed')):
+            work(str(self.config), record['operation_id'], 'finalize')
+        self.assertEqual(self.c.store.get(record['operation_id'])['status'], 'recovery_required')
+
 
 class ProtocolBridgeTest(unittest.TestCase):
     def test_official_stdio_tools_forwarding_and_new_operation_schemas(self):
