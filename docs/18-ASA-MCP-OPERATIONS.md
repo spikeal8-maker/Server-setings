@@ -93,6 +93,80 @@ run. The private backend may remain installed during gateway rollback.
 
 ## Verification boundary
 
+## Reproduce the published deployment
+
+The reviewed deployment source is commit
+`1df60558e6ca001179431e67df9db35e74ceee95` in
+`spikeal8-maker/Server-setings`; later documentation commits record the native
+ChatGPT refresh. Use this exact source when reproducing the recorded result,
+not an unpinned branch tip. The live Python modules match `3ad1cd9`; the later
+installer commits add the required narrowly scoped host-directory ACLs.
+
+Prerequisites on the existing Ubuntu installation: Python 3.12, Git, `acl`
+(`setfacl`), systemd, the existing Docker engine accessible to `admins`, the
+canonical ASA checkout/manager at revision
+`e142835ed087995235d53f714f8185dfdfb00e0e`, the existing official 1Panel binary
+and the already configured OAuth gateway. This is an extension of that host,
+not a clean-host bootstrap. Its fixed host paths, UID and Compose identity must
+be checked against `templates/asa-operations.config.example.json` first.
+
+From the pinned checkout, run the non-mutating checks:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m compileall -q scripts
+bash -n scripts/install-asa-operations.sh
+bash scripts/install-asa-operations.sh
+```
+
+Prepare the browser runtime separately, using the pinned package version:
+
+```bash
+sudo python3 -m venv /opt/server-settings/asa-browser-venv
+sudo /opt/server-settings/asa-browser-venv/bin/pip install playwright==1.56.0
+sudo env PLAYWRIGHT_BROWSERS_PATH=/opt/server-settings/asa-browsers \
+  /opt/server-settings/asa-browser-venv/bin/python -m playwright install chromium
+```
+
+Install any missing Chromium OS libraries using the official Playwright
+prerequisite procedure; do not disable the sandbox or TLS to mask a failure.
+Create the private configuration and environment files described above, with
+root ownership, JSON mode `0640` and group `admins`, environment mode `0600`.
+Generate a fresh backend bearer token of at least 32 characters on the host;
+reuse the existing panel host/key privately. Then run the installer with
+`--apply`. It grants `admins` traversal on private parent directories and
+read/execute only on the exact official MCP binary; it does not expose their
+contents. Test the private backend before the separately backed-up gateway
+change through 1Panel.
+
+After gateway activation, verify OAuth resource/audience/PKCE, unauthenticated
+rejection, exactly 17 tool names and actual existing read-tool responses. In
+ChatGPT, refresh the existing plugin's tools with owner authorization; the
+recorded UI result is **Write8 / Read9**, with the pre-existing allow-all
+preference retained. Never publish real tokens, fixture credentials or backup
+contents as reproduction inputs.
+
+For an authenticated MCP client, the first ASA call is:
+
+```json
+{"name":"asa_update_plan","arguments":{"installation_id":"asa-test","data_mode":"preserve"}}
+```
+
+Only a fresh plan with `ready: true` may be submitted to `asa_update_start`,
+using its returned `plan_id` and a retained idempotency key (16–128 characters).
+Persist the returned `operation_id`; poll `asa_operation_get` and retain its
+log cursor. Reconnect with `asa_operation_list` after client loss. Do not create
+a different start key to recover an uncertain response.
+
+The recorded live run deliberately does **not** satisfy update acceptance:
+`FAILED_RECEIPT` and `ENTRY_ORIGIN` block the plan, and the domain times out
+from Ubuntu. These are reproducible observations, not expected success criteria.
+Resolve them explicitly and complete real browser acceptance before finalizing
+the imported recovery operation. See the deployment snapshot for the exact
+operation ID, gateway rollback directory and test evidence.
+
+## Limits of the recorded verification
+
 Unit/integration tests cover transactional concurrency, restart discovery,
 immutable-plan tampering, durable idempotency, rejected arbitrary parameters,
 blocked plans, bounded manager handoff and actual stdio protocol forwarding.
