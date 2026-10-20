@@ -1,7 +1,7 @@
 {
   "observed_at": "2026-10-20T20:52:00+03:00",
   "host": "admins-MS-7D22",
-  "status": "DEPLOYED_CHATGPT_CONNECTED_TOOL_CALL_ACCEPTANCE_PENDING",
+  "status": "DEPLOYED_FULL_11_TOOLS_CHATGPT_REFRESH_PENDING",
   "source_revision": "a79c32c54fdf31e3c6e1fc5ef63fc6349373617f",
   "compose_project": "asa-1panel-mcp",
   "container": "asa-1panel-mcp-gateway",
@@ -13,14 +13,19 @@
   "listen": "127.0.0.1:39443",
   "external_url": "https://test.asa-lab.ru",
   "resource": "https://test.asa-lab.ru/mcp",
-  "access_level": "readonly",
+  "access_level": "full",
   "preserved_state_volume": "asa-1panel-mcp_asa_1panel_mcp_data",
   "rollback_directory": "/var/backups/asa-mcp-20261020",
   "preview": "21 checks passed against copied state and actual readonly 1Panel backend; isolated loopback TLS; preview stopped and preserved",
   "live_acceptance": "29 checks passed through domain HTTPS on Ubuntu, including three actual 1Panel responses with code=200 and existing access token after gateway restart",
   "tools": [
+    "create_database",
+    "create_ssl",
+    "create_website",
     "get_dashboard_info",
     "get_system_info",
+    "install_mysql",
+    "install_openresty",
     "list_databases",
     "list_installed_apps",
     "list_ssls",
@@ -47,5 +52,10 @@
   "chatgpt_plugin_url": "https://chatgpt.com/plugins/plugin_asdk_app_6ad7a7fb60788191b6e0d5d00ccca127",
   "chatgpt_connected": true,
   "chatgpt_authenticated_mcp_requests": true,
-  "connection_evidence": "/var/backups/asa-mcp-20261020/chatgpt-connection-evidence.json"
+  "connection_evidence": "/var/backups/asa-mcp-20261020/chatgpt-connection-evidence.json",
+  "full_access_authorization": "Owner explicitly requested full MCP access without restrictions on 2026-10-20",
+  "full_access_backup": "/var/backups/asa-mcp-full-20261020T180606Z",
+  "full_acceptance": "26 PASS; exact 11 tool names; three read calls code=200; image/OAuth secrets/mounts/network unchanged; ASA ready 200",
+  "full_limit": "Official full provides 11 implemented tools; no arbitrary Linux shell or Docker lifecycle tools",
+  "chatgpt_tools_refresh": "UI still showed cached six readonly tools; refresh in progress"
 }
