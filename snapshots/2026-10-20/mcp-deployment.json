@@ -1,7 +1,7 @@
 {
-  "observed_at": "2026-10-20T20:45:00+03:00",
+  "observed_at": "2026-10-20T20:50:00+03:00",
   "host": "admins-MS-7D22",
-  "status": "DEPLOYED_CHATGPT_CREATION_PENDING",
+  "status": "DEPLOYED_PLUGIN_CREATED_OAUTH_CALLBACK_INCOMPLETE",
   "source_revision": "a79c32c54fdf31e3c6e1fc5ef63fc6349373617f",
   "compose_project": "asa-1panel-mcp",
   "container": "asa-1panel-mcp-gateway",
@@ -18,10 +18,17 @@
   "rollback_directory": "/var/backups/asa-mcp-20261020",
   "preview": "21 checks passed against copied state and actual readonly 1Panel backend; isolated loopback TLS; preview stopped and preserved",
   "live_acceptance": "29 checks passed through domain HTTPS on Ubuntu, including three actual 1Panel responses with code=200 and existing access token after gateway restart",
-  "tools": ["get_dashboard_info", "get_system_info", "list_databases", "list_installed_apps", "list_ssls", "list_websites"],
+  "tools": [
+    "get_dashboard_info",
+    "get_system_info",
+    "list_databases",
+    "list_installed_apps",
+    "list_ssls",
+    "list_websites"
+  ],
   "public_https_metadata_from_d2r2": "200, resource correct, certificate verified",
   "chatgpt_ui_discovery": "DCR and authorization/token/registration/issuer/resource endpoints discovered correctly in existing Chrome form",
-  "chatgpt_plugin_created": false,
+  "chatgpt_plugin_created": true,
   "tools_called_by_connected_chatgpt": false,
   "asa_lab_ready": "200; database up; revision 314078ba; schema 213",
   "asa_lab_login_and_project_save_retested": false,
@@ -29,5 +36,11 @@
   "router_dns_vpn_firewall_changed": false,
   "independent_review": "Read-only review of exact source completed; no definite new code/security defect found; Go/race evidence from existing successful CI",
   "security_followup": "Compose-search diagnostic accidentally included secrets in tool output; subsequent output filtered. No secrets committed. Credential rotation remains separate work.",
-  "secrets_included": false
+  "secrets_included": false,
+  "chatgpt_plugin_name": "1Panel — ASA Lab (только чтение)",
+  "chatgpt_oauth_progress": "Owner approved creation; ChatGPT DCR returned 201. Existing password login and consent succeeded via certificate-verified IP due to local DNS failure. Authorization code returned to ChatGPT callback. No subsequent ChatGPT token exchange observed.",
+  "remaining_blocker": "Chrome callback remains blank; catalog partially loads; browser control repeatedly times out after recovery. Direct ChatGPT tool calls not yet verified.",
+  "local_dns": "test.asa-lab.ru: Chrome ERR_NAME_NOT_RESOLVED; DNS/VPN/hosts unchanged",
+  "latest_documentation_ci": "a209e93: static, patch-and-test, candidate build and publish all PASS; deployed source remains a79c32c",
+  "rollback_script": "/var/backups/asa-mcp-20261020/rollback_remote.py --apply"
 }
