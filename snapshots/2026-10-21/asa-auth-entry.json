@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-21",
+  "target": "test Ubuntu admins-MS-7D22",
+  "runtime_revision": "e142835ed087995235d53f714f8185dfdfb00e0e",
+  "schema": 225,
+  "source_main": "d57782d1bfb815af653d2783e102c1d6e22a4d4e",
+  "candidate_revision": "c700da2aeb5073da3c5a60d3ca51f53d8fcae1a3",
+  "candidate_pr": "https://github.com/spikeal8-maker/asa-lab/pull/678",
+  "probes": {
+    "origins": ["https://test.asa-lab.ru", "https://192.168.1.115:4610"],
+    "runtime_config_http": 200,
+    "embedded_blocks_http": 200,
+    "bot_challenge_http": 200,
+    "negative_login_without_proof_http": 403,
+    "negative_login_code": "bot_check_required",
+    "scratch_advertised_origin": "https://test.asa-lab.ru"
+  },
+  "validation": {
+    "vitest_tests_passed": 19,
+    "vitest_files": 4,
+    "focused_prettier": "PASS",
+    "focused_eslint": "PASS",
+    "canonical_web_typecheck": "PASS: 6 uncached Nx tasks",
+    "independent_candidate_review": "PASS: diagnostic-message scope only",
+    "visual_acceptance": "NOT_RUN",
+    "successful_login_and_project_roundtrip": "NOT_RUN",
+    "school_server": "NOT_VERIFIED",
+    "fresh_image_portability": "NOT_VERIFIED"
+  },
+  "deployed_candidate": false,
+  "database_restored_in_this_diagnosis": false,
+  "protections_disabled": false,
+  "secrets_or_personal_data_included": false
+}
