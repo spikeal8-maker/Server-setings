@@ -125,7 +125,7 @@ def forward_release(install,current,selected):
     if int(selected['schema']) < int(current['schema']):
         raise OpsError('RELEASE_DOWNGRADE','Selected release schema is older than the running database')
     if selected['revision'] != current['revision']:
-        install.git('fetch','origin','main')
+        install.git('fetch','origin','main:refs/remotes/origin/main')
         install.git('merge-base','--is-ancestor',current['revision'],selected['revision'])
 
 
@@ -194,7 +194,7 @@ def plan(config, payload):
             # Resolve and validate the target source in a disposable Git worktree.
             # A git worktree records shared admin metadata but never switches the live checkout.
             manager.clean_checkout(install)
-            install.git('fetch', 'origin', 'main')
+            install.git('fetch', 'origin', 'main:refs/remotes/origin/main')
             install.git('merge-base', '--is-ancestor', selected['revision'], 'origin/main')
             if current:
                 install.git('merge-base', '--is-ancestor', current['revision'], selected['revision'])

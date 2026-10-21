@@ -51,6 +51,20 @@ def validate_service_state(path,uid,*,parent=Path('/var/lib/server-settings')):
     return path
 
 
+def main_tracking(install,uid,*,apply=False):
+    origin=install.git('remote','get-url','origin').removesuffix('.git')
+    require(origin in ('https://github.com/spikeal8-maker/asa-lab','git@github.com:spikeal8-maker/asa-lab'),'GIT_ORIGIN')
+    result=subprocess.run(['git','config','--get-all','remote.origin.fetch'],cwd=install.root,capture_output=True,text=True)
+    require(result.returncode in (0,1),'GIT_CONFIG_READ')
+    refs=result.stdout.splitlines()
+    ready=any(ref.lstrip('+') in ('refs/heads/*:refs/remotes/origin/*','refs/heads/main:refs/remotes/origin/main') for ref in refs)
+    if not ready and apply:
+        require((install.root/'.git').is_dir(),'CANONICAL_GIT_DIRECTORY_REQUIRED')
+        install.git('config','--add','remote.origin.fetch','+refs/heads/main:refs/remotes/origin/main')
+        if os.getuid()==0:os.chown(install.root/'.git/config',uid,-1)
+    return 'ready' if ready else 'configured' if apply else 'would_configure'
+
+
 def private_directory(path, uid, *, apply=False):
     path=Path(path)
     require(path.is_absolute() and path.resolve()==path,'BACKUP_PATH_SYMLINK')
@@ -135,6 +149,7 @@ def prepare(config, *, apply=False, replacement_receipt=None, operation_id=None)
             require(subprocess.run(['systemctl','is-active','--quiet','asa-operations.service']).returncode!=0,'STOP_OPERATIONS_SERVICE_FIRST')
             with store.db() as db:
                 require(not db.execute("SELECT 1 FROM operations WHERE installation=? AND status IN ('queued','running')",(config['id'],)).fetchone(),'ACTIVE_OPERATION')
+        tracking=main_tracking(install,config['owner_uid'],apply=apply)
         settings=dict(install.settings)
         target=private_directory(settings.get('backupDirectory') or config.get('backup_directory') or root/'backups',config['owner_uid'],apply=apply)
         ident=settings.get('instanceId') or uuid.uuid4().hex
@@ -155,5 +170,5 @@ def prepare(config, *, apply=False, replacement_receipt=None, operation_id=None)
             if os.getuid()==0:os.chown(install.state/'installation.json',config['owner_uid'],-1)
         if proof:retired=supersede(store,config['id'],operation_id,proof,apply=apply)
         return {'mode':'apply' if apply else 'plan','revision':current['revision'],'schema':current['schema'],
-            'backup_directory':str(target),'instance_id':ident if apply or settings.get('instanceId') else 'generate_on_apply',
+            'backup_directory':str(target),'git_main_tracking':tracking,'instance_id':ident if apply or settings.get('instanceId') else 'generate_on_apply',
             'old_operation':retired,'application_restarted':False,'data_changed':False}
