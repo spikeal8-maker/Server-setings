@@ -118,6 +118,87 @@ def compare_rows(install, source, current):
     return result
 
 
+def rehearse_objects(install, root, private, selected, state, ident):
+    """Clone physical snapshot into an owned disposable volume, then test real S3."""
+    name = 'asa-restore-'+ident
+    image = selected['images']['minio']
+    label = 'asa.restore.rehearsal='+ident
+    def docker(*args):
+        p = subprocess.run(['docker', *args], capture_output=True, text=True)
+        if p.returncode:
+            raise OpsError('MINIO_REHEARSAL', 'Isolated object-storage stage failed; private diagnostic retained')
+        return p.stdout.strip()
+    envfile = state/'minio.env'
+    values = {'MINIO_ROOT_USER': private['ASA_OBJECT_STORAGE_ACCESS_KEY'],
+              'MINIO_ROOT_PASSWORD': private['ASA_OBJECT_STORAGE_SECRET_KEY']}
+    if any('\n' in value or '\r' in value for value in values.values()):
+        raise OpsError('SNAPSHOT_KEYS', 'Invalid object credentials')
+    fd = os.open(envfile, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'w') as stream:
+        stream.write(''.join(k+'='+v+'\n' for k,v in values.items()))
+    current = install.identity()['minio']
+    user = docker('inspect', '--format', '{{.Config.User}}', current['id'])
+    if not re.fullmatch(r'[0-9]+(?::[0-9]+)?', user):
+        raise OpsError('MINIO_OWNER', 'Numeric live MinIO owner must be attested')
+    ownership = user if ':' in user else user+':'+user
+    created = False
+    started = False
+    try:
+        docker('volume', 'create', '--label', label, name);created = True
+        docker('run', '--rm', '--pull', 'never', '--network', 'none', '--user', '0',
+               '--cap-drop', 'ALL', '--cap-add', 'CHOWN', '--cap-add', 'DAC_OVERRIDE', '--cap-add', 'FOWNER',
+               '--security-opt', 'no-new-privileges:true',
+               '--mount', 'type=bind,source='+str(root/'objects')+',target=/source,readonly',
+               '--mount', 'type=volume,source='+name+',target=/target', '--entrypoint', 'sh', image,
+               '-eu', '-c', 'cp -a /source/. /target/; chown -R "$1" /target; cd /target; find . -type f -exec sha256sum {} +',
+               'asa-object-copy', ownership)
+        # Validate the physical clone before the MinIO process may update metadata.
+        hashes = docker('run', '--rm', '--pull', 'never', '--network', 'none', '--user', '0',
+               '--mount', 'type=volume,source='+name+',target=/target,readonly',
+               '--entrypoint', 'sh', image, '-eu', '-c', 'cd /target; find . -type f -exec sha256sum {} +')
+        actual = {}
+        for line in hashes.splitlines():
+            sha, path = line.split('  ', 1);actual['objects/'+path.removeprefix('./')] = sha
+        manifest = json.loads((root/'manifest.json').read_text())
+        expected = {k: v['sha256'] for k,v in manifest['files'].items() if k.startswith('objects/')}
+        if actual != expected:
+            raise OpsError('MINIO_INTEGRITY', 'Cloned object-store bytes differ from snapshot')
+        docker('run', '-d', '--pull', 'never', '--network', 'none', '--name', name, '--label', label,
+               '--user', user, '--security-opt', 'no-new-privileges:true', '--env-file', str(envfile),
+               '--mount', 'type=volume,source='+name+',target=/data', '--entrypoint', 'minio', image,
+               'server', '/data', '--address', '127.0.0.1:9000', '--console-address', '127.0.0.1:9001')
+        started = True
+        command = 'export MC_CONFIG_DIR=/tmp/asa-restore-mc; mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null; mc ls --recursive --json local/asa-blocks'
+        for attempt in range(30):
+            try:
+                output = docker('exec', name, 'sh', '-eu', '-c', command)
+                rows = [json.loads(line) for line in output.splitlines() if line]
+                if any(row.get('status') == 'error' for row in rows):
+                    raise OpsError('MINIO_REHEARSAL', 'S3 listing failed')
+                objects = [r for r in rows if r.get('type') == 'file']
+                if not objects:
+                    raise OpsError('MINIO_EMPTY', 'Restored S3 bucket is empty')
+                return {'status': 'passed', 'physical_files_verified': len(actual),
+                        's3_objects': len(objects), 's3_bytes': sum(r.get('size', 0) for r in objects),
+                        'network': 'none', 'published_ports': False, 'live_storage_changed': False}
+            except OpsError:
+                if attempt == 29:
+                    raise
+                time.sleep(1)
+    finally:
+        if started:
+            labels = json.loads(docker('inspect', '--format', '{{json .Config.Labels}}', name)) or {}
+            if labels.get('asa.restore.rehearsal') != ident:
+                raise OpsError('MINIO_CLEANUP_IDENTITY', 'Refusing cleanup of an unrelated container')
+            docker('rm', '-f', name)
+        if created:
+            labels = json.loads(docker('volume', 'inspect', '--format', '{{json .Labels}}', name)) or {}
+            if labels.get('asa.restore.rehearsal') != ident:
+                raise OpsError('MINIO_CLEANUP_IDENTITY', 'Refusing cleanup of an unrelated volume')
+            docker('volume', 'rm', name)
+        envfile.unlink(missing_ok=True)
+
+
 def rehearse(config, payload):
     manager, install = load(config)
     from deployment.system import operation_lock
@@ -152,10 +233,14 @@ def rehearse(config, payload):
             raise OpsError('MIGRATION_TARGET', 'Unexpected migration target')
         install.process_env.update(MIGRATION_DATABASE_URL=urlunsplit(uri._replace(path='/'+database)),
             MIGRATION_EXPECT_DATABASE=database, MIGRATION_CONFIRM='APPLY:'+database)
-        for action in ('--plan', '--apply', '--plan'):
-            install.compose('run', '--rm', '--no-deps', '-T', '--entrypoint', 'node',
-                '-e', 'MIGRATION_DATABASE_URL', '-e', 'MIGRATION_EXPECT_DATABASE', '-e', 'MIGRATION_CONFIRM',
-                'migration', 'tools/migrate.mjs', action, capture=True)
+        try:
+            for action in ('--plan', '--apply', '--plan'):
+                install.compose('run', '--rm', '--no-deps', '-T', '--entrypoint', 'node',
+                    '-e', 'MIGRATION_DATABASE_URL', '-e', 'MIGRATION_EXPECT_DATABASE', '-e', 'MIGRATION_CONFIRM',
+                    'migration', 'tools/migrate.mjs', action, capture=True)
+        finally:
+            for key in ('MIGRATION_DATABASE_URL', 'MIGRATION_EXPECT_DATABASE', 'MIGRATION_CONFIRM'):
+                install.process_env[key] = install.env[key]
         migrated = population(install, database)
         if int(migrated['schema']) != selected['schema']:
             raise OpsError('MIGRATION_SCHEMA', 'Rehearsed database did not reach pinned schema')
@@ -165,14 +250,15 @@ def rehearse(config, payload):
         comparison = compare_rows(install, database, install.env['POSTGRES_DB'])
         receipt.update(phase='database_migrated', migrated=migrated, comparison=comparison)
         atomic_json(state/'receipt.json', receipt)
+        receipt['minio'] = rehearse_objects(install, root, private, selected, state, ident)
         after = install.identity()
         if any(before[n]['id'] != after[n]['id'] for n in before):
             raise OpsError('LIVE_IDENTITY', 'Live containers changed during rehearsal')
         conflicts = {name: value for name, value in comparison.items() if value['current_only'] or value['changed']}
         receipt.update(phase='database_rehearsed', finished_at=now(), ready_to_apply=False,
-            blockers=['MINIO_REHEARSAL_REQUIRED', 'USER_FLOW_ACCEPTANCE_REQUIRED']+(['CURRENT_DATA_WOULD_BE_REPLACED'] if conflicts else []),
+            blockers=['USER_FLOW_ACCEPTANCE_REQUIRED']+(['CURRENT_DATA_WOULD_BE_REPLACED'] if conflicts else []),
             conflicting_tables=sorted(conflicts), live_containers_unchanged=True,
-            minio_status='not_rehearsed', rehearsal_id=ident)
+            minio_status='passed', rehearsal_id=ident)
         atomic_json(state/'receipt.json', receipt)
         return receipt
 
