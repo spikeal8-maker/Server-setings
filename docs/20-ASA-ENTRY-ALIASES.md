@@ -80,3 +80,19 @@ python tools/asa_manager.py configure-entry --root /srv/asa-lab --entry-profile 
 
 
 Финальный SHA включает исправление реестра версии ADR1.3;2 валидатора и25 тестов валидаторов PASS. На нём повторены210 Vitest,48 Python,7 deployment и16 uncached Nx задач — PASS. Focused CI на исходном пакете прошёл Ubuntu/Windows; финальный metadata-only SHA: Ubuntu PASS, Windows/general ещё выполняются на момент записи. Гигиена Server-setings:3 теста PASS с Python -X utf8.
+
+## Итог CI и условие включения в main
+
+На финальном SHA5573ab3 focused CI Ubuntu/Windows завершился PASS
+(run39650722797), Governance contracts — PASS. Общий CI run39650722844
+остановился на electronics bundle218156/218000 байт: превышение156 байт.
+Базовый main0b472dfb имеет идентичный отказ в run39645888180. Diff приложения
+Web, electronics, bundle checker, package/lockfile отсутствует. Независимый
+review классифицировал это как categoryC, отдельный дефект базовой версии.
+Доказательства: [задача ASA681](https://github.com/spikeal8-maker/asa-lab/issues/681).
+
+Владелец разрешил включить PR680 в main после успешного общего CI. Это условие
+пока не выполнено: PR остаётся Draft, main не изменён, серверы не обновлены.
+Исправление электроники или увеличение её лимита не включались в этот пакет;
+AGENTS §2.1 требует отдельного ограниченного исправления базового модуля.
+Инструкция применения выше относится к будущему интегрированному выпуску.
