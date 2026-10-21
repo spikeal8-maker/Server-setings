@@ -4,9 +4,9 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock,patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from asa_ops.maintenance import private_directory,check_generation,supersede
+from asa_ops.maintenance import private_directory,check_generation,supersede,validate_service_state
 from asa_ops.store import Store,OpsError
 from asa_ops.adapter import forward_release
 
@@ -18,6 +18,12 @@ class MaintenanceTests(unittest.TestCase):
         forward_release(install,{'schema':'0234','revision':'b'*40},{'schema':234,'revision':'b'*40})
         install.git.assert_not_called()
 
+    def test_protected_state_paths_are_rejected_before_creation(self):
+        for path in ('/','/var/lib/docker','/srv/asa-lab','/var/lib/server-settings'):
+            with self.assertRaises(OpsError):validate_service_state(path,1000)
+    def test_unconfigured_generation_is_not_executable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(OpsError):check_generation(folder,{})
     def test_old_generation_cannot_start(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);(root/'.asa').mkdir();(root/'.asa/installation.json').write_text(json.dumps({'instanceId':'b'*32}))

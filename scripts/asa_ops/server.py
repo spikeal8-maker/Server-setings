@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 
-from .schemas import INPUTS, tools, validate
+from .schemas import INPUTS, tools, validate, input_schema
 from .store import Store, OpsError, process_identity
 from .worker import adapter
 from .maintenance import check_generation
@@ -97,7 +97,7 @@ class Controller:
         return self.store.get(opid)
 
     def dispatch(self, name, args):
-        validate(INPUTS[name], args)
+        validate(input_schema(name,self.config['installation']['id']), args)
         self.store.reconcile()
         if 'installation_id' in args:
             self.installation(args['installation_id'])
@@ -203,7 +203,7 @@ class Controller:
             return {}
         if method == 'tools/list':
             result = self.official.request(method, {})
-            return {'tools': result['tools']+tools()}
+            return {'tools': result['tools']+tools(self.config['installation']['id'])}
         if method == 'tools/call':
             name = params.get('name')
             if name not in INPUTS:

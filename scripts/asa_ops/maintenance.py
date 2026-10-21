@@ -40,6 +40,17 @@ def check_generation(root, plan):
     require(plan.get('installation_instance_id')==current,'STALE_INSTALLATION')
 
 
+def validate_service_state(path,uid,*,parent=Path('/var/lib/server-settings')):
+    path=Path(path)
+    require(path.is_absolute() and path.resolve()==path,'STATE_SYMLINK')
+    require(path.parent==parent and bool(re.fullmatch('asa-operations(?:-[a-z0-9-]+)?',path.name)),'STATE_LOCATION')
+    if parent.exists():
+        require(parent.stat().st_uid==0 and parent.stat().st_mode & 0o022==0,'STATE_PARENT_TRUST')
+    if path.exists():
+        require(path.is_dir() and path.stat().st_uid==uid and path.stat().st_mode & 0o077==0,'STATE_OWNER_OR_MODE')
+    return path
+
+
 def private_directory(path, uid, *, apply=False):
     path=Path(path)
     require(path.is_absolute() and path.resolve()==path,'BACKUP_PATH_SYMLINK')

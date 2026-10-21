@@ -12,7 +12,7 @@ CONF=/etc/server-settings/asa-operations.json
 ENVFILE=/etc/server-settings/asa-operations.env
 [[ -f "$CONF" && -f "$ENVFILE" ]] || { echo 'Missing private configuration'; exit 1; }
 [[ "$(stat -c '%a' "$ENVFILE")" == 600 ]] || { echo 'Environment file must have mode 0600'; exit 1; }
-python3 - "$CONF" <<'PY'
+python3 - "$CONF" "$SOURCE/scripts" <<'PY'
 import json, pathlib, pwd, sys
 c=json.loads(pathlib.Path(sys.argv[1]).read_text());i=c['installation']
 assert pathlib.Path(i['root']).is_absolute() and pathlib.Path(i['root']).resolve()==pathlib.Path(i['root'])
@@ -20,7 +20,9 @@ assert i['profile'] in ('production','staging') and isinstance(i['id'],str) and 
 assert i['project'] and all(x.isalnum() or x in '_-' for x in i['project'])
 assert pwd.getpwuid(i['owner_uid']).pw_uid!=0
 assert pathlib.Path(i['root']).stat().st_uid==i['owner_uid']
-assert pathlib.Path(i['state_root']).is_absolute() and pathlib.Path(i['state_root']).resolve()==pathlib.Path(i['state_root'])
+sys.path.insert(0,sys.argv[2])
+from asa_ops.maintenance import validate_service_state
+validate_service_state(i['state_root'],i['owner_uid'])
 assert 1024<=c['port']<=65535
 assert c['official_command']==['/opt/server-settings/bin/mcp-1panel','-transport','stdio','-access-level','full']
 PY
@@ -52,6 +54,7 @@ setfacl -m u:"$OWNER":--x /opt/server-settings /opt/server-settings/bin
 setfacl -m u:"$OWNER":r-x /opt/server-settings/bin/mcp-1panel
 install -d -m 0755 /opt/server-settings/asa-operations/asa_ops
 install -m 0644 "$SOURCE"/scripts/asa_ops/*.py /opt/server-settings/asa-operations/asa_ops/
+if [[ ! -d /var/lib/server-settings ]]; then install -d -m 0700 /var/lib/server-settings; fi
 install -d -m 0700 -o "$OWNER" -g "$(id -gn "$OWNER")" "$STATE_ROOT"
 python3 - "$STATE_ROOT" "$OWNER" <<'PY'
 import pathlib,subprocess,sys

@@ -1,8 +1,9 @@
 """Closed input schemas. Callers select identities, never commands or paths."""
 import re
+import copy
 from .store import OpsError
 
-INSTALLATION = {'type': 'string', 'pattern': '^[A-Za-z][A-Za-z0-9_-]{0,63}$'}
+INSTALLATION = {'type': 'string', 'enum': ['asa-test']}
 ID = {'type': 'string', 'pattern': '^[a-f0-9]{32}$'}
 KEY = {'type': 'string', 'pattern': '^[A-Za-z0-9_.:-]{16,128}$'}
 
@@ -36,8 +37,15 @@ OUTPUT = obj({'ok': {'type': 'boolean'}, 'data': {'type': ['object', 'null']},
               'error': {'anyOf': [obj({'code': {'type': 'string'}, 'message': {'type': 'string'}}, ['code', 'message']), {'type': 'null'}]}}, ['ok', 'data', 'error'])
 
 
-def tools():
-    return [{'name': name, 'description': DESCRIPTIONS[name], 'inputSchema': schema, 'outputSchema': OUTPUT,
+def input_schema(name, installation_id='asa-test'):
+    schema=copy.deepcopy(INPUTS[name])
+    if 'installation_id' in schema['properties']:
+        schema['properties']['installation_id']={'type':'string','enum':[installation_id]}
+    return schema
+
+
+def tools(installation_id='asa-test'):
+    return [{'name': name, 'description': DESCRIPTIONS[name], 'inputSchema': input_schema(name,installation_id), 'outputSchema': OUTPUT,
              'annotations': {'readOnlyHint': name in READ, 'destructiveHint': name not in READ,
                              'idempotentHint': True, 'openWorldHint': False}}
             for name, schema in INPUTS.items()]
