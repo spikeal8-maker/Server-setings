@@ -32,6 +32,7 @@ class PanelCompatibilityTests(unittest.TestCase):
         reply={'code':200,'data':{'total':1,'items':[{'id':1,'name':'fixture','username':'fixture-user','password':'private-fixture-password','address':'private-address'}]}}
         captured=[]
         def respond(request,timeout):
+            self.assertTrue(request.full_url.endswith('/api/v2/databases/db/search'))
             captured.append(json.loads(request.data));return io.BytesIO(json.dumps(reply).encode())
         with patch.dict('os.environ',{'PANEL_HOST':'http://127.0.0.1:19192','PANEL_ACCESS_TOKEN':'fixture-key'}),patch('urllib.request.build_opener',return_value=SimpleNamespace(open=respond)):
             result=list_databases({'name':'fixture'})
