@@ -1,0 +1,19 @@
+{
+  "phase": "rehearsed",
+  "target_revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+  "target_schema": 234,
+  "source_schema": 212,
+  "snapshot_files": 2062,
+  "population": {
+    "accounts": 90,
+    "classrooms": 31,
+    "seats": 418,
+    "projects": 1414
+  },
+  "credential_configuration": "passed",
+  "protected_ciphertext_nonnull": 0,
+  "fresh_backup_created": false,
+  "policy": "owner explicitly requested discard all current test project data",
+  "deletion_started": false,
+  "user_flow": "NOT_RUN"
+}
