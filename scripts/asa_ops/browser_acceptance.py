@@ -123,6 +123,9 @@ def main():
                 fixture['course']=made['id'];save()
             api('GET','/api/courses/'+fixture['course']+'/outline')
             page.goto(origin+'/#/challenges',wait_until='domcontentloaded')
+            # Self-attestation changes capabilities; a hash-only route transition
+            # keeps the previous in-memory session until the document reloads.
+            page.reload(wait_until='networkidle')
             page.get_by_role('button',name='Курсы',exact=True).click()
             page.locator('.course-row-main').filter(has_text='ASA Operations Course (TEST)').click()
             page.get_by_test_id('course-editor').wait_for()

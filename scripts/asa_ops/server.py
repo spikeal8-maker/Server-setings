@@ -203,9 +203,15 @@ class Controller:
             return {}
         if method == 'tools/list':
             result = self.official.request(method, {})
+            for tool in result['tools']:
+                if tool.get('name')=='list_databases':
+                    tool['description']='List registered 1Panel database instances. Compose PostgreSQL is inventoried separately by ASA runtime_identity.'
             return {'tools': result['tools']+tools(self.config['installation']['id'])}
         if method == 'tools/call':
             name = params.get('name')
+            if name=='list_databases':
+                from .panel_api import list_databases
+                return list_databases(params.get('arguments') or {})
             if name not in INPUTS:
                 return self.official.request(method, params)
             try:
