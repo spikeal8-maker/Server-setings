@@ -34,8 +34,11 @@ def list_databases(args):
         document=json.loads(raw)
         if document.get('code')!=200:raise ValueError()
         data=document['data']
+        rows=data['items']
+        if rows is None and data['total']==0:rows=[]
+        if not isinstance(rows,list):raise ValueError()
         safe={'code':200,'message':'','data':{'total':data['total'],'items':[
-            {key:row[key] for key in ('id','name','username') if key in row} for row in data['items']]}}
+            {key:row[key] for key in ('id','name','username') if key in row} for row in rows]}}
     except Exception:
         raise OpsError('PANEL_DATABASE_LIST','Panel database-instance query failed') from None
     return {'content':[{'type':'text','text':json.dumps(safe)+'\nScope: registered 1Panel database instances only; ASA Compose PostgreSQL is checked separately by runtime_identity.'}],

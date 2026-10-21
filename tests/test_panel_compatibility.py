@@ -28,6 +28,11 @@ class PanelCompatibilityTests(unittest.TestCase):
             self.assertEqual(counts,{'POST':1,'GET':0})
         finally:server.shutdown();server.server_close();thread.join()
 
+    def test_empty_panel_inventory_accepts_null_slice(self):
+        reply={'code':200,'data':{'total':0,'items':None}}
+        with patch.dict('os.environ',{'PANEL_HOST':'http://127.0.0.1:19192','PANEL_ACCESS_TOKEN':'fixture-key'}),patch('urllib.request.build_opener',return_value=SimpleNamespace(open=lambda *args,**kwargs: io.BytesIO(json.dumps(reply).encode()))):
+            result=list_databases({'name':'postgres'})
+        self.assertEqual(result['structuredContent']['data'],{'total':0,'items':[]})
     def test_supported_sort_and_secret_filtering(self):
         reply={'code':200,'data':{'total':1,'items':[{'id':1,'name':'fixture','username':'fixture-user','password':'private-fixture-password','address':'private-address'}]}}
         captured=[]
