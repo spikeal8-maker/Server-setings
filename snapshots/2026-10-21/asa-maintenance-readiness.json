@@ -1,6 +1,6 @@
 {
   "backend_commit": "2c7905b",
-  "asa_candidate": "bbd4d6da5ec54670f149aff7bdc1c709b1e4fbd7",
+  "asa_candidate": "e4d95c1c5c7a8160ef39c8bc8de576351c6da1be",
   "runtime": {
     "revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
     "schema": 234
@@ -116,5 +116,34 @@
     "infra_pr": 13,
     "asa_pr": 684,
     "merged": false
+  },
+  "baseline_bundle_repair": {
+    "commit": "3274f73f31212dc3e0a4527479cc718dc6a04c55",
+    "file": "apps/web/src/pages/SchematicEditor.tsx",
+    "before_bytes": 218156,
+    "after_bytes": 217808,
+    "budget_bytes": 218000,
+    "change": "specialize single-use notes panel; remove unreachable code branch",
+    "related_tests_passed": 32,
+    "independent_review": "PASS"
+  },
+  "final_integration": {
+    "revision": "e4d95c1c5c7a8160ef39c8bc8de576351c6da1be",
+    "main": "1801b4c131c090257bb85a63ee710494d704fca1",
+    "main_delta": "documentation only; no code overlap",
+    "independent_review": "PASS",
+    "windows_deployment_tests": 87,
+    "windows_skipped": 4,
+    "general_ci_run": 39671235342,
+    "portable_ci_run": 39671235480,
+    "ci_status": "portable passed; general PostgreSQL timeout; browser jobs pending",
+    "portable_ci_status": "passed",
+    "general_code_gate": "passed",
+    "general_data_gate": {
+      "passed_tests": 6551,
+      "failed": "public projects beforeAll 90s timeout; Teacher Home lifecycle 60s timeout",
+      "run_id": 39671235342,
+      "job_id": 119472542226
+    }
   }
 }
