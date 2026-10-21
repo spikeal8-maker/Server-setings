@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -80,6 +81,9 @@ def plan(config, payload):
         source_schema = int(manifest['runtime']['schema'])
         if source_schema > selected['schema']:
             raise OpsError('RESTORE_SCHEMA', 'Snapshot schema exceeds deployed release')
+        required = 4*sum(v['bytes'] for v in manifest['files'].values())+2*1024**3
+        if shutil.disk_usage(config['state_root']).free < required:
+            raise OpsError('SPACE', 'Insufficient space for isolated restore rehearsal')
         return {'kind': 'restore', 'snapshot_id': SNAPSHOT, 'archive_sha256': ARCHIVE_SHA,
                 'manifest_sha256': MANIFEST_SHA, 'source_schema': source_schema,
                 'source_timestamp_utc': '2026-10-17T23:15:05Z', 'release': selected,
@@ -263,6 +267,7 @@ def rehearse(config, payload):
             blockers=['USER_FLOW_ACCEPTANCE_REQUIRED']+(['CURRENT_DATA_WOULD_BE_REPLACED'] if conflicts else []),
             conflicting_tables=sorted(conflicts), live_containers_unchanged=True,
             minio_status='passed', rehearsal_id=ident)
+        receipt['comparison_consistency'] = 'advisory_live_reads; recompute with writers stopped before any apply'
         atomic_json(state/'receipt.json', receipt)
         return receipt
 
