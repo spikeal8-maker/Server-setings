@@ -106,6 +106,12 @@ class Controller:
             return dict(record, log=self.store.log(record['operation_id'], args.get('log_cursor', 0)))
         if name == 'asa_operation_list':
             return {'operations': self.store.list(args['installation_id'], args.get('limit', 20))}
+        if name == 'asa_restore_plan':
+            with self.lock:
+                if any(r['status'] in ('queued', 'running') for r in self.store.list(args['installation_id'], 100)):
+                    raise OpsError('BUSY', 'Wait for the active server worker')
+                value = adapter(self.config_path, 'restore_plan', {})
+                return {'plan': self.store.plan(args['installation_id'], value)}
         if name == 'asa_update_plan':
             with self.lock:
                 active = [r for r in self.store.list(args['installation_id'], 100) if r['status'] in ('queued', 'running', 'recovery_required')]
@@ -128,13 +134,15 @@ class Controller:
                         self.store.update(record['operation_id'], status='recovery_required', phase='imported_manager_receipt')
                     result['recovery_operation'] = self.store.get(record['operation_id'])
                 return result
-        if name in ('asa_update_start', 'asa_deployment_verify'):
+        if name in ('asa_update_start', 'asa_deployment_verify', 'asa_restore_rehearse'):
             with self.lock:
                 reused = self.store.reused(args['idempotency_key'], {'method': name, **args})
                 if reused:
                     return {'operation': reused, 'reused': True}
                 plan = self.store.get_plan(args['plan_id'])
                 self.installation(plan['installation_id'])
+                if (name == 'asa_restore_rehearse') != (plan.get('kind') == 'restore'):
+                    raise OpsError('PLAN_KIND', 'Restore plans and update plans are not interchangeable')
                 if name == 'asa_update_start' and not plan.get('ready'):
                     raise OpsError('BLOCKED_PLAN', 'Preflight blockers must be resolved in a new plan')
                 if name == 'asa_update_start':
@@ -142,7 +150,7 @@ class Controller:
                     age = (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(plan['created_at'])).total_seconds()
                     if age > self.config.get('plan_ttl_seconds', 3600):
                         raise OpsError('EXPIRED_PLAN', 'Prepare a new plan; this plan expired')
-                kind = 'update' if name == 'asa_update_start' else 'verify'
+                kind = 'restore_rehearse' if name == 'asa_restore_rehearse' else 'update' if name == 'asa_update_start' else 'verify'
                 record, created = self.store.start(args['installation_id'], kind, args['plan_id'], args['idempotency_key'],
                                                    {'method': name, **args})
                 if created:

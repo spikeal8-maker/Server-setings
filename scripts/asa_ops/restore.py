@@ -145,6 +145,10 @@ def rehearse_objects(install, root, private, selected, state, ident):
     started = False
     try:
         docker('volume', 'create', '--label', label, name);created = True
+        labels = json.loads(docker('volume', 'inspect', '--format', '{{json .Labels}}', name)) or {}
+        if labels.get('asa.restore.rehearsal') != ident:
+            created = False
+            raise OpsError('MINIO_VOLUME_IDENTITY', 'Refusing to write an unrelated volume')
         docker('run', '--rm', '--pull', 'never', '--network', 'none', '--user', '0',
                '--cap-drop', 'ALL', '--cap-add', 'CHOWN', '--cap-add', 'DAC_OVERRIDE', '--cap-add', 'FOWNER',
                '--security-opt', 'no-new-privileges:true',
