@@ -170,6 +170,78 @@ operation ID, gateway rollback directory and test evidence.
 
 ## Limits of the recorded verification
 
+### Approved archive restore rehearsal, 2026-10-21
+
+The existing backend now implements **two** additional operations (19 total):
+`asa_restore_plan` and `asa_restore_rehearse`. `asa_restore_apply` is deliberately
+not exposed or claimed implemented. ChatGPT's previously refreshed inventory
+still has17 tools until its separate authorized refresh.
+
+The only accepted catalog snapshot is `20261017T231505Z-65b68074`, archive hash
+`910795bae418b265ac37a8d9ac84e22a92e9c2c870ef11138de4cbeffb7b41e4` and manifest
+hash `8be098e3c37cd43fb704e7f92f300574bb685445d92697223ba0b158ac2e8a01`.
+On the owner workstation, verify the encrypted file hash, decrypt with the
+existing local age identity, and stream tar over authenticated SSH into
+`python3 scripts/asa_ops/stage_snapshot.py` on Ubuntu as `admins`. Its fixed
+private parent `/srv/asa-restore-snapshots` must already exist with owner admins
+and mode0700. Do not transmit the age identity. The receiver rejects links,
+traversal, foreign snapshot roots, duplicates and hash/inventory mismatches;
+all decrypted data remains private outside Git and synchronization folders.
+Partial imports are retained privately for explicit inspection, never promoted
+or automatically retried over an existing directory.
+
+Example tool calls after the reviewed source is installed:
+
+```json
+{"name":"asa_restore_plan","arguments":{"installation_id":"asa-test","snapshot_id":"20261017T231505Z-65b68074"}}
+```
+
+```json
+{"name":"asa_restore_rehearse","arguments":{"installation_id":"asa-test","plan_id":"<returned plan_id>","idempotency_key":"<retained unique key of 16-128 characters>"}}
+```
+
+Poll the returned ID with existing `asa_operation_get` or discover it with
+`asa_operation_list`. A completed rehearsal is not successful live restoration.
+SQLite permits an isolated rehearsal beside an idle failed-update receipt, but
+blocks any live worker or finalization from running concurrently. The manager
+operation lock spans the rehearsal. An uncertain start response must reuse
+its key; process loss is never handled by automatically replaying migrations.
+
+Rehearsal pins the **actual running** release, not the stale installed receipt,
+verifies all2062 snapshot files, uses canonical `restore_check` for a new unique
+`*_test` database, preserves ACLs/RLS and existing roles (no `globals.sql`
+import), and runs the pinned migration image plan/apply/plan only on that DB.
+Migration URL overrides are restored before rechecking live identity. The
+original signing/encryption/object keys are not merged into live configuration.
+
+A separate labelled temporary MinIO volume receives a physical clone, verified
+against all2054 object-file hashes before startup. Its server runs with the
+attested live numeric owner, snapshot credentials from a private mode0600 file,
+`--network none` and no published ports; real S3 listing succeeded with1846
+objects. Cleanup checks exact ownership labels before removing only its own
+container/volume. The successful test DB and private receipt remain available
+for audit; no automatic database deletion is performed.
+
+Operation `bb1d96f558894cf8aa2f611a5a01c5c5` passed migration212→225 and object
+rehearsal. Row-key/content-hash comparison found all1414 archived projects and
+drafts identical in current Ubuntu, with **3 additional current projects and
+drafts**, newer audit/session/analytics rows and changed operational settings.
+Archive accounts90, classrooms31 and seats418 also match current rows exactly.
+This is not an update source for the current DB: exact replacement would roll
+back newer data. Comparisons use live reads and are advisory; a future apply
+must repeat them after quiescing writers and obtain an explicit replacement
+policy for current-only/changed rows.
+
+The unfinished restore script in ASA PR583 at
+`e47da431dec765a041e1e1e34443779d639272df` is reference material only. Its
+partial-object-move rollback, stale-release selection, missing durable resume
+and broad Compose-up issues prevent directly exposing it as an accepted apply
+method. Implement and review crash-safe database/object/config cutover and
+rollback, full user-flow acceptance and stopped-writer comparison before
+enabling `asa_restore_apply`. No live cutover was performed in this work.
+See `snapshots/2026-10-21/asa-restore-rehearsal.json` for public aggregate proof;
+private row identifiers, secrets, dumps and object contents are never published.
+
 ### Controlled entry repair, 2026-10-21
 
 `scripts/repair-asa-entry.py` is a separate operator maintenance command, not
