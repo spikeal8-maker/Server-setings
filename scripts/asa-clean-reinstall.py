@@ -358,7 +358,7 @@ def main():
                 run(['systemctl','stop','asa-operations.service'])
                 idle()
                 # Detached workers survive service stops; confirm none exist.
-                workers=subprocess.run(['pgrep','-f','asa_ops.worker|asa-manager.py'],capture_output=True,text=True)
+                workers=subprocess.run(['pgrep','-f','asa_ops.worker|asa[_-]manager.py'],capture_output=True,text=True)
                 require(workers.returncode==1,'ACTIVE_MANAGER_PROCESS')
             require(subprocess.run(['systemctl','is-active','--quiet','asa-operations.service']).returncode!=0,'MCP_MAINTENANCE_GATE_REQUIRED')
             globals()[args.phase](release)
