@@ -29,7 +29,7 @@
     "projects": {"identical": 1414, "changed": 0, "current_only": 3, "snapshot_only": 0},
     "project_drafts": {"identical": 1414, "changed": 0, "current_only": 3, "snapshot_only": 0}
   },
-  "other_differences": "Newer current audit/analytics/session records and changed account verification/AI/auth provider settings; no values or identifiers published",
+  "other_differences": "Newer current audit/analytics/session records; auth-provider settings differ even after excluding created_at/updated_at. AI/account-verification settings match after excluding those audit timestamps. No values or identifiers published",
   "comparison_consistency": "advisory_live_reads; repeat after quiescing writers before any switch",
   "minio": {"status": "passed", "physical_files_verified": 2054, "s3_objects": 1846, "s3_bytes": 168411960, "network": "none", "published_ports": false, "live_storage_changed": false},
   "temporary_minio_container_and_volume_cleanup": "verified_none_remaining",

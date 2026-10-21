@@ -227,6 +227,8 @@ rehearsal. Row-key/content-hash comparison found all1414 archived projects and
 drafts identical in current Ubuntu, with **3 additional current projects and
 drafts**, newer audit/session/analytics rows and changed operational settings.
 Archive accounts90, classrooms31 and seats418 also match current rows exactly.
+An additional check excluding created_at/updated_at shows AI and account
+verification settings match semantically; auth-provider settings still differ.
 This is not an update source for the current DB: exact replacement would roll
 back newer data. Comparisons use live reads and are advisory; a future apply
 must repeat them after quiescing writers and obtain an explicit replacement
