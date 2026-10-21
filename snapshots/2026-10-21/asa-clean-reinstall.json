@@ -1,19 +1,88 @@
 {
-  "phase": "rehearsed",
+  "phase": "technical_verified",
   "target_revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
   "target_schema": 234,
   "source_schema": 212,
   "snapshot_files": 2062,
-  "population": {
-    "accounts": 90,
-    "classrooms": 31,
-    "seats": 418,
-    "projects": 1414
-  },
   "credential_configuration": "passed",
   "protected_ciphertext_nonnull": 0,
   "fresh_backup_created": false,
   "policy": "owner explicitly requested discard all current test project data",
-  "deletion_started": false,
-  "user_flow": "NOT_RUN"
+  "deletion_started": true,
+  "user_flow": "partial: teacher/student/Scratch pass; course/electronics not accepted",
+  "revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+  "schema": 234,
+  "old_container_ids_absent": true,
+  "new_container_count": 7,
+  "running_services": [
+    "web",
+    "api",
+    "postgres",
+    "scratch",
+    "minio"
+  ],
+  "new_volume_created_at": {
+    "asa-lab-dev_postgres-data": "2026-10-21T21:58:37+03:00",
+    "asa-lab-dev_blocks-object-data": "2026-10-21T21:58:59+03:00"
+  },
+  "physical_object_files": 2054,
+  "s3_objects": 1846,
+  "s3_bytes": 168411960,
+  "unrelated_containers_preserved": true,
+  "ops_service": "active",
+  "panel_services": {
+    "1panel-core": "active",
+    "1panel-agent": "active"
+  },
+  "clean_reinstall_completed": true,
+  "technical_verification": "passed",
+  "unit_tests": {
+    "ubuntu": {
+      "passed": 50
+    },
+    "windows_guard_tests": {
+      "passed": 5
+    },
+    "windows_full_suite": "48 pass; existing POSIX-mode assertion and default cp1251 decoding fail"
+  },
+  "independent_review": "manager_contract: guards, promotion, exclusion reviewed; no outstanding deletion blocker",
+  "operator_commit": "e38bbba9ec6b4ee874b5498fc559388fda09d65d",
+  "browser_acceptance": {
+    "revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+    "entry_origin": "https://test.asa-lab.ru",
+    "checks": {
+      "teacher_login": true,
+      "student_login": true,
+      "course_open": false,
+      "existing_project_open": true,
+      "scratch_save_reopen": true,
+      "electronics_save_reopen": false
+    },
+    "error": {
+      "stage": "electronics_project",
+      "code": "TimeoutError"
+    }
+  },
+  "restored_population": {
+    "accounts": 90,
+    "classrooms": 31,
+    "seats": 418,
+    "projects": 1414,
+    "schema": 234
+  },
+  "current_population_after_authorized_test_fixtures": {
+    "accounts": 91,
+    "classrooms": 32,
+    "seats": 419,
+    "projects": 1416,
+    "schema": 234
+  },
+  "authorized_fixture": {
+    "account": true,
+    "classroom": true,
+    "modules": [
+      "blocks",
+      "electronics"
+    ]
+  }
 }
