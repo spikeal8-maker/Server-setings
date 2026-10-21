@@ -51,6 +51,8 @@ def work(config_path, opid, action):
     store.event(opid, action, 'Server worker started; reconnect using this operation_id')
     try:
         planned = store.get_plan(record['plan_id'])
+        from .maintenance import check_generation
+        check_generation(config['installation']['root'],planned)
         if action == 'restore_rehearse':
             result = adapter(config_path, action, {'plan': planned}, store, opid)
             status = 'success'  # rehearsal completed; ready_to_apply remains a separate result field

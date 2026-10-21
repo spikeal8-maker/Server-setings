@@ -14,6 +14,7 @@ import time
 from .schemas import INPUTS, tools, validate
 from .store import Store, OpsError, process_identity
 from .worker import adapter
+from .maintenance import check_generation
 
 
 class Official:
@@ -141,6 +142,7 @@ class Controller:
                     return {'operation': reused, 'reused': True}
                 plan = self.store.get_plan(args['plan_id'])
                 self.installation(plan['installation_id'])
+                check_generation(self.config['installation']['root'],plan)
                 if (name == 'asa_restore_rehearse') != (plan.get('kind') == 'restore'):
                     raise OpsError('PLAN_KIND', 'Restore plans and update plans are not interchangeable')
                 if name == 'asa_update_start' and not plan.get('ready'):
@@ -165,6 +167,9 @@ class Controller:
                 if row is None:
                     raise OpsError('NOT_FOUND', 'Operation does not exist')
                 self.installation(row['installation'])
+                if row['status']=='superseded':
+                    raise OpsError('STALE_INSTALLATION','Operation belongs to a replaced installation')
+                check_generation(self.config['installation']['root'],self.store.get_plan(row['plan_id']))
                 if row['kind'] != 'update':
                     raise OpsError('FINALIZE_KIND', 'Only an update operation can be finalized')
                 # Do not overwrite the start key. Finalize has its own durable key.

@@ -118,6 +118,14 @@ def browser_check(config, release):
             'revision': release['revision'], 'entry_origin': config['entry_origin']}
 
 
+def forward_release(install,current,selected):
+    if int(selected['schema']) < int(current['schema']):
+        raise OpsError('RELEASE_DOWNGRADE','Selected release schema is older than the running database')
+    if selected['revision'] != current['revision']:
+        install.git('fetch','origin','main')
+        install.git('merge-base','--is-ancestor',current['revision'],selected['revision'])
+
+
 def plan(config, payload):
     manager, install = load(config)
     blockers, checks = [], []
@@ -175,6 +183,8 @@ def plan(config, payload):
         selected = validate_release(selected)
         manager.assert_ci(selected)
     check('release_and_exact_ci', select)
+    if selected and current:
+        check('forward_release',lambda: forward_release(install,current,selected))
     if selected:
         def images_and_migrations():
             manager.fetch_images(selected)
@@ -212,7 +222,7 @@ def plan(config, payload):
             checks.append({'name': 'pinned_images_and_migration_plan', 'status': 'not_run'})
     if not config.get('acceptance_command'):
         blockers.append({'check': 'browser_acceptance', 'code': 'NOT_CONFIGURED', 'message': 'Configure the isolated browser acceptance hook before an update'})
-    return {'ready': not blockers, 'blockers': blockers, 'checks': checks, 'release': selected,
+    return {'installation_instance_id':install.settings.get('instanceId'), 'ready': not blockers, 'blockers': blockers, 'checks': checks, 'release': selected,
             'pin': pin, 'current': current, 'fingerprint': fingerprint(install),
             'entry': entry, 'backup_directory': backup, 'data_mode': 'preserve',
             'recovery_receipt': recovery_receipt,
