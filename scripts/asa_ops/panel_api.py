@@ -8,6 +8,11 @@ from urllib.parse import urlsplit
 from .store import OpsError
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,request,fp,code,msg,headers,newurl):
+        return None
+
+
 def list_databases(args):
     if set(args)!={'name'} or not isinstance(args['name'],str) or not 0<len(args['name'])<=256:
         raise OpsError('DATABASE_NAME','A database instance name is required')
@@ -22,7 +27,8 @@ def list_databases(args):
         headers={'Content-Type':'application/json','1Panel-Timestamp':stamp,
                  '1Panel-Token':hashlib.md5(('1panel'+key+stamp).encode()).hexdigest()})
     try:
-        with urllib.request.urlopen(request,timeout=20) as response:
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
+        with opener.open(request,timeout=20) as response:
             raw=response.read(1048577)
         if len(raw)>1048576:raise ValueError()
         document=json.loads(raw)
