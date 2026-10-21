@@ -84,7 +84,7 @@ def plan(config, payload):
         required = 4*sum(v['bytes'] for v in manifest['files'].values())+2*1024**3
         if shutil.disk_usage(config['state_root']).free < required:
             raise OpsError('SPACE', 'Insufficient space for isolated restore rehearsal')
-        return {'kind': 'restore', 'snapshot_id': SNAPSHOT, 'archive_sha256': ARCHIVE_SHA,
+        return {'installation_instance_id': install.settings.get('instanceId'), 'kind': 'restore', 'snapshot_id': SNAPSHOT, 'archive_sha256': ARCHIVE_SHA,
                 'manifest_sha256': MANIFEST_SHA, 'source_schema': source_schema,
                 'source_timestamp_utc': '2026-10-17T23:15:05Z', 'release': selected,
                 'fingerprint': fingerprint(install), 'current': current, 'entry': entry,

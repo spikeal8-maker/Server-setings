@@ -20,6 +20,10 @@ def main():
     args = parser.parse_args()
     origin, revision = os.environ['ASA_ACCEPTANCE_ORIGIN'], os.environ['ASA_ACCEPTANCE_REVISION']
     fixture_path = Path(args.fixture)
+    generation=os.environ.get('ASA_ACCEPTANCE_INSTANCE_ID')
+    if generation:
+        if not re.fullmatch('[a-f0-9]{32}',generation):raise RuntimeError('Invalid acceptance instance')
+        fixture_path=fixture_path.with_name(fixture_path.stem+'-'+generation+fixture_path.suffix)
     fixture_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     fixture = json.loads(fixture_path.read_text()) if fixture_path.exists() else None
     if fixture and fixture['origin'] != origin:

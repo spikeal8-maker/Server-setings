@@ -53,7 +53,14 @@ setfacl -m u:"$OWNER":r-x /opt/server-settings/bin/mcp-1panel
 install -d -m 0755 /opt/server-settings/asa-operations/asa_ops
 install -m 0644 "$SOURCE"/scripts/asa_ops/*.py /opt/server-settings/asa-operations/asa_ops/
 install -d -m 0700 -o "$OWNER" -g "$(id -gn "$OWNER")" "$STATE_ROOT"
-setfacl -m u:"$OWNER":--x /var/lib/server-settings
+python3 - "$STATE_ROOT" "$OWNER" <<'PY'
+import pathlib,subprocess,sys
+# Grant traversal only on ancestors which deny the selected owner traversal.
+# No read/list access or ownership changes are granted outside the state root.
+for parent in reversed(pathlib.Path(sys.argv[1]).parents):
+ if str(parent)!='/' and subprocess.run(['runuser','-u',sys.argv[2],'--','test','-x',str(parent)]).returncode!=0:
+  subprocess.run(['setfacl','-m','u:'+sys.argv[2]+':--x',str(parent)],check=True)
+PY
 python3 - "$SOURCE/templates/asa-operations.service" "$OWNER" <<'PY'
 import pathlib,sys
 text=pathlib.Path(sys.argv[1]).read_text().replace('User=admins','User='+sys.argv[2])

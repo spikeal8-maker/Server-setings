@@ -2,7 +2,7 @@
 import re
 from .store import OpsError
 
-INSTALLATION = {'type': 'string', 'enum': ['asa-test']}
+INSTALLATION = {'type': 'string', 'pattern': '^[A-Za-z][A-Za-z0-9_-]{0,63}$'}
 ID = {'type': 'string', 'pattern': '^[a-f0-9]{32}$'}
 KEY = {'type': 'string', 'pattern': '^[A-Za-z0-9_.:-]{16,128}$'}
 

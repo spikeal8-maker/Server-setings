@@ -98,6 +98,9 @@ def browser_check(config, release):
         return {'status': 'not_configured', 'checks': {}, 'reason': 'Isolated browser acceptance hook is not configured'}
     started = now()
     env = {**os.environ, 'ASA_ACCEPTANCE_ORIGIN': config['entry_origin'], 'ASA_ACCEPTANCE_REVISION': release['revision']}
+    from .maintenance import instance
+    generation=instance(config['root'])
+    if generation:env['ASA_ACCEPTANCE_INSTANCE_ID']=generation
     result = subprocess.run(command, cwd=config['root'], env=env, capture_output=True, timeout=600, text=True)
     try:
         report = json.loads(result.stdout)

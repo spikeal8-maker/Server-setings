@@ -118,10 +118,13 @@ class ControllerTests(unittest.TestCase):
         self.config = Path(self.temp.name)/'config.json'
         self.config.write_text(json.dumps({'installation': {'id': 'asa-test', 'root': self.temp.name,
                                     'state_root': str(Path(self.temp.name)/'state')}, 'official_command': []}))
+        metadata=Path(self.temp.name)/'.asa'
+        metadata.mkdir(exist_ok=True)
+        (metadata/'installation.json').write_text(json.dumps({'instanceId':'c'*32}))
         self.c = Controller(self.config, official=object())
 
     def plan(self, ready=True):
-        return self.c.store.plan('asa-test', {'ready': ready, 'release': {'revision': 'a'*40}})
+        return self.c.store.plan('asa-test', {'installation_instance_id':'c'*32,'ready': ready, 'release': {'revision': 'a'*40}})
 
     def test_shell_sql_url_and_foreign_installation_rejected(self):
         for payload in [
@@ -203,7 +206,7 @@ class ControllerTests(unittest.TestCase):
 
     def test_failed_acceptance_retains_recovery_for_unacknowledged_receipt(self):
         state = Path(self.temp.name)/'.asa'
-        state.mkdir()
+        state.mkdir(exist_ok=True)
         (state/'last-operation.json').write_text(json.dumps({'status': 'failed_switch'}))
         plan = self.plan(False)
         record, _ = self.c.store.start('asa-test', 'update', plan['plan_id'], 'recovery-test-key-002', {})

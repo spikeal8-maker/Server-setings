@@ -35,7 +35,9 @@ def instance(root):
 
 
 def check_generation(root, plan):
-    require(plan.get('installation_instance_id')==instance(root),'STALE_INSTALLATION')
+    current=instance(root)
+    require(isinstance(current,str) and bool(re.fullmatch('[a-f0-9]{32}',current)),'MAINTENANCE_NOT_CONFIGURED')
+    require(plan.get('installation_instance_id')==current,'STALE_INSTALLATION')
 
 
 def private_directory(path, uid, *, apply=False):
@@ -78,10 +80,15 @@ def attest_replacement(install, receipt):
     receipt=Path(receipt)
     technical=receipt.with_name('final-technical-receipt.json')
     for path in (receipt,technical):
+        require(all(parent.stat().st_uid==0 and parent.stat().st_mode & 0o022==0 for parent in path.parents),'REPLACEMENT_PARENT_TRUST')
         require(path.resolve()==path and path.stat().st_uid==0 and path.stat().st_mode & 0o022==0,'REPLACEMENT_RECEIPT_TRUST')
     clean=json.loads(receipt.read_text());audit=json.loads(technical.read_text())
     require(clean['phase']=='technical_verified' and clean.get('current_data_preserved') is False,'NOT_COMPLETED_CLEAN_REINSTALL')
     current=install.readiness();records=install.identity()
+    from deployment.contracts import validate_release
+    release=validate_release(json.loads(receipt.with_name('release.json').read_text()))
+    require(release['revision']==current['revision'] and int(release['schema'])==int(current['schema']),'REPLACEMENT_RELEASE_DRIFT')
+    require(all(records[name]['image']==image for name,image in release['images'].items()),'REPLACEMENT_IMAGE_DRIFT')
     require(clean['revision']==audit['revision']==current['revision'] and int(audit['schema'])==int(current['schema']),'REPLACEMENT_RUNTIME_DRIFT')
     old=set(clean['old_container_ids']);require(len(old)==7,'OLD_CONTAINER_EVIDENCE')
     all_ids=set(install.compose('ps','-a','-q','--no-trunc',capture=True).split())
