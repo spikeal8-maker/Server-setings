@@ -2,7 +2,7 @@
   "date": "2026-10-21",
   "status": "PUBLISHED_DRAFT_CANDIDATE_NOT_DEPLOYED",
   "source_pr": "https://github.com/spikeal8-maker/asa-lab/pull/680",
-  "source_revision": "1be2227bea42ca83f98b45503c3d0dd36e5eb784",
+  "source_revision": "5573ab3cddce3c7a2ceb84ff90d19adccf88b2de",
   "source_base": "0b472dfb73f4c24c70d6bffde54351e46b887366",
   "entry_profile": "deployment/entry-profiles/asa-owned.json",
   "profile_schema_version": 1,
@@ -14,7 +14,9 @@
     "https://94.29.44.211",
     "https://161.104.46.160"
   ],
-  "delegated_zones": ["https://*.asa-lab.ru"],
+  "delegated_zones": [
+    "https://*.asa-lab.ru"
+  ],
   "future_and_nested_subdomains": true,
   "main_domain_dns_lookup": "REFUSED from current Windows resolver",
   "lab_alikinas_dns_a": "161.104.46.160",
@@ -26,12 +28,15 @@
     "canonical_api_types": "PASS:16 uncached Nx tasks",
     "focused_eslint_prettier": "PASS",
     "independent_exact_source_sha_review": "PASS",
-    "github_ci": "PENDING at snapshot; see PR680"
+    "github_ci": "Implementation parent: focused Ubuntu/Windows PASS. Final metadata repair: Ubuntu PASS, Windows/general pending at snapshot; see PR680.",
+    "registry_repair": "PASS:2 validators and25 regression tests; registry revision now matches ADR1.3",
+    "infrastructure_hygiene": "PASS:3 tests using Python -X utf8"
   },
   "deployment": "NOT_RUN",
   "database_actions": "NONE",
   "host_network_changes": "NONE",
   "user_flow_all_aliases": "NOT_RUN",
   "full_portability_acceptance": "NOT_CLAIMED",
-  "secrets_or_personal_data_included": false
+  "secrets_or_personal_data_included": false,
+  "implementation_parent": "1be2227bea42ca83f98b45503c3d0dd36e5eb784"
 }

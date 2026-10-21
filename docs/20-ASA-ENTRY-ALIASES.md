@@ -1,7 +1,7 @@
 # Адреса установки ASA: готовящийся пакет, 21 октября 2026
 
 Исходный код: [ASA PR680](https://github.com/spikeal8-maker/asa-lab/pull/680),
-точный SHA `1be2227bea42ca83f98b45503c3d0dd36e5eb784`.
+точный SHA `5573ab3cddce3c7a2ceb84ff90d19adccf88b2de`.
 Независимый L3 review этого SHA: PASS. Это черновик PR, не установленный релиз.
 
 ## Состав профиля asa-owned
@@ -77,3 +77,6 @@ python tools/asa_manager.py configure-entry --root /srv/asa-lab --entry-profile 
 восстановления из docs18 не изменены; PR678 исправления сообщений входа остаётся
 отдельным кандидатом.
 
+
+
+Финальный SHA включает исправление реестра версии ADR1.3;2 валидатора и25 тестов валидаторов PASS. На нём повторены210 Vitest,48 Python,7 deployment и16 uncached Nx задач — PASS. Focused CI на исходном пакете прошёл Ubuntu/Windows; финальный metadata-only SHA: Ubuntu PASS, Windows/general ещё выполняются на момент записи. Гигиена Server-setings:3 теста PASS с Python -X utf8.
