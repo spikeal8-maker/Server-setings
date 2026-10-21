@@ -51,7 +51,10 @@ def work(config_path, opid, action):
     store.event(opid, action, 'Server worker started; reconnect using this operation_id')
     try:
         planned = store.get_plan(record['plan_id'])
-        if action == 'verify':
+        if action == 'restore_rehearse':
+            result = adapter(config_path, action, {'plan': planned}, store, opid)
+            status = 'success'  # rehearsal completed; ready_to_apply remains a separate result field
+        elif action == 'verify':
             result = adapter(config_path, 'verify', {'release': planned['release']}, store, opid)
             status = 'success' if result['accepted'] else 'acceptance_pending'
         elif action == 'finalize':

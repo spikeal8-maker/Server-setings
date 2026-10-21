@@ -211,6 +211,17 @@ class ControllerTests(unittest.TestCase):
             work(str(self.config), record['operation_id'], 'finalize')
         self.assertEqual(self.c.store.get(record['operation_id'])['status'], 'recovery_required')
 
+    def test_isolated_rehearsal_does_not_allow_parallel_mutation(self):
+        plan = self.plan(False)
+        original, _ = self.c.store.start('asa-test', 'update', plan['plan_id'], 'old-recovery-key-001', {})
+        self.c.store.update(original['operation_id'], status='recovery_required')
+        trial, _ = self.c.store.start('asa-test', 'restore_rehearse', plan['plan_id'], 'isolated-trial-key-001', {})
+        with self.assertRaises(OpsError):
+            self.c.dispatch('asa_operation_finalize', {'operation_id': original['operation_id'], 'idempotency_key': 'blocked-finalize-key-002'})
+        with self.assertRaises(OpsError):
+            self.c.store.start('asa-test', 'update', plan['plan_id'], 'blocked-mutation-key-001', {})
+        self.assertEqual(self.c.store.get(trial['operation_id'])['status'], 'queued')
+
 
 class ProtocolBridgeTest(unittest.TestCase):
     def test_official_stdio_tools_forwarding_and_new_operation_schemas(self):

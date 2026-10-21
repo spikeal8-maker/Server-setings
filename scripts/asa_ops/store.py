@@ -55,9 +55,13 @@ class Store:
                 id TEXT PRIMARY KEY, installation TEXT, kind TEXT, plan_id TEXT, idem TEXT UNIQUE,
                 request_hash TEXT, status TEXT, phase TEXT, created TEXT, updated TEXT,
                 pid INTEGER, process_identity TEXT, result TEXT);
-              CREATE UNIQUE INDEX IF NOT EXISTS one_active_installation ON operations(installation)
-                WHERE status IN ('queued','running','recovery_required');
             ''')
+            db.execute('BEGIN IMMEDIATE')
+            old = db.execute("SELECT sql FROM sqlite_master WHERE name='one_active_installation'").fetchone()
+            if old and "restore_rehearse" not in old[0]:
+                db.execute('DROP INDEX one_active_installation')
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_active_installation ON operations(installation) WHERE status IN ('queued','running','recovery_required') AND kind != 'restore_rehearse'")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_active_rehearsal ON operations(installation) WHERE status IN ('queued','running','recovery_required') AND kind = 'restore_rehearse'")
 
     @contextlib.contextmanager
     def db(self):
@@ -102,6 +106,11 @@ class Store:
                 if old['request_hash'] != request_hash:
                     raise OpsError('IDEMPOTENCY_CONFLICT', 'Key already belongs to a different request')
                 return self._public(old), False
+            # Isolated rehearsal may coexist with an idle interrupted-update
+            # receipt, never with a live mutation or another rehearsal worker.
+            busy = db.execute("SELECT 1 FROM operations WHERE installation=? AND status IN ('queued','running')", (installation,)).fetchone()
+            if busy:
+                raise OpsError('BUSY', 'Another server worker owns this installation')
             opid = uuid.uuid4().hex
             try:
                 db.execute('INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',

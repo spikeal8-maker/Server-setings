@@ -169,6 +169,8 @@ class Controller:
                     return {'operation': self.store._public(row), 'reused': True}
                 if row['status'] in ('running', 'queued'):
                     raise OpsError('BUSY', 'The operation still has an active worker')
+                if db.execute("SELECT 1 FROM operations WHERE installation=? AND id!=? AND status IN ('queued','running')", (row['installation'], opid)).fetchone():
+                    raise OpsError('BUSY', 'Another worker is running; finalization is deferred')
                 if row['status'] == 'success':
                     return {'operation': self.store._public(row), 'reused': True}
                 db.execute('INSERT OR IGNORE INTO finalizations VALUES(?,?,?)', (key, opid, digest(args)))

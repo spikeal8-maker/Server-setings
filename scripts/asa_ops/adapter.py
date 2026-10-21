@@ -358,7 +358,7 @@ def main():
     config = json.loads(Path(sys.argv[1]).read_text())
     payload = json.loads(Path(sys.argv[3]).read_text())
     action = sys.argv[2]
-    if action not in ('plan', 'verify', 'update', 'finalize', 'continuation'):
+    if action not in ('plan', 'verify', 'update', 'finalize', 'continuation', 'restore_plan', 'restore_rehearse'):
         raise SystemExit(2)
     # Suppress manager prints in JSON output; subprocess output is captured by
     # worker in a private file and never returned directly over MCP.
@@ -371,6 +371,9 @@ def main():
                 from deployment.system import operation_lock
                 with operation_lock(install.root):
                     result = plan(config['installation'], payload)
+            elif action.startswith('restore_'):
+                from . import restore
+                result = getattr(restore, action.removeprefix('restore_'))(config['installation'], payload)
             else:
                 result = globals()[action](config['installation'], payload)
         print('ASA_OPS_RESULT '+json.dumps({'ok': True, 'result': result}), file=sys.__stdout__, flush=True)
