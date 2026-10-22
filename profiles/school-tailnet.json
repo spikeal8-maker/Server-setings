@@ -1,0 +1,19 @@
+{
+  "name": "school-tailnet",
+  "description": "Школьный сервер Ubuntu 26.04 без публичного IP; SSH из школьной сети, административная панель только через Tailscale/SSH-туннель",
+  "os": "ubuntu-26.04",
+  "panel_version": "v2.3.2",
+  "panel_port": 19192,
+  "panel_user": "asaadmin",
+  "lan_cidrs": [
+    "172.23.104.0/23"
+  ],
+  "panel_lan_cidrs": [],
+  "ssh_port": 22,
+  "install_docker": true,
+  "install_tailscale": true,
+  "allow_public_web": false,
+  "install_1panel": true,
+  "admin_over_tailscale": true,
+  "websites": []
+}
