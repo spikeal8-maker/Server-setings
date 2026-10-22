@@ -11,9 +11,10 @@
   },
   "security": {
     "ssh_password_in_repository": false,
-    "ssh_password_in_logs": false,
+    "ssh_password_in_logs": "NOT_VERIFIED: credential passed transiently to an authorized tool input; no intentional print, tool telemetry retention not inspected",
     "panel_user_planned": "admins",
-    "panel_password": "to be randomly generated and retained only in /var/lib/server-settings/1panel-admin.env"
+    "panel_password": "to be randomly generated and retained only in /var/lib/server-settings/1panel-admin.env",
+    "ssh_password_rotation_recommended": true
   },
   "result": {
     "installation": "BLOCKED_HOST_UNREACHABLE",
