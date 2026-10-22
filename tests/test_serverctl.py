@@ -22,11 +22,11 @@ class TestProfiles(unittest.TestCase):
             int(digest, 16)
 
     def test_all_profiles_valid(self):
-        for name in ("home-static", "home-dynamic", "vps"):
+        for name in ("home-static", "home-dynamic", "vps", "school-tailnet"):
             with self.subTest(name=name):
                 profile = serverctl.load_profile(name)
                 self.assertEqual(name, profile["name"])
-                self.assertEqual("ubuntu-24.04", profile["os"])
+                self.assertEqual("ubuntu-26.04" if name == "school-tailnet" else "ubuntu-24.04", profile["os"])
                 self.assertEqual(19192, profile["panel_port"])
                 self.assertTrue(profile["install_1panel"])
 
@@ -36,6 +36,42 @@ class TestProfiles(unittest.TestCase):
         self.assertFalse(x["Firewall"]["публичные HTTP/HTTPS"])
         self.assertFalse(x["1Panel"]["публичное открытие панели"])
         self.assertEqual([], x["веб-сайты"])
+
+    def test_school_profile_restricts_panel_to_tailnet(self):
+        config = serverctl.load_profile("school-tailnet")
+        self.assertEqual("172.23.104.0/23", config["lan_cidrs"][0])
+        self.assertEqual([], config["panel_lan_cidrs"])
+        self.assertFalse(config["allow_public_web"])
+        plan = serverctl.plan(config, config["lan_cidrs"])
+        self.assertEqual([], plan["1Panel"]["разрешённые LAN сети панели"])
+        with mock.patch.object(serverctl, "command") as changes:
+            serverctl.apply_firewall(config, config["lan_cidrs"])
+        calls = [c.args for c in changes.call_args_list]
+        self.assertIn(("ufw", "allow", "in", "on", "tailscale0", "to", "any", "port", "19192", "proto", "tcp"), calls)
+        self.assertIn(("ufw", "allow", "from", "172.23.104.0/23", "to", "any", "port", "22", "proto", "tcp"), calls)
+        self.assertNotIn(("ufw", "allow", "from", "172.23.104.0/23", "to", "any", "port", "19192", "proto", "tcp"), calls)
+
+    def test_school_profile_rejects_mismatched_ubuntu(self):
+        config = serverctl.load_profile("school-tailnet")
+        with mock.patch.object(serverctl, "os_release", return_value={
+            "ID": "ubuntu", "VERSION_ID": "24.04", "VERSION_CODENAME": "noble"
+        }):
+            with self.assertRaisesRegex(RuntimeError, "Ubuntu 26.04"):
+                serverctl.verify_host(config)
+
+    def test_school_profile_rejects_public_panel_cidr(self):
+        config = serverctl.load_profile("school-tailnet")
+        config["panel_lan_cidrs"] = ["0.0.0.0/0"]
+        with mock.patch.object(Path, "read_text", return_value=json.dumps(config)):
+            with self.assertRaisesRegex(ValueError, "административную панель"):
+                serverctl.load_profile("school-tailnet")
+
+    def test_school_readonly_plan_does_not_need_root(self):
+        res = subprocess.run([sys.executable, str(BASE / "scripts/serverctl.py"), "plan",
+                              "--profile", "school-tailnet"], check=False, text=True, capture_output=True)
+        self.assertEqual(0, res.returncode, res.stderr)
+        self.assertIn("Ничего не изменено", res.stdout)
+        self.assertIn("school-tailnet", res.stdout)
 
     def test_vps_needs_explicit_admin_cidr_when_no_ssh(self):
         with mock.patch.dict(os.environ, {}, clear=True):
