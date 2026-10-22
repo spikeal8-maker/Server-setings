@@ -23,5 +23,6 @@ jobs:
           python3 scripts/serverctl.py plan --profile home-static
           python3 scripts/serverctl.py plan --profile home-dynamic
           python3 scripts/serverctl.py plan --profile vps
+          python3 scripts/serverctl.py plan --profile school-tailnet
       - name: Проверка диффа
         run: git diff --check HEAD
