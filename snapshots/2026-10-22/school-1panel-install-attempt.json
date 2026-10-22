@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-22",
+  "target": {
+    "hostname": "serv",
+    "ssh_user": "admins",
+    "school_ipv4": "172.23.104.191",
+    "school_cidr": "172.23.104.0/23",
+    "tailscale_name": "asa-school-serv",
+    "tailscale_ipv4": "100.72.211.28",
+    "os_last_verified": "Ubuntu 26.04.1 LTS"
+  },
+  "security": {
+    "ssh_password_in_repository": false,
+    "ssh_password_in_logs": "NOT_VERIFIED: credential passed transiently to an authorized tool input; no intentional print, tool telemetry retention not inspected",
+    "panel_user_planned": "admins",
+    "panel_password": "to be randomly generated and retained only in /var/lib/server-settings/1panel-admin.env",
+    "ssh_password_rotation_recommended": true
+  },
+  "result": {
+    "installation": "BLOCKED_HOST_UNREACHABLE",
+    "docker": "NOT_INSTALLED",
+    "onepanel": "NOT_INSTALLED",
+    "firewall": "NOT_CHANGED",
+    "old_test_server": "NOT_CHANGED"
+  },
+  "live_checks": {
+    "desktop": "DESKTOP-I07QIJE",
+    "desktop_school_ipv4": "172.23.104.170",
+    "school_tcp_22": "FAILED_TIMEOUT",
+    "school_ping": "FAILED_100_PERCENT_LOSS",
+    "school_arp": "UNREACHABLE mac 00-00-00-00-00-00",
+    "tailscale_ping": "NO_REPLY",
+    "tailscale_status": "OFFLINE"
+  },
+  "planned_access": {
+    "via_tailnet": "http://100.72.211.28:19192/<server-generated-secure-entrance> (ONLY AFTER INSTALL)",
+    "via_ssh_tunnel": "ssh -N -L 19192:127.0.0.1:19192 admins@172.23.104.191",
+    "never_open_panel_on_public_wan": true
+  },
+  "preflight": {
+    "test_results": "Github Actions SUCCESS at aa04bed7c057fec047d682437449e97fb867700e",
+    "pr": 14
+  },
+  "next": "Restore host power/LAN, verify exact SSH host identity, perform installer safety and firewall review, install via authorized root SSH, verify panel and client access"
+}

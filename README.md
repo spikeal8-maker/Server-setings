@@ -1,6 +1,6 @@
 # Server-setings — эталон Ubuntu / 1Panel / OpenResty / Tailscale
 
-**Назначение:** русскоязычный инфраструктурный репозиторий для переноса проверенной конфигурации тестового сервера на новую Ubuntu 24.04 LTS, включая VPS, домашний сервер с белым IP и узел с динамическим IP/CGNAT.
+**Назначение:** русскоязычный инфраструктурный репозиторий для переноса проверенной конфигурации тестового сервера на Ubuntu 24.04 LTS и отдельного, пока не принятого на живой машине профиля школьной Ubuntu 26.04. Включает VPS, домашний сервер с белым IP и узел с динамическим IP/CGNAT.
 
 Репозиторий содержит **наблюдаемый эталон**, конфигурационные шаблоны, безопасные установщики и диагностику. **Это не дамп базы и не подтверждённый готовый образ ОС:** реальная установка на второй чистой Ubuntu ещё требует интеграционной проверки. Без `--apply` скрипты ничего не изменяют.
 
@@ -13,6 +13,7 @@
 python3 scripts/serverctl.py plan --profile home-static
 python3 scripts/serverctl.py plan --profile home-dynamic
 python3 scripts/serverctl.py plan --profile vps
+python3 scripts/serverctl.py plan --profile school-tailnet
 
 # Только на НОВОЙ, чистой Ubuntu 24.04 с root и проверенным аварийным доступом
 sudo bash install.sh --profile home-static --apply
@@ -21,6 +22,8 @@ sudo bash install.sh --profile home-static --apply
 python3 scripts/serverctl.py doctor
 python3 scripts/serverctl.py repair-public-caddy
 ```
+
+Для нового школьного узла `serv` (`172.23.104.191/23`, Tailscale `100.72.211.28`, Ubuntu 26.04.1) предусмотрен `school-tailnet`: SSH доступен из школьной подсети, 1Panel — только по Tailscale/SSH-туннелю. **Установка на 26.04 пока не выполнена, применять `--apply` только после согласования сетевой защиты и проверки плана.** [Runbook для школы](docs/24-SCHOOL-UBUNTU2604.md).
 
 Сначала устанавливаются Docker, Tailscale и закреплённая **1Panel v2.3.2** (официальный архив + SHA256, сверяемый также с `versions.lock.json`); затем владелец один раз авторизует Tailscale и создаёт отдельный API-ключ в 1Panel. Второй этап устанавливает управляемый панелью OpenResty, proxy-сайт, TLS, локальный MCP `readonly` и резервирование. Отдельные этапы нужны, чтобы не выдавать пустую базу за восстановленную или открывать панель в интернет.
 
