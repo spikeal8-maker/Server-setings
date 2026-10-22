@@ -1,0 +1,44 @@
+{
+  "timestamp_local": "2026-10-22",
+  "evidence": "Live read-only Tailscale SSH diagnostics from authorized Ali_Robs to new school server; no privileged changes",
+  "host": "serv",
+  "tailnet_name": "asa-school-serv",
+  "os": "Ubuntu 26.04.1 LTS",
+  "kernel": "7.0.0-38-generic",
+  "arch": "x86_64",
+  "network": {
+    "school_ipv4": "172.23.104.191/23",
+    "interface": "enp1s0",
+    "gateway": "172.23.104.1",
+    "tailscale_ipv4": "100.72.211.28",
+    "tailscale_ssh": "SUCCESS_FROM_Ali_Robs",
+    "d2r2_ssh": "BLOCKED_BY_CLIENT_SOCKET_POLICY"
+  },
+  "resources": {
+    "logical_cpus": 8,
+    "ram_total_approx_gib": 14,
+    "ram_available_approx_gib": 12,
+    "disk_root_size_approx_gib": 233,
+    "disk_root_free_approx_gib": 207
+  },
+  "services": {
+    "ssh_socket": "active",
+    "tailscaled": "active",
+    "docker": "not_installed",
+    "panel": "not_installed",
+    "sudo_noninteractive": "password_required",
+    "ufw_rules": "previous_user_report_inactive"
+  },
+  "preflight": {
+    "git_branch": "infra/school-ubuntu2604-tailnet-20261022",
+    "python_unit_tests": "26 PASS on actual school Ubuntu",
+    "bash_syntax": "PASS",
+    "python_compile": "PASS",
+    "school_plan": "PASS_READONLY",
+    "installer_apply": "NOT_RUN",
+    "docker_install": "NOT_RUN",
+    "panel_install": "NOT_RUN",
+    "firewall_mutation": "NOT_RUN"
+  },
+  "sanitized": true
+}
