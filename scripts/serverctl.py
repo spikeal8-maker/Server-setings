@@ -21,6 +21,7 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "profiles"
+SUPPORTED_UBUNTU = {"ubuntu-24.04": ("24.04", "noble"), "ubuntu-26.04": ("26.04", "resolute")}
 STATE = Path("/var/lib/server-settings")
 ARCHES = {"x86_64": "amd64", "aarch64": "arm64"}
 PANEL_ARTIFACT_BASE = "https://resource.1panel.pro/v2/stable"
@@ -32,15 +33,18 @@ def load_profile(name: str) -> dict:
         raise ValueError("Некорректное имя профиля")
     profile_file = PROFILES / f"{name}.json"
     data = json.loads(profile_file.read_text(encoding="utf-8"))
-    if data["name"] != name or data["os"] != "ubuntu-24.04":
+    if data["name"] != name or data["os"] not in SUPPORTED_UBUNTU:
         raise ValueError("Неправильный профиль либо неподдерживаемая ОС")
     if not PANEL_VERSION_PATTERN.fullmatch(data["panel_version"]):
         raise ValueError("Версия 1Panel должна быть закреплена как v2.x.y")
     for field in ("panel_port", "ssh_port"):
         if not 1 <= int(data[field]) <= 65535:
             raise ValueError(f"Недопустимый порт {field}")
-    for cidr in data.get("lan_cidrs", []):
-        ipaddress.ip_network(cidr, strict=False)
+    for field in ("lan_cidrs", "panel_lan_cidrs"):
+        for cidr in data.get(field, []):
+            network = ipaddress.ip_network(cidr, strict=False)
+            if field == "panel_lan_cidrs" and network.prefixlen == 0:
+                raise ValueError("Нельзя открывать административную панель для всего интернета")
     for item in data.get("websites", []):
         if not item.get("upstream", "").startswith("http://127.0.0.1:"):
             raise ValueError("Публичный прокси разрешён только к loopback")
@@ -102,7 +106,8 @@ def plan(data: dict, admin_cidrs: list[str]) -> dict:
         "установка": {"Docker": data["install_docker"], "Tailscale": data["install_tailscale"],
                       "1Panel": data["panel_version"] if data["install_1panel"] else "не требуется"},
         "1Panel": {"порт": data["panel_port"], "администратор": data["panel_user"],
-                   "публичное открытие панели": False},
+                   "публичное открытие панели": False,
+                   "разрешённые LAN сети панели": data.get("panel_lan_cidrs", data.get("lan_cidrs", []))},
         "SSH": {"порты": resolve_ssh_ports(data), "разрешённые сети": admin_cidrs},
         "Firewall": {"политика": "deny incoming", "публичные HTTP/HTTPS": data["allow_public_web"],
                      "Tailscale для SSH и панели": data["admin_over_tailscale"]},
@@ -114,8 +119,10 @@ def plan(data: dict, admin_cidrs: list[str]) -> dict:
 
 def verify_host(data: dict):
     release = os_release()
-    if release.get("ID") != "ubuntu" or release.get("VERSION_ID") != "24.04":
-        raise RuntimeError("Автоматический установщик разрешён только для Ubuntu 24.04 LTS")
+    expected_version, expected_codename = SUPPORTED_UBUNTU[data["os"]]
+    if (release.get("ID"), release.get("VERSION_ID"), release.get("VERSION_CODENAME")) != (\
+            "ubuntu", expected_version, expected_codename):
+        raise RuntimeError(f"Профиль {data['name']} разрешён только для Ubuntu {expected_version} LTS ({expected_codename})")
     machine = os.uname().machine
     if machine not in ARCHES:
         raise RuntimeError("Архитектура не проверена: " + machine)
@@ -176,7 +183,7 @@ def install_tailscale():
         print("Tailscale уже установлен; в tailnet автоматически не авторизуем")
         return
     release = os_release()["VERSION_CODENAME"]
-    if release != "noble":
+    if release not in ("noble", "resolute"):
         raise RuntimeError("Неизвестный выпуск для Tailscale")
     key = Path("/usr/share/keyrings/tailscale-archive-keyring.gpg")
     download("https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg", key)
@@ -248,7 +255,7 @@ def apply_firewall(data: dict, cidrs: list[str]):
     for port in resolve_ssh_ports(data):
         for cidr in cidrs:
             command("ufw", "allow", "from", cidr, "to", "any", "port", str(port), "proto", "tcp")
-    for cidr in data.get("lan_cidrs", []):
+    for cidr in data.get("panel_lan_cidrs", data.get("lan_cidrs", [])):
         command("ufw", "allow", "from", cidr, "to", "any", "port", str(data["panel_port"]), "proto", "tcp")
     if data["admin_over_tailscale"] and data["install_tailscale"]:
         for port in {*resolve_ssh_ports(data), data["panel_port"]}:
@@ -305,7 +312,7 @@ def repair_stale_public_caddy(apply: bool):
 def main():
     parser = argparse.ArgumentParser(description="Установка и аудит сервера Ubuntu с 1Panel")
     parser.add_argument("action", choices=("plan", "install", "doctor", "repair-public-caddy"))
-    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps"), default="home-static")
+    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps", "school-tailnet"), default="home-static")
     parser.add_argument("--admin-cidr", action="append", default=[])
     parser.add_argument("--apply", action="store_true", help="разрешить изменения системы")
     args = parser.parse_args()
