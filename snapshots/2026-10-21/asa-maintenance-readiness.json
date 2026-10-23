@@ -1,0 +1,149 @@
+{
+  "backend_commit": "2c7905b",
+  "asa_candidate": "e4d95c1c5c7a8160ef39c8bc8de576351c6da1be",
+  "runtime": {
+    "revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+    "schema": 234
+  },
+  "update_plan": {
+    "plan_id": "2c32268d992b4fa588d6c673a577dbab",
+    "ready": true,
+    "blockers": [],
+    "checks": [
+      {
+        "name": "clean_checkout",
+        "status": "passed"
+      },
+      {
+        "name": "previous_operation",
+        "status": "passed"
+      },
+      {
+        "name": "runtime_identity",
+        "status": "passed"
+      },
+      {
+        "name": "backup_permissions_and_space",
+        "status": "passed"
+      },
+      {
+        "name": "trusted_tls_and_editor",
+        "status": "passed"
+      },
+      {
+        "name": "release_and_exact_ci",
+        "status": "passed"
+      },
+      {
+        "name": "forward_release",
+        "status": "passed"
+      },
+      {
+        "name": "pinned_images_and_migration_plan",
+        "status": "passed"
+      }
+    ],
+    "release_revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+    "release_schema": 234
+  },
+  "browser_operation": {
+    "operation_id": "130d171bc41949a9b0e0c98f374e8a4d",
+    "status": "success",
+    "accepted": true,
+    "checks": {
+      "course_open": true,
+      "electronics_save_reopen": true,
+      "existing_project_open": true,
+      "scratch_save_reopen": true,
+      "student_login": true,
+      "teacher_login": true
+    },
+    "started_at": "2026-10-21T20:13:52.436134+00:00",
+    "finished_at": "2026-10-21T20:16:00.137132+00:00"
+  },
+  "retired_operation": {
+    "operation_id": "faf549a0812a4f1a88c94ccf03334074",
+    "status": "superseded",
+    "history_and_prior_result_retained": true
+  },
+  "backup_directory": "/srv/asa-lab/backups",
+  "backup_mode": "0o700",
+  "instance_id": "5b6b0863be934b3baaa29bf4795a2587",
+  "active_workers": 0,
+  "application_container_ids_unchanged": true,
+  "application_private_env_unchanged": true,
+  "application_restarted_by_backend_install": false,
+  "application_updated": false,
+  "database_restored_in_this_task": false,
+  "browser_scope": "authorized dedicated test accounts/course/projects; student API login then navigation; Arduino seeded through regular API; save/reopen through UI",
+  "database_inventory": {
+    "api_status": 200,
+    "registered_1panel_instances": 0,
+    "scope": "panel catalog only; runtime confirms Compose PostgreSQL"
+  },
+  "dns": {
+    "google_doh_test_A": "94.29.44.211",
+    "cloudflare_doh_test_A": "94.29.44.211",
+    "windows_system_resolver": "query refused",
+    "machine_dns_changed": false
+  },
+  "unit_tests": {
+    "infra_ubuntu": 60,
+    "asa_windows_CI": {
+      "total": 87,
+      "status": "passed",
+      "skipped": 4
+    },
+    "asa_ubuntu_CI": {
+      "total": 87,
+      "status": "passed"
+    },
+    "portable_delivery_ci": {
+      "sha": "bbd4d6da5ec54670f149aff7bdc1c709b1e4fbd7",
+      "status": "passed",
+      "run_id": 39668368304,
+      "checks": [
+        "Windows contracts",
+        "Ubuntu contracts",
+        "image build",
+        "disposable boot",
+        "backup restoration"
+      ]
+    }
+  },
+  "new_clean_OS_install": "NOT_RUN",
+  "github": {
+    "infra_pr": 13,
+    "asa_pr": 684,
+    "merged": false
+  },
+  "baseline_bundle_repair": {
+    "commit": "3274f73f31212dc3e0a4527479cc718dc6a04c55",
+    "file": "apps/web/src/pages/SchematicEditor.tsx",
+    "before_bytes": 218156,
+    "after_bytes": 217808,
+    "budget_bytes": 218000,
+    "change": "specialize single-use notes panel; remove unreachable code branch",
+    "related_tests_passed": 32,
+    "independent_review": "PASS"
+  },
+  "final_integration": {
+    "revision": "e4d95c1c5c7a8160ef39c8bc8de576351c6da1be",
+    "main": "1801b4c131c090257bb85a63ee710494d704fca1",
+    "main_delta": "documentation only; no code overlap",
+    "independent_review": "PASS",
+    "windows_deployment_tests": 87,
+    "windows_skipped": 4,
+    "general_ci_run": 39671235342,
+    "portable_ci_run": 39671235480,
+    "ci_status": "portable passed; general PostgreSQL timeout; browser jobs pending",
+    "portable_ci_status": "passed",
+    "general_code_gate": "passed",
+    "general_data_gate": {
+      "passed_tests": 6551,
+      "failed": "public projects beforeAll 90s timeout; Teacher Home lifecycle 60s timeout",
+      "run_id": 39671235342,
+      "job_id": 119472542226
+    }
+  }
+}

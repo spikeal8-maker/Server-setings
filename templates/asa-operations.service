@@ -1,0 +1,29 @@
+[Unit]
+Description=ASA Lab durable operations and private MCP backend
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admins
+Group=admins
+WorkingDirectory=/opt/server-settings/asa-operations
+Environment=PYTHONPATH=/opt/server-settings/asa-operations
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/server-settings/asa-browsers
+EnvironmentFile=/etc/server-settings/asa-operations.env
+ExecStart=/usr/bin/python3 -m asa_ops.server --config /etc/server-settings/asa-operations.json
+Restart=on-failure
+RestartSec=3
+# Detached operation workers must survive main-process restart; store reconciliation
+# checks boot ID and process start time and never replays a lost mutation.
+KillMode=process
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target
