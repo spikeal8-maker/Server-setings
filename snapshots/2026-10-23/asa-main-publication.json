@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-23",
+  "authorization": "Owner explicitly requested publication to main",
+  "infra": {
+    "pr": 13,
+    "merge_commit": "127645565fec589f390688667c60ea2a2942f840",
+    "state": "MERGED",
+    "premerge_ci": "both checks passed at04c6b4a"
+  },
+  "asa": {
+    "pr": 684,
+    "reviewed_head": "5fb7b45d14d8b597036697060e95bb8f99f43cd4",
+    "merge_commit": "b9a2f7a954b46c63dfe9f10fb610a60616f6a2a5",
+    "state": "MERGED",
+    "final_ci": "PENDING; no green-CI or release acceptance claimed"
+  },
+  "focused_validation": {
+    "deployment_tests_windows": 87,
+    "platform_skips": 4,
+    "fresh_web_build": "6 Nx tasks PASS, cache skipped",
+    "corrected_admin_drawer_browser_regression": "1 passed against freshly built SPA; selector matches real button",
+    "learning_fixture": "injective alphabetic title mapping avoids random99 collision; assertion retained",
+    "independent_reviews": "PASS: integration and both bounded fixture repairs"
+  },
+  "historical_ci": {
+    "c280_learning": "PASS",
+    "c280_portable": "PASS",
+    "c280_general": "data and code passed; synthetic UI failed solely on corrected link/button selector",
+    "c280_electronics_live": "not accepted; final status not used as proof"
+  },
+  "server_deployment": false,
+  "database_actions": false,
+  "scope": "GitHub publication only; prior live runtime evidence remains dated2026-10-21"
+}

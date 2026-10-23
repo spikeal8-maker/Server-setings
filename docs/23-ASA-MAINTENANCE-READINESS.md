@@ -48,3 +48,11 @@ Google и Cloudflare по DNS-over-HTTPS вернули A test.asa-lab.ru=94.29.
 Отдельный проверенный commit3274f73f удаляет недостижимую ветку внутреннего компонента SchematicEditor: единственный вызов использовал только notes. DOM заметок, подписи и callbacks сохранены; свежая сборка, lint/types/format и32 существующих профильных теста PASS. Размер файла217808/218000байт вместо218156; лимит не увеличен. Независимое ревью PASS.
 
 Финальный кандидат e4d95c1c5c7a8160ef39c8bc8de576351c6da1be включает только непересекающиеся документационные изменения main1801b4c. Windows87deployment tests PASS (4platform skips), preflight SAFE_TO_START. Portable39671235480 PASS на финальном SHA: Windows/Ubuntu contracts, образы, отдельный запуск и полный backup/restore. General39671235342 прошёл governance и весь code gate, включая bundle. Data gate:6551 тест прошёл, но public-projects beforeAll90s и Teacher Home lifecycle60s завершились тайм-аутами; общий CI не считается зелёным. Браузерные jobs ещё выполнялись на момент фиксации. Learning rerun запущен после npm ECONNRESET на том же SHA. Новые повторные прогоны не запускались; merge не выполнен.
+
+## Публикация в main — 23 октября 2026
+
+По прямому поручению владельца PR13 Server-setings включён в main commit127645565fec589f390688667c60ea2a2942f840 после двух успешных CI. PR684 ASA Lab включён в main commitb9a2f7a954b46c63dfe9f10fb610a60616f6a2a5, reviewed head5fb7b45d14d8b597036697060e95bb8f99f43cd4. Независимое ревью интеграции и двух отдельных исправлений тестовых fixtures PASS.
+
+На c280 прошли portable, Learning, code и data gate. Единственный сбой общего CI был в synthetic UI: тест искал ссылку «Публикации», реальный элемент — button. Исправлен только selector; свежая web-сборка (6Nx tasks без cache) и этот реальный локальный browser regression PASS. Также исправлена случайная коллизия99 в названии курса: UUID цифры преобразованы в отдельный алфавит, проверка отсутствия текущей политики99 сохранена.
+
+CI финального head/main ещё выполняется: зелёный CI или выпуск принятого release candidate не заявляются. Разрешённая публикация исходников не является обновлением работающих серверов; серверы и база в этом продолжении не изменялись. Точный снимок: snapshots/2026-10-23/asa-main-publication.json.
