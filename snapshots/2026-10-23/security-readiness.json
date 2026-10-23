@@ -1,0 +1,144 @@
+{
+  "at_utc": "2026-10-23T17:31:35.974342+00:00",
+  "scope": "Read-only configuration/security-readiness analysis, not penetration-test or production certification",
+  "target": "admins-MS-7D22 / test Ubuntu",
+  "changes_applied": false,
+  "admin_domain_confirmed": "1panel.asa-lab.ru",
+  "admin_domain_A": {
+    "dns_status": 3,
+    "A": []
+  },
+  "checks": {
+    "ufw_active": true,
+    "ufw_inbound_default": "deny",
+    "ssh_panel_allowed_sources": "192.168.1.0/24 and tailscale; tailnet traffic accepted before UFW chains",
+    "database_and_object_storage_host_ports": false,
+    "asa_web_scratch_ports": "127.0.0.1:4610 /127.0.0.1:4613; separate LAN proxy192.168.1.115:4610",
+    "https_ready_status": 200,
+    "runtime_revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+    "runtime_schema": 234,
+    "public_mcp_without_token": 401,
+    "backend_listen": "127.0.0.1:39446",
+    "gateway_listen": "127.0.0.1:39443",
+    "sshd": {
+      "port": "22",
+      "listenaddress": "0.0.0.0:22",
+      "usepam": "yes",
+      "logingracetime": "120",
+      "maxauthtries": "6",
+      "permitrootlogin": "without-password",
+      "pubkeyauthentication": "yes",
+      "passwordauthentication": "yes",
+      "kbdinteractiveauthentication": "no",
+      "x11forwarding": "yes",
+      "permitemptypasswords": "no",
+      "allowtcpforwarding": "yes",
+      "authenticationmethods": "any",
+      "maxstartups": "10:30:100"
+    },
+    "admins_authorized_key_count": 0,
+    "ssh_log_counters_last7d_capped10000": {
+      "failed_password": 1,
+      "invalid_user": 1,
+      "accepted_password": 50,
+      "accepted_publickey": 32
+    },
+    "tailnet_ssh_from_D2": "UNVERIFIED: local socket PermissionError errno13 winerror10013; not proof of server refusal",
+    "panel": {
+      "sessionTimeout": "86400",
+      "ipv6": "Disable",
+      "bindAddress": "0.0.0.0",
+      "ssl": "Disable",
+      "sslType": "self",
+      "bindDomain": "",
+      "allowIPs": "",
+      "expirationDays": "0",
+      "complexityVerification": "Enable"
+    },
+    "panel_MFA": "UNKNOWN; not present in settings response",
+    "gateway_mode": "full",
+    "server_mcp_tools": [
+      "create_database",
+      "create_ssl",
+      "create_website",
+      "get_dashboard_info",
+      "get_system_info",
+      "install_mysql",
+      "install_openresty",
+      "list_databases",
+      "list_installed_apps",
+      "list_ssls",
+      "list_websites",
+      "asa_restore_plan",
+      "asa_restore_rehearse",
+      "asa_update_plan",
+      "asa_update_start",
+      "asa_operation_get",
+      "asa_operation_list",
+      "asa_deployment_verify",
+      "asa_operation_finalize"
+    ],
+    "connected_mcp_tool_count": 17,
+    "latest_update_plan": {
+      "id": "45b4793c9b064255910b34c7c78975b1",
+      "ready": true,
+      "blockers": [],
+      "passed_checks": 8,
+      "target_revision": "b9a2f7a954b46c63dfe9f10fb610a60616f6a2a5",
+      "target_schema": 236,
+      "actual_update_executed": false
+    },
+    "gateway_env": {
+      "path": "/opt/1panel/docker/compose/asa-1panel-mcp/.env",
+      "mode": "0644",
+      "contains_panel_key": true,
+      "readable_by_unprivileged_nobody": true
+    },
+    "backend_env_mode": "0o600",
+    "app_env_mode": "0600",
+    "backups": {
+      "/srv/asa-lab/backups": {
+        "exists": true,
+        "file_count": 0,
+        "last_file_at": null
+      },
+      "/var/backups/server-settings": {
+        "exists": false,
+        "file_count": 0,
+        "last_file_at": null
+      }
+    },
+    "matching_asa_cron_jobs": [],
+    "backup_systemd_timer_observed": false,
+    "cached_upgradable_packages": 83,
+    "cached_package_scope": "all upgradable packages; not83 proven security advisories; apt metadata not refreshed",
+    "reboot_required": true,
+    "unattended_upgrades_active": true,
+    "fail2ban_client_available": false,
+    "vulnerability_scanners": {
+      "trivy": false,
+      "grype": false,
+      "lynis": false,
+      "fail2ban-client": false
+    },
+    "frp_runtime_confirmed": false,
+    "source_dependabot_open": {
+      "medium": 9,
+      "low": 2,
+      "count": 11,
+      "scope": "current GitHub main dependency alerts; not CVE scan of installed release/images"
+    },
+    "infra_dependabot": "disabled/403; no setting changed"
+  },
+  "unverified": [
+    "independent external IPv4/IPv6 port scan and router NAT",
+    "tailnet ACL/device identity policy",
+    "panel MFA and recovery",
+    "secret rotation completion",
+    "offsite backup and scheduled restore",
+    "OS/container image CVE and filesystem integrity scans",
+    "application penetration testing/load/DDoS resilience",
+    "FRP deploy/reconnect and multi-project acceptance",
+    "second clean Ubuntu reproduction"
+  ]
+}
