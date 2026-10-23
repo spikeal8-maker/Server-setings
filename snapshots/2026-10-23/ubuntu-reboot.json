@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-23",
+  "host": "admins-MS-7D22",
+  "owner_authorized": true,
+  "action": "systemctl reboot via5s transient timer",
+  "package_locks_before": false,
+  "asa_worker_before": false,
+  "boot_id_before": "1d206f84-72d2-4652-8e7b-de3cffd22de4",
+  "boot_id_after": "495caa21-b81d-44d2-bc6b-f130d4a317e8",
+  "kernel_before": "7.0.0-31-generic",
+  "kernel_after": "7.0.0-38-generic",
+  "reboot_required_after": false,
+  "ssh_verified": true,
+  "active_services": [
+    "ssh",
+    "docker",
+    "1panel-core",
+    "1panel-agent",
+    "asa-operations",
+    "tailscaled"
+  ],
+  "running_healthy_asa_containers": 5,
+  "asa_https_ready": 200,
+  "mcp_without_token": 401,
+  "authenticated_mcp_dashboard_code": 200,
+  "asa_revision_unchanged": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+  "schema_unchanged": 234,
+  "package_install_or_upgrade_run": false,
+  "application_update_or_restore_run": false,
+  "backup_activated": false
+}
