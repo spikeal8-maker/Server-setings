@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import secrets
 import socket
+import stat
 import subprocess
 import zipfile
 
@@ -65,14 +66,36 @@ log.level = "warn"
 '''
 
 
+def trusted(path, uid, mode, directory=False):
+    st = path.lstat()
+    kind = stat.S_ISDIR if directory else stat.S_ISREG
+    if not kind(st.st_mode) or st.st_uid != uid or stat.S_IMODE(st.st_mode) != mode:
+        raise RuntimeError('Untrusted ownership/type/mode: ' + str(path))
+
+
 def prepare(address):
+    parent = ROOT.parent.lstat()
+    if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != 0 or parent.st_mode & 0o022:
+        raise RuntimeError('Deployment parent must be root-owned and not group/world writable')
     if ROOT.exists():
+        trusted(ROOT, 0, 0o700, directory=True)
         marker = ROOT / 'manifest.json'
-        if ROOT.is_symlink() or not marker.is_file():
+        if not marker.is_file():
             raise RuntimeError('Existing unowned/incomplete root; inspect, never overwrite automatically')
+        trusted(marker, 0, 0o600)
         m = json.loads(marker.read_text())
         if m != {'project': PROJECT, 'address': address, 'image': IMAGE}:
             raise RuntimeError('Existing deployment differs; explicit migration required')
+        trusted(ROOT / 'compose.json', 0, 0o600)
+        if json.loads((ROOT / 'compose.json').read_text()) != compose(address):
+            raise RuntimeError('Existing Compose is not the exact trusted deployment')
+        trusted(ROOT / 'server', 65532, 0o700, directory=True)
+        for name in ['frps.toml', 'server.crt', 'server.key', 'ca.crt', 'token']:
+            trusted(ROOT / 'server' / name, 65532, 0o400)
+        if (ROOT / 'server/frps.toml').read_text() != server_config():
+            raise RuntimeError('Existing FRPS configuration differs')
+        trusted(ROOT / 'pki', 0, 0o700, directory=True)
+        for name in ['ca.key', 'ca.crt']: trusted(ROOT / 'pki' / name, 0, 0o600)
         return
     for host, port in [(address, 7000)] + [('127.0.0.1', p) for p in PORTS]:
         with socket.socket() as s:

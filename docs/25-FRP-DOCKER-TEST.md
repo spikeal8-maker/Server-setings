@@ -9,7 +9,7 @@ Owner explicitly requested FRP in Docker on the test Ubuntu and a school-server 
 - FRPS nonroot65532, readonly rootfs/mount, no capabilities, no-new-privileges, bounded memory/PIDs/logs. No Docker socket. No dashboard.
 - Both sides require certificate authentication and a random token file. CA private key stays in a root-only directory on Ubuntu, outside container mounts. Server/container materials have private permissions.
 - The school private key is generated on Windows, protected with ACL, and never transferred. Only the public CSR is transferred to the signer. The returned bundle contains client certificate, public CA and RSA-OAEP-SHA256-encrypted token. It contains no private key/plaintext token.
-- Windows client uses an unprivileged S4U scheduled task, not a SYSTEM task pointing to a user-writable executable. No visible terminal, no Windows firewall/VPN/DNS changes, no Docker installation on Windows.
+- Windows operator is non-admin; the client uses a hidden owner process and an identity-checked Startup shortcut, never an elevated/SYSTEM task. It reconnects after server failure and starts again on owner logon; unattended startup before logon is not claimed. No visible terminal, no Windows firewall/VPN/DNS changes, no Docker installation on Windows.
 
 ## Reproduction
 
@@ -24,7 +24,7 @@ The ports inside the FRPS container bind0.0.0.0 so bridge port publishing works;
 
 ## Operations and rollback
 
-Inspect: docker compose -p asa-frp-test -f /srv/asa-frp/compose.json ps. Restart/stop only this project. On Windows use -Mode Status or -Mode Stop for ASA-FRP-School-Test; no other FRPC process/task is stopped. For rollback stop the client task, then docker compose -p asa-frp-test -f /srv/asa-frp/compose.json stop frps. Preserve private materials; do not prune Docker or delete unrelated volumes.
+Inspect: docker compose -p asa-frp-test -f /srv/asa-frp/compose.json ps. Restart/stop only this project. On Windows use -Mode Status or -Mode Stop for the recorded client process (PID+start-time+executable); no other process is stopped. Remove the specific owner Startup shortcut to disable logon startup. For rollback stop the recorded client process, then docker compose -p asa-frp-test -f /srv/asa-frp/compose.json stop frps. Preserve private materials; do not prune Docker or delete unrelated volumes.
 
 At this commit configuration is prepared, not yet accepted as deployed. Actual acceptance is recorded separately in snapshots after the run. The container appears in1Panel's Docker inventory; importing its external Compose is a separate UI operation, not a second deployment.
 

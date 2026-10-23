@@ -5,7 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $openssl = 'C:\Program Files\Git\usr\bin\openssl.exe'
-$taskName = 'ASA-FRP-School-Test'
+$startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'ASA FRP School Test.lnk'
 if ($Mode -eq 'Prepare') {
   if (!(Test-Path -LiteralPath $openssl)) { throw 'Existing Git OpenSSL is required; no Git installer is run' }
   New-Item -ItemType Directory -Force -Path $Root | Out-Null
@@ -51,6 +51,7 @@ if ($Mode -eq 'Install') {
   $config = @"
 serverAddr = "100.75.149.26"
 serverPort = 7000
+loginFailExit = false
 auth.method = "token"
 auth.tokenSource.type = "file"
 auth.tokenSource.file.path = "$r/token"
@@ -80,22 +81,32 @@ plugin.localPath = "$r/probe"
   return
 }
 if ($Mode -eq 'Start') {
-  $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-  if ($existing) {
-    if ($existing.Actions.Execute -ne "$Root\frpc.exe") { throw 'Task belongs to another deployment' }
-  } else {
-    $action = New-ScheduledTaskAction -Execute "$Root\frpc.exe" -Argument ('-c "' + $Root + '\frpc.toml"') -WorkingDirectory $Root
-    $trigger = New-ScheduledTaskTrigger -AtStartup
-    # FRPC needs no administrator privileges; do not elevate a user-writable executable to SYSTEM.
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-    $principal = New-ScheduledTaskPrincipal -UserId $identity -LogonType S4U -RunLevel Limited
-    $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings | Out-Null
+  # The school operator is non-admin. Use its own logon startup, never an elevated task.
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($startup)
+  $target = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+  $arguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -Mode Start -Root "' + $Root + '"'
+  if ((Test-Path $startup) -and ($shortcut.TargetPath -ne $target -or $shortcut.Arguments -ne $arguments)) { throw 'Startup entry belongs to another deployment' }
+  $shortcut.TargetPath = $target; $shortcut.Arguments = $arguments; $shortcut.WindowStyle = 7; $shortcut.Save()
+  $running = $false
+  if (Test-Path "$Root\process.json") {
+    $record = Get-Content "$Root\process.json" -Raw | ConvertFrom-Json
+    $process = Get-Process -Id $record.pid -ErrorAction SilentlyContinue
+    $running = $process -and $process.Path -eq "$Root\frpc.exe" -and $process.StartTime.ToUniversalTime().Ticks -eq $record.startTicks
   }
-  if ((Get-ScheduledTask -TaskName $taskName).State -ne 'Running') { Start-ScheduledTask -TaskName $taskName }
+  if (!$running) {
+    $process = Start-Process -FilePath "$Root\frpc.exe" -ArgumentList ('-c "' + $Root + '\frpc.toml"') -WorkingDirectory $Root -WindowStyle Hidden -PassThru
+    @{pid=$process.Id; startTicks=$process.StartTime.ToUniversalTime().Ticks} | ConvertTo-Json | Set-Content "$Root\process.json"
+  }
 }
 if ($Mode -eq 'Stop') {
-  $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-  if ($existing -and $existing.Actions.Execute -eq "$Root\frpc.exe") { Stop-ScheduledTask -TaskName $taskName }
+  if (Test-Path "$Root\process.json") {
+    $record = Get-Content "$Root\process.json" -Raw | ConvertFrom-Json
+    $process = Get-Process -Id $record.pid -ErrorAction SilentlyContinue
+    if ($process -and $process.Path -eq "$Root\frpc.exe" -and $process.StartTime.ToUniversalTime().Ticks -eq $record.startTicks) { Stop-Process -Id $process.Id }
+  }
 }
-Get-ScheduledTask -TaskName $taskName | Select-Object TaskName,State
+if (Test-Path "$Root\process.json") {
+  $record = Get-Content "$Root\process.json" -Raw | ConvertFrom-Json
+  Get-Process -Id $record.pid -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,StartTime
+}
