@@ -37,6 +37,18 @@
       "checksum_verified": false,
       "classification_confirmed": false,
       "security_exclusion_added": false
+    },
+    "defender_recheck": {
+      "signature_before": "1.461.163.0",
+      "signature_after": "1.461.171.0",
+      "update": "SUCCESS",
+      "official_release_retry": "BLOCKED_AT_HASH_READ",
+      "checksum_verified": false,
+      "client_executed": false,
+      "protection_enabled": true,
+      "exclusions_added": false,
+      "upstream_issue": "https://github.com/fatedier/frp/issues/5571",
+      "upstream_response": "FRProxy PUA classification is intentional; no publisher-led review planned; this does not classify our Kepavll detection"
     }
   },
   "acceptance": {
