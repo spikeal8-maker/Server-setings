@@ -31,3 +31,11 @@ At this commit configuration is prepared, not yet accepted as deployed. Actual a
 Public websites require separate1Panel site/domain/HTTPS routes to loopback14610/14620, through panel API/UI. ASA cannot safely be mounted as a full application under an arbitrary URL prefix. A health/marker-only path may be used for a probe; real ASA should receive its own hostname. No production publication or DNS readiness is implied by an internal tunnel test.
 
 For direct Internet FRP later, authorize a public control endpoint and router NAT/firewall rule, validate mTLS and source policy, then change the transport profile. The present test does not open7000 to WAN. Keep backups disabled as requested until ASA testing is accepted.
+
+## Actual deployment — 24 October 2026 MSK
+
+Published source3913ece was applied to test Ubuntu. Container asa-frp-test-frps-1 is running with the pinned image, non-root65532, read-only root filesystem and exact bindings listed above. School TCP access to100.75.149.26:7000 succeeds. A real FRPC connection using the valid token but no client certificate was rejected (exit1, session shutdown). Existing ASA HTTPS readiness is200, revision6e80e3f3/schema234, all five application containers remain healthy.
+
+School Prepare generated its private key and public CSR locally, but Windows Defender blocked reading the official Windows release archive: threat2147939874, Trojan:Win32/Kepavll!rfn, action successful. The archive checksum could not be checked, so neither verified binary installation nor client enrollment/start/autostart was completed. This detection is not proof that the upstream archive is malicious, and is not established as a false positive. No exclusion, protection disablement or alternate execution route was attempted. Preserve the evidence and have the school security administrator investigate the detection and release integrity before continuing.
+
+The school-local ASA endpoint still returns200. No working end-to-end school tunnel, school proof marker, reconnect acceptance or public Internet publication is claimed. Server FRP can stay idle while the client is blocked; its only control listener is on Tailscale and proxy listeners are loopback. No router, DNS, firewall, existing services/data or backup automation changed. Evidence: snapshots/2026-10-24/frp-test.json.

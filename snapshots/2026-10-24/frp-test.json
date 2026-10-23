@@ -1,0 +1,60 @@
+{
+  "date_msk": "2026-10-24",
+  "source_commit": "3913ecea38dd2a3f4620869f8072fd0de7d0233b",
+  "status": "SERVER_RUNNING_SCHOOL_CLIENT_BLOCKED",
+  "server": {
+    "host": "admins-MS-7D22",
+    "project": "asa-frp-test",
+    "container": "asa-frp-test-frps-1",
+    "running": true,
+    "image": "ghcr.io/fatedier/frps@sha256:48720c81f048e842f7f0b8053753c1a8514053d59d2dee8a953f67995de73a18",
+    "user": "65532:65532",
+    "read_only": true,
+    "control": "100.75.149.26:7000",
+    "proxy_bind": "127.0.0.1",
+    "proxy_ports": [
+      14610,
+      14620,
+      14630
+    ],
+    "client_without_certificate": "REJECTED exit1 session shutdown",
+    "school_tcp_control_reachable": true
+  },
+  "school": {
+    "host": "DESKTOP-I07QIJE",
+    "asa_local_readiness_http": 200,
+    "client_key_generated_locally": true,
+    "client_private_key_exported": false,
+    "client_enrolled": false,
+    "client_started": false,
+    "autostart_installed": false,
+    "blocker": {
+      "component": "Windows Defender",
+      "threat_id": 2147939874,
+      "threat_name": "Trojan:Win32/Kepavll!rfn",
+      "action_success": true,
+      "resource": "official frp_0.71.1_windows_amd64.zip download",
+      "checksum_verified": false,
+      "classification_confirmed": false,
+      "security_exclusion_added": false
+    }
+  },
+  "acceptance": {
+    "asa_test_https": 200,
+    "asa_revision": "6e80e3f3e87a8f815ac6b254fd0b3ffa942db2d3",
+    "schema": 234,
+    "asa_healthy_containers": 5,
+    "school_asa_through_frp": "NOT_TESTED",
+    "school_marker_through_frp": "NOT_TESTED",
+    "reconnect": "NOT_TESTED",
+    "public_internet_transport": "NOT_CONFIGURED"
+  },
+  "changes_not_made": [
+    "firewall",
+    "DNS",
+    "router NAT",
+    "existing ASA services/data",
+    "Windows security exclusions",
+    "backup automation"
+  ]
+}
