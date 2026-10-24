@@ -66,12 +66,21 @@ def main():
             stage = 'teacher_registration_or_login'
             page.goto(origin, wait_until='networkidle')
             if not fixture.get('registered'):
-                page.get_by_text('Создать аккаунт',exact=True).first.click()
-                page.get_by_label('Email',exact=True).fill(fixture['email'])
-                page.get_by_label('Имя пользователя',exact=True).fill(fixture['username'])
-                page.get_by_label('Отображаемое имя',exact=True).fill('ASA Operations Test Teacher')
-                page.get_by_label('Дата рождения',exact=True).fill('1990-04-12')
-                page.get_by_label('Пароль',exact=True).fill(fixture['password'])
+                # The entry page and login page expose different create-account controls.
+                signup = page.get_by_text('Создать аккаунт', exact=True)
+                if signup.count():
+                    signup.first.click()
+                else:
+                    page.get_by_role('button', name='Войти', exact=True).first.click()
+                    page.get_by_role('button', name='Создать', exact=True).click()
+                page.locator('#register-email').fill(fixture['email'])
+                # Username is optional on older releases and absent on current ASA Lab.
+                legacy_username = page.locator('#register-username')
+                if legacy_username.count():
+                    legacy_username.fill(fixture['username'])
+                page.locator('#register-name').fill('ASA Operations Test Teacher')
+                page.locator('#register-birth-date').fill('1990-04-12')
+                page.locator('#register-password').fill(fixture['password'])
                 page.get_by_role('checkbox').press('Space')
                 with page.expect_response(lambda r: r.url.endswith('/api/auth/register') and r.request.method=='POST') as pending:
                     page.get_by_role('button',name='Создать аккаунт',exact=True).click()
@@ -82,8 +91,9 @@ def main():
                 context.set_default_timeout(45000)
                 page=context.new_page();page.goto(origin,wait_until='networkidle')
             page.get_by_role('button',name='Войти',exact=True).first.click()
-            page.get_by_label('Email или имя пользователя',exact=True).fill(fixture['email'])
-            page.get_by_label('Пароль',exact=True).fill(fixture['password'])
+            # Stable DOM IDs work with both the former and current login labels.
+            page.locator('#identifier').fill(fixture['email'])
+            page.locator('#password').fill(fixture['password'])
             page.get_by_role('checkbox').press('Space')
             with page.expect_response(lambda r: r.url.endswith('/api/auth/login') and r.request.method=='POST') as pending:
                 page.get_by_role('button',name='Войти',exact=True).click()
