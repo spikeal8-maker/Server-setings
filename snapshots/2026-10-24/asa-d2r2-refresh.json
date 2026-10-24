@@ -1,0 +1,105 @@
+{
+  "date_msk": "2026-10-24",
+  "host": "D2-R2",
+  "status": "COMPLETED",
+  "entry": "http://127.0.0.1:4620",
+  "root": "C:/Users/spike/Projects/asa-lab-clean-4620-20261024",
+  "project": "asa-lab-clean4620-20261024",
+  "profile": "production",
+  "release": {
+    "format": "asa-deployment-v1",
+    "repository": "spikeal8-maker/asa-lab",
+    "revision": "e052fb16707b42fdef217e1d2b6a73f5ba13c32a",
+    "schema": 240,
+    "platform": "linux/amd64",
+    "publicationRunId": 40083388964,
+    "images": {
+      "api": "ghcr.io/spikeal8-maker/asa-lab/api@sha256:53116e7a995b2e1be47a810d3088e2f2454d19799854e9099240fa6e27c00610",
+      "web": "ghcr.io/spikeal8-maker/asa-lab/web@sha256:620ef422b5e4c9873b9c278f531f5debb70b28aaefa59cbba856b741977e73ac",
+      "scratch": "ghcr.io/spikeal8-maker/asa-lab/scratch@sha256:105590076e3e926a114e6b1cb01539ad3514ccc99829af83d6b0b9ffb5be0721",
+      "minio": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:a53a1c711984bad5efec47867780f9d6ab7af005ef664da90e8c3166d493ebc5"
+    }
+  },
+  "backup": {
+    "archive": "asa-lab-20261017T231505Z-65b68074.tar.age",
+    "snapshot_msk": "2026-10-18T02:15:05+03:00",
+    "all_2062_checksums": "PASS",
+    "source_schema": 212,
+    "target_schema": 240,
+    "population_before_test_fixtures": {
+      "accounts": 90,
+      "classes": 31,
+      "seats": 418,
+      "projects": 1414
+    },
+    "physical_object_files_verified": 2054,
+    "s3_objects_verified": 1846,
+    "s3_bytes_verified": 168411960
+  },
+  "checks": {
+    "five_containers": "healthy",
+    "doctor": "PASS",
+    "embedded_entry": "PASS",
+    "teacher_login_final": true,
+    "student_login_final": true,
+    "project_open_final": true,
+    "scratch_server_save_clean_context_reopen_final": true,
+    "runtime_role_privileged": false,
+    "collector": "running",
+    "automatic_updates": false,
+    "backup_automation": false,
+    "course_electronics_full_journeys": "NOT_ACCEPTED; see docs26"
+  },
+  "population_after_test_fixtures": {
+    "accounts": 91,
+    "classes": 32,
+    "seats": 419,
+    "projects": 1416
+  },
+  "cleanup": {
+    "authorization": "all ASA and IZO Docker stands older48hours including old4610",
+    "cutoff_utc": "2026-10-22T11:32:43.371077+00:00",
+    "projects": [
+      "izo-asa-demo279",
+      "izo-asa-shadow-view-1021",
+      "asa-lab-review582",
+      "asa-lab-dev",
+      "izo-p1-copy-preview",
+      "izo-p1-thread-preview",
+      "izo-p1-renderer-preview",
+      "izo-p1-chat-preview",
+      "asa-cad-u1a-review-20261008",
+      "asa-learning-final-908a0cd7-20261007",
+      "asa-lab-owner-exact-9f08333c",
+      "izo-p1-history-preview",
+      "asa-lab-owner-preview"
+    ],
+    "counts": {
+      "containers_removed": 59,
+      "volumes_removed": 20,
+      "networks_removed": 30,
+      "images_removed": 35
+    },
+    "retained_states_preserved_at_cleanup": true,
+    "source_uncommitted_work_and_archives_preserved": true,
+    "old_collector_task": "stopped_disabled",
+    "images_volumes_before_GB": 40.552,
+    "images_volumes_after_GB": 37.913,
+    "old_running_memory_MiB": 1201.8,
+    "prune_reset_compaction": false
+  },
+  "network": {
+    "default_pool_exhaustion": "resolved for this project only",
+    "overlay": "compose.frp.yaml network IPAM only",
+    "application": "10.249.231.0/27",
+    "database": "10.249.231.32/27",
+    "scratch": "10.249.231.64/27",
+    "host_and_daemon_network_config_changed": false
+  },
+  "operator_review": {
+    "restore_sha256": "B3D01B8DDBB3819A7C9941DAFB137C0EC98E3480D3EDA5686BEF636466D50284",
+    "cleanup_sha256": "4535695D9407728347B3F89AFF250FD0FA9E9AC4DFCF161C01BFAABFEEE078CF",
+    "verdict": "PASS"
+  },
+  "private_evidence": "D:/ASA24; not for publication"
+}
