@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-25",
+  "scope": "ASA Lab test server acceptance runner compatibility",
+  "target": {
+    "repo": "spikeal8-maker/asa-lab",
+    "revision": "26f1de30cd25bbbc5c21dfaaf27f19eb2d365d49",
+    "schema": 240,
+    "domain": "test.asa-lab.ru"
+  },
+  "observed": {
+    "update": "manager_success",
+    "technical_health": "passed",
+    "browser_acceptance": "acceptance_pending",
+    "failure": {
+      "stage": "teacher_registration_or_login",
+      "code": "TimeoutError"
+    },
+    "attempts": 2
+  },
+  "source_evidence": {
+    "old_runner": "scripts/asa_ops/browser_acceptance.py previously demanded username field and old login label",
+    "current_web": "RegisterPage lacks register-username; LoginPage keeps identifier DOM id but labels it 'Почта или логин'"
+  },
+  "change": {
+    "legacy_optional_username": true,
+    "stable_form_ids": true,
+    "fallback_signup_navigation": true,
+    "test": "tests/test_browser_acceptance_selectors.py"
+  },
+  "validation": {
+    "static_source_check": "performed",
+    "repository_ci": "pending",
+    "live_browser_retest": "not_run",
+    "deployed_to_test_server": "not_done"
+  },
+  "safety": {
+    "live_data_changed_by_this_patch": false,
+    "network_or_tls_changed": false,
+    "credentials_logged": false
+  }
+}
