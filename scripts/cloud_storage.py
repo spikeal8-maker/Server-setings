@@ -80,7 +80,7 @@ def install():
 
 def rclone(*args):
     command=['docker','exec',PROJECT+'-rclone-1','rclone','--config','/config/rclone/rclone.conf',
-             '--contimeout','20s','--timeout','60s','--retries','2',*args]
+             '--contimeout','20s','--timeout','60s','--max-duration','100m','--retries','2',*args]
     p=subprocess.run(command,capture_output=True,text=True,timeout=6800)
     # Never return raw provider errors: these may contain account or token details.
     require(p.returncode==0, 'CLOUD_TRANSFER_FAILED')
