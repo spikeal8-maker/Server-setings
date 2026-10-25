@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-import pwd
 import shutil
 import socket
 import sqlite3
@@ -19,6 +18,7 @@ def main():
     a=p.parse_args()
     if not a.apply:
         print('PLAN: shared Docker rclone, private account config/spool, MCP encrypted-archive transport. No OAuth token, mirror, database restore or backup schedule is created.');return
+    import pwd
     assert os.geteuid()==0 and a.expected_host==socket.gethostname()
     source=Path(__file__).resolve().parents[1]
     path=Path('/etc/server-settings/asa-operations.json');c=json.loads(path.read_text())

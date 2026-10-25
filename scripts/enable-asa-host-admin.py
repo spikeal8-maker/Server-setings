@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-import pwd
 import shutil
 import socket
 import sqlite3
@@ -23,6 +22,7 @@ def main():
     a = p.parse_args()
     if not a.apply:
         print('PLAN: enable owner-authorized root shell on this host via existing authenticated MCP. This authority can bypass ordinary update gates. No data/service changes.'); return
+    import pwd
     assert os.geteuid() == 0 and a.enable_full_admin, 'Explicit root/--enable-full-admin required'
     assert a.expected_host == socket.gethostname(), 'Exact expected hostname required'
     c = json.loads(CONFIG.read_text()); i = c['installation']

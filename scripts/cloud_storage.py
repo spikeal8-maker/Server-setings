@@ -25,7 +25,7 @@ def remote_path(project):
 
 
 def archive_name(value):
-    require(isinstance(value, str) and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.age', value), 'CLOUD_ENCRYPTED_ARCHIVE_NAME')
+    require(isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,180}\.age', value), 'CLOUD_ENCRYPTED_ARCHIVE_NAME')
     return value
 
 
