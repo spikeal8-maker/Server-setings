@@ -73,19 +73,38 @@
     "account": "owner-confirmed same account containing ASA-Backups; no identifiers published",
     "oauth_completed_by_owner": true,
     "token_values_disclosed": false,
-    "file_access_verified": false,
+    "file_access_verified": true,
     "provider_quota_http": 200,
-    "provider_resource_http": 410,
-    "status_code": "CLOUD_PROVIDER_GONE",
-    "own_oauth_application": "ASA Lab Server Backups form prepared; creation/authorization awaiting owner confirmation",
+    "provider_resource_http": 200,
+    "status_code": "CONNECTED",
+    "own_oauth_application": "ASA Lab Server Backups created and authorized by owner approval; own client with refresh token",
     "project_namespaces": {
       "asa-lab": "ASA-Backups",
       "others": "Server-Backups/project-slug"
     },
-    "encrypted_upload_download_roundtrip": "NOT_ACCEPTED; provider file access blocked",
-    "test_marker": "encrypted proof prepared, not uploaded; not a live database",
+    "encrypted_upload_download_roundtrip": "PASS",
+    "test_marker": "encrypted TEST marker only; not a live database",
     "restore_live_database": false,
-    "backup_schedule_enabled": false
+    "backup_schedule_enabled": false,
+    "known_archive_present": true,
+    "known_folder_entries": 37,
+    "refresh_token_present": true,
+    "long_term_refresh_verified": false,
+    "proof": {
+      "upload": {
+        "operation_id": "61079a3648254aeda84adb6de47ccbb0",
+        "status": "success"
+      },
+      "download": {
+        "operation_id": "bd2dd8ed317246f794909985780dabf4",
+        "status": "success"
+      },
+      "sha256": "1ea3b20c35345a8d2b3b311184e0c0edaab1af310ec4840d435b19f743ae5de0",
+      "filename": "mcp-roundtrip-20261025-aba6801bc714.age",
+      "ciphertext_hash_match": true,
+      "database_changed": false,
+      "decryption_and_plaintext_hash_match": true
+    }
   },
   "source_revision": "a4e567b6af139cdc223fd812f8b12615e1e6c1ad",
   "tests": {
