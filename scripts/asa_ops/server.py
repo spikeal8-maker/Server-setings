@@ -104,6 +104,23 @@ class Controller:
         if name == 'asa_host_inventory':
             from .admin import inventory
             return inventory(self.config)
+        if name == 'asa_cloud_transfer':
+            if self.config.get('cloud_storage_enabled') is not True:
+                raise OpsError('CLOUD_DISABLED', 'Cloud transport is not installed/enabled')
+            if (args['action'] == 'list' and ('filename' in args or 'sha256' in args)) or (args['action'] != 'list' and not args.get('filename')):
+                raise OpsError('INVALID_ARGUMENT', 'Transfers require filename; list does not accept filename or sha256')
+            import shlex
+            command = ['/usr/bin/python3', '/opt/server-settings/asa-operations/cloud_storage.py',
+                       args['action'], '--project', args['project']]
+            if args.get('filename'):
+                command += ['--filename', args['filename']]
+            if args.get('sha256'):
+                command += ['--sha256', args['sha256']]
+            if args['action'] != 'list':
+                command += ['--apply']
+            return self.dispatch('asa_admin_execute', {'installation_id': args['installation_id'],
+                                 'command': shlex.join(command), 'cwd': self.config['installation']['root'],
+                                 'timeout_seconds': 7000, 'idempotency_key': args['idempotency_key']})
         if name == 'asa_admin_status':
             from .admin import request
             value = request(self.config, {'action': 'status', **({'operation_id': args['operation_id']} if args.get('operation_id') else {})})
@@ -238,7 +255,8 @@ class Controller:
             for tool in result['tools']:
                 if tool.get('name')=='list_databases':
                     tool['description']='List registered 1Panel database instances. Compose PostgreSQL is inventoried separately by ASA runtime_identity.'
-            return {'tools': result['tools']+tools(self.config['installation']['id'], self.config.get('host_admin_enabled') is True)}
+            return {'tools': result['tools']+tools(self.config['installation']['id'], self.config.get('host_admin_enabled') is True,
+                                                 self.config.get('cloud_storage_enabled') is True)}
         if method == 'tools/call':
             name = params.get('name')
             if name=='list_databases':

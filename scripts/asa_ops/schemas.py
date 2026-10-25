@@ -19,6 +19,12 @@ INPUTS = {
                               'cwd': {'type': 'string', 'minLength': 1, 'maxLength': 4096},
                               'timeout_seconds': {'type': 'integer', 'minimum': 1, 'maximum': 7200},
                               'idempotency_key': KEY}, ['installation_id', 'command', 'idempotency_key']),
+    'asa_cloud_transfer': obj({'installation_id': INSTALLATION,
+                              'action': {'type':'string','enum':['list','upload','download']},
+                              'project': {'type':'string','pattern':'^[a-z0-9][a-z0-9_-]{0,63}$'},
+                              'filename': {'type':'string','pattern':'^[A-Za-z0-9][A-Za-z0-9_.-]{0,180}\\.age$','maxLength':185},
+                              'sha256': {'type':'string','pattern':'^[a-f0-9]{64}$'},
+                              'idempotency_key':KEY}, ['installation_id','action','project','idempotency_key']),
     'asa_restore_plan': obj({'installation_id': INSTALLATION, 'snapshot_id': {'type': 'string', 'enum': ['20261017T231505Z-65b68074']}}, ['installation_id', 'snapshot_id']),
     'asa_restore_rehearse': obj({'installation_id': INSTALLATION, 'plan_id': ID, 'idempotency_key': KEY}, ['installation_id', 'plan_id', 'idempotency_key']),
     'asa_update_plan': obj({'installation_id': INSTALLATION, 'data_mode': {'type': 'string', 'enum': ['preserve']}}, ['installation_id', 'data_mode']),
@@ -32,6 +38,7 @@ DESCRIPTIONS = {
     'asa_host_inventory': 'Read actual host and Docker container metadata without exposing container environments. Includes whether owner-authorized root administration is enabled.',
     'asa_admin_status': 'Inspect the private root executor or root audit state of an administration operation. Never reruns commands. Reconciles a completed root job after a lost worker response.',
     'asa_admin_execute': 'FULL ROOT ADMINISTRATION of the configured test host, explicitly enabled by its owner. Run a shell command for Docker/Compose, Git, builds, files, services or recovery. This can bypass ordinary deployment gates and can destroy data. Do not put credentials in commands or print secrets. Prefer update_plan/start for normal releases. Returns durable operation_id; poll operation_get. Retry only with the SAME idempotency_key. cwd defaults to the ASA root; timeout defaults to3600 seconds, maximum7200. Private raw logs and root audit are retained; only bounded known-secret-redacted output is returned. No automatic backup or rollback is performed for arbitrary commands.',
+    'asa_cloud_transfer': 'Shared Docker Yandex Disk: asynchronously list/upload/download encrypted .age backup archives for any project. Project asa-lab uses existing ASA-Backups; other project slugs use Server-Backups/project. Upload reads /srv/asa-cloud-storage/data/project/outgoing/filename. Download writes incoming only, refuses existing files and never restores a live database. Optional sha256 verifies bytes. Poll operation_get for JSON output/result. Requires one-time owner OAuth connection. Never sends login tokens in arguments; no mirror/delete or backup schedule.',
     'asa_restore_plan': 'Plan restoration of the explicitly approved catalog snapshot, pin its manifest and the actual live release, and inventory current data. Never replaces a database or objects. This is separate from update_start.',
     'asa_restore_rehearse': 'Restore only into a new test database, migrate it to the pinned schema, compare row fingerprints, and verify a disposable network-isolated MinIO clone. Returns durable operation_id; success means rehearsal completed, not live restore accepted. Never switches live data.',
     'asa_update_plan': 'Preflight the fixed ASA installation and pin an immutable release plan. Preserve existing PostgreSQL/MinIO data. Reports blockers before downtime; never starts an update.',
@@ -53,12 +60,13 @@ def input_schema(name, installation_id='asa-test'):
     return schema
 
 
-def tools(installation_id='asa-test', host_admin_enabled=False):
+def tools(installation_id='asa-test', host_admin_enabled=False, cloud_storage_enabled=False):
     return [{'name': name, 'description': DESCRIPTIONS[name], 'inputSchema': input_schema(name,installation_id), 'outputSchema': OUTPUT,
              'annotations': {'readOnlyHint': name in READ, 'destructiveHint': name not in READ,
-                             'idempotentHint': True, 'openWorldHint': name == 'asa_admin_execute'}}
+                             'idempotentHint': True, 'openWorldHint': name in ('asa_admin_execute','asa_cloud_transfer')}}
             for name, schema in INPUTS.items()
-            if host_admin_enabled or name not in ('asa_admin_execute', 'asa_admin_status')]
+            if (host_admin_enabled or name not in ('asa_admin_execute', 'asa_admin_status'))
+            and (cloud_storage_enabled and host_admin_enabled or name != 'asa_cloud_transfer')]
 
 
 def validate(schema, value):
