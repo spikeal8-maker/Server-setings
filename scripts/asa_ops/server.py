@@ -101,6 +101,38 @@ class Controller:
         self.store.reconcile()
         if 'installation_id' in args:
             self.installation(args['installation_id'])
+        if name == 'asa_host_inventory':
+            from .admin import inventory
+            return inventory(self.config)
+        if name == 'asa_admin_status':
+            from .admin import request
+            value = request(self.config, {'action': 'status', **({'operation_id': args['operation_id']} if args.get('operation_id') else {})})
+            if args.get('operation_id') and value.get('status') == 'complete':
+                record = self.store.get(args['operation_id'])
+                self.installation(record['installation_id'])
+                if record['kind'] == 'admin' and record['status'] == 'recovery_required':
+                    self.store.update(record['operation_id'], status='success' if value.get('exit_code') == 0 and not value.get('timed_out') else 'failed',
+                                      phase='root_audit_reconciled', result=value)
+            return value
+        if name == 'asa_admin_execute':
+            from .admin import enabled
+            from .maintenance import instance
+            enabled(self.config)
+            with self.lock:
+                reused = self.store.reused(args['idempotency_key'], {'method': name, **args})
+                if reused:
+                    return {'operation': reused, 'reused': True}
+                generation = instance(self.config['installation']['root'])
+                if not generation:
+                    raise OpsError('MAINTENANCE_NOT_CONFIGURED', 'Installation identity is missing')
+                planned = self.store.plan(args['installation_id'], {
+                    'kind': 'admin', 'installation_instance_id': generation,
+                    'command': args['command'], 'cwd': args.get('cwd', self.config['installation']['root']),
+                    'timeout_seconds': args.get('timeout_seconds', 3600)})
+                record, created = self.store.start(args['installation_id'], 'admin', planned['plan_id'], args['idempotency_key'], {'method': name, **args})
+                if created:
+                    record = self.launch(record, 'admin')
+                return {'operation': record, 'reused': not created}
         if name == 'asa_operation_get':
             record = self.store.get(args['operation_id'])
             self.installation(record['installation_id'])
@@ -206,7 +238,7 @@ class Controller:
             for tool in result['tools']:
                 if tool.get('name')=='list_databases':
                     tool['description']='List registered 1Panel database instances. Compose PostgreSQL is inventoried separately by ASA runtime_identity.'
-            return {'tools': result['tools']+tools(self.config['installation']['id'])}
+            return {'tools': result['tools']+tools(self.config['installation']['id'], self.config.get('host_admin_enabled') is True)}
         if method == 'tools/call':
             name = params.get('name')
             if name=='list_databases':

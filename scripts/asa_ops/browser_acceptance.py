@@ -68,7 +68,11 @@ def main():
             if not fixture.get('registered'):
                 page.get_by_text('Создать аккаунт',exact=True).first.click()
                 page.get_by_label('Email',exact=True).fill(fixture['email'])
-                page.get_by_label('Имя пользователя',exact=True).fill(fixture['username'])
+                # New registration derives the login from email; old releases
+                # still expose an optional explicit username field.
+                username = page.get_by_label('Имя пользователя',exact=True)
+                if username.count():
+                    username.fill(fixture['username'])
                 page.get_by_label('Отображаемое имя',exact=True).fill('ASA Operations Test Teacher')
                 page.get_by_label('Дата рождения',exact=True).fill('1990-04-12')
                 page.get_by_label('Пароль',exact=True).fill(fixture['password'])
@@ -82,7 +86,9 @@ def main():
                 context.set_default_timeout(45000)
                 page=context.new_page();page.goto(origin,wait_until='networkidle')
             page.get_by_role('button',name='Войти',exact=True).first.click()
-            page.get_by_label('Email или имя пользователя',exact=True).fill(fixture['email'])
+            stage = 'teacher_login_identity'
+            page.get_by_label(re.compile(r'^(?:Email или имя пользователя|Почта или логин)$')).fill(fixture['email'])
+            stage = 'teacher_login_submit'
             page.get_by_label('Пароль',exact=True).fill(fixture['password'])
             page.get_by_role('checkbox').press('Space')
             with page.expect_response(lambda r: r.url.endswith('/api/auth/login') and r.request.method=='POST') as pending:

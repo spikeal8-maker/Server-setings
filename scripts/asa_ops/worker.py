@@ -53,7 +53,14 @@ def work(config_path, opid, action):
         planned = store.get_plan(record['plan_id'])
         from .maintenance import check_generation
         check_generation(config['installation']['root'],planned)
-        if action == 'restore_rehearse':
+        if action == 'admin':
+            from .admin import request
+            result = request(config, {'action': 'execute', 'operation_id': opid,
+                                     **{k: planned[k] for k in ('command', 'cwd', 'timeout_seconds')}})
+            if result.get('status') != 'complete':
+                raise OpsError('ADMIN_RUNNING', 'Root audit shows an unfinished administration command; never replay')
+            status = 'success' if result.get('exit_code') == 0 and not result.get('timed_out') else 'failed'
+        elif action == 'restore_rehearse':
             result = adapter(config_path, action, {'plan': planned}, store, opid)
             status = 'success'  # rehearsal completed; ready_to_apply remains a separate result field
         elif action == 'verify':
@@ -89,7 +96,7 @@ def work(config_path, opid, action):
                 recovering = recovering or json.loads(receipt.read_text()).get('status') == 'failed_switch'
             except (OSError, ValueError):
                 recovering = True  # an unreadable receipt must not release a possibly interrupted switch
-        status = 'recovery_required' if recovering else 'failed'
+        status = 'recovery_required' if recovering or action == 'admin' else 'failed'
         store.update(opid, status=status, phase='error', result={'error': {'code': code,
                      'message': str(exc) if isinstance(exc, OpsError) else 'Inspect server operation stage'}})
         store.event(opid, 'error', 'Operation stopped: '+code)

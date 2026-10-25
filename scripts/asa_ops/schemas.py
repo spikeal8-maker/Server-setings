@@ -1,4 +1,4 @@
-"""Closed input schemas. Callers select identities, never commands or paths."""
+"""Closed schemas, including explicitly owner-enabled privileged administration."""
 import re
 import copy
 from .store import OpsError
@@ -13,6 +13,12 @@ def obj(properties, required):
 
 
 INPUTS = {
+    'asa_host_inventory': obj({'installation_id': INSTALLATION}, ['installation_id']),
+    'asa_admin_status': obj({'installation_id': INSTALLATION, 'operation_id': ID}, ['installation_id']),
+    'asa_admin_execute': obj({'installation_id': INSTALLATION, 'command': {'type': 'string', 'minLength': 1, 'maxLength': 32000},
+                              'cwd': {'type': 'string', 'minLength': 1, 'maxLength': 4096},
+                              'timeout_seconds': {'type': 'integer', 'minimum': 1, 'maximum': 7200},
+                              'idempotency_key': KEY}, ['installation_id', 'command', 'idempotency_key']),
     'asa_restore_plan': obj({'installation_id': INSTALLATION, 'snapshot_id': {'type': 'string', 'enum': ['20261017T231505Z-65b68074']}}, ['installation_id', 'snapshot_id']),
     'asa_restore_rehearse': obj({'installation_id': INSTALLATION, 'plan_id': ID, 'idempotency_key': KEY}, ['installation_id', 'plan_id', 'idempotency_key']),
     'asa_update_plan': obj({'installation_id': INSTALLATION, 'data_mode': {'type': 'string', 'enum': ['preserve']}}, ['installation_id', 'data_mode']),
@@ -23,6 +29,9 @@ INPUTS = {
     'asa_operation_finalize': obj({'operation_id': ID, 'idempotency_key': KEY}, ['operation_id', 'idempotency_key']),
 }
 DESCRIPTIONS = {
+    'asa_host_inventory': 'Read actual host and Docker container metadata without exposing container environments. Includes whether owner-authorized root administration is enabled.',
+    'asa_admin_status': 'Inspect the private root executor or root audit state of an administration operation. Never reruns commands. Reconciles a completed root job after a lost worker response.',
+    'asa_admin_execute': 'FULL ROOT ADMINISTRATION of the configured test host, explicitly enabled by its owner. Run a shell command for Docker/Compose, Git, builds, files, services or recovery. This can bypass ordinary deployment gates and can destroy data. Do not put credentials in commands or print secrets. Prefer update_plan/start for normal releases. Returns durable operation_id; poll operation_get. Retry only with the SAME idempotency_key. cwd defaults to the ASA root; timeout defaults to3600 seconds, maximum7200. Private raw logs and root audit are retained; only bounded known-secret-redacted output is returned. No automatic backup or rollback is performed for arbitrary commands.',
     'asa_restore_plan': 'Plan restoration of the explicitly approved catalog snapshot, pin its manifest and the actual live release, and inventory current data. Never replaces a database or objects. This is separate from update_start.',
     'asa_restore_rehearse': 'Restore only into a new test database, migrate it to the pinned schema, compare row fingerprints, and verify a disposable network-isolated MinIO clone. Returns durable operation_id; success means rehearsal completed, not live restore accepted. Never switches live data.',
     'asa_update_plan': 'Preflight the fixed ASA installation and pin an immutable release plan. Preserve existing PostgreSQL/MinIO data. Reports blockers before downtime; never starts an update.',
@@ -32,7 +41,7 @@ DESCRIPTIONS = {
     'asa_deployment_verify': 'Start server-side technical and isolated browser acceptance for a pinned plan. Returns operation_id. Distinguishes container health from user-flow acceptance.',
     'asa_operation_finalize': 'Verify and reconcile receipts for an interrupted known update. Never reruns migrations or restarts containers. Refuses missing backup, drift or incomplete browser acceptance.',
 }
-READ = {'asa_update_plan', 'asa_operation_get', 'asa_operation_list', 'asa_restore_plan'}
+READ = {'asa_update_plan', 'asa_operation_get', 'asa_operation_list', 'asa_restore_plan', 'asa_host_inventory', 'asa_admin_status'}
 OUTPUT = obj({'ok': {'type': 'boolean'}, 'data': {'type': ['object', 'null']},
               'error': {'anyOf': [obj({'code': {'type': 'string'}, 'message': {'type': 'string'}}, ['code', 'message']), {'type': 'null'}]}}, ['ok', 'data', 'error'])
 
@@ -44,11 +53,12 @@ def input_schema(name, installation_id='asa-test'):
     return schema
 
 
-def tools(installation_id='asa-test'):
+def tools(installation_id='asa-test', host_admin_enabled=False):
     return [{'name': name, 'description': DESCRIPTIONS[name], 'inputSchema': input_schema(name,installation_id), 'outputSchema': OUTPUT,
              'annotations': {'readOnlyHint': name in READ, 'destructiveHint': name not in READ,
-                             'idempotentHint': True, 'openWorldHint': False}}
-            for name, schema in INPUTS.items()]
+                             'idempotentHint': True, 'openWorldHint': name == 'asa_admin_execute'}}
+            for name, schema in INPUTS.items()
+            if host_admin_enabled or name not in ('asa_admin_execute', 'asa_admin_status')]
 
 
 def validate(schema, value):
@@ -59,7 +69,7 @@ def validate(schema, value):
     for key, v in value.items():
         rule = schema['properties'][key]
         if rule['type'] == 'string':
-            ok = isinstance(v, str) and len(v) <= 128
+            ok = isinstance(v, str) and rule.get('minLength', 0) <= len(v) <= rule.get('maxLength', 128) and '\0' not in v
             ok = ok and ('enum' not in rule or v in rule['enum'])
             ok = ok and ('pattern' not in rule or re.fullmatch(rule['pattern'], v) is not None)
         else:

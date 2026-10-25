@@ -1,0 +1,17 @@
+[Unit]
+Description=Audited owner-authorized ASA root operation
+
+[Service]
+Type=exec
+User=root
+Group=root
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 -I /opt/server-settings/asa-operations/asa_ops/admin_executor.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=null
+UMask=0077
+NoNewPrivileges=true
+KillMode=control-group
+TimeoutStopSec=5
+RuntimeMaxSec=7300
