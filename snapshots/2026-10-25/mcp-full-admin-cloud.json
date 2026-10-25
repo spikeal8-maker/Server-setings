@@ -49,7 +49,17 @@
     "root_generation_bound": true,
     "new_public_root_listener": false,
     "backend_policy_permissions": "root:admins0640",
-    "root_executor_policy_permissions": "root0600"
+    "root_executor_policy_permissions": "root0600",
+    "gateway_secret_file": {
+      "path": "/opt/1panel/docker/compose/asa-1panel-mcp/.env",
+      "before": "root0644 readable by nobody",
+      "after": "root0600 nobody denied",
+      "contents_unchanged": true,
+      "authorized_mcp_dashboard_after": 200,
+      "container_restarted": false,
+      "included_in_literal_redactor": true,
+      "keys_rotated": false
+    }
   },
   "cloud": {
     "project": "asa-cloud-storage",
@@ -99,5 +109,6 @@
     "school server",
     "production"
   ],
-  "private_evidence": "D:/ASA25 and root-only server operation journals; not for publication"
+  "private_evidence": "D:/ASA25 and root-only server operation journals; not for publication",
+  "reproduction_source_revision": "68bb96b518819cde151143e46d64500f624952c9"
 }
