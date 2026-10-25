@@ -36,6 +36,12 @@ def main():
     import re
     assert re.fullmatch('[a-f0-9]{32}', identity)
     owner = pwd.getpwuid(i['owner_uid']); assert owner.pw_uid != 0
+    gateway_environment = Path(c.get('gateway_environment', '/opt/1panel/docker/compose/asa-1panel-mcp/.env'))
+    if gateway_environment.exists():
+        import stat
+        st = gateway_environment.lstat()
+        assert stat.S_ISREG(st.st_mode) and st.st_uid == 0, 'Gateway environment must be root-owned, not a link'
+        gateway_environment.chmod(0o600)
     private = Path('/var/lib/server-settings/asa-admin-executor')
     if private.exists():
         st = private.lstat()
@@ -47,7 +53,7 @@ def main():
              'installation_id': i['id'], 'root': i['root'], 'installation_instance_id': identity,
              'secret_files': [str(Path(i['root'])/'.env'), '/etc/server-settings/asa-operations.env',
                               '/etc/server-settings/1panel-gateway.env', '/etc/server-settings/gateway.env', '/etc/server-settings/mcp.env',
-                              '/var/lib/server-settings/1panel-api.key']}
+                              '/var/lib/server-settings/1panel-api.key', str(gateway_environment)]}
     from asa_ops.admin_executor import save
     assert not EXECUTOR.is_symlink()
     if EXECUTOR.exists():
