@@ -35,12 +35,14 @@ class AdminContracts(unittest.TestCase):
             (root/'.asa/installation.json').write_text(json.dumps({'instanceId': 'a'*32}))
             c = {'enabled': True, 'owner_uid': 1000, 'hostname': socket.gethostname(), 'root': t,
                  'installation_id': 'asa-test', 'installation_instance_id': 'a'*32}
-            payload = {'installation_id': 'asa-test'}
+            payload = {'action': 'execute', 'installation_id': 'asa-test', 'installation_instance_id': 'a'*32}
             authorize(c, payload, 1000)
             for bad, uid in [(dict(c, enabled=False), 1000), (c, 65534), (dict(c, hostname='another-host'), 1000),
                              (dict(c, installation_instance_id='b'*32), 1000)]:
                 with self.assertRaises(ValueError):
                     authorize(bad, payload, uid)
+            with self.assertRaises(ValueError):
+                authorize(c, dict(payload, installation_instance_id='b'*32), 1000)
 
     def test_literal_secrets_and_bearer_removed(self):
         with tempfile.TemporaryDirectory() as t:
@@ -71,7 +73,7 @@ class ExecutorTests(unittest.TestCase):
     def test_root_audit_prevents_replay(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); state = root/'state'; state.mkdir(); marker = root/'marker'
-            payload = {'action':'execute', 'operation_id':'a'*32, 'installation_id':'asa-test',
+            payload = {'action':'execute', 'operation_id':'a'*32, 'installation_id':'asa-test', 'installation_instance_id':'c'*32,
                        'command': 'echo once >> '+str(marker), 'cwd':t, 'timeout_seconds':5}
             result = execute({}, payload, state)
             self.assertEqual(result['exit_code'], 0)
@@ -86,7 +88,7 @@ class ExecutorTests(unittest.TestCase):
     def test_timeout_even_when_shell_closes_stdout(self):
         with tempfile.TemporaryDirectory() as t:
             before=time.monotonic()
-            result=execute({}, {'action':'execute','operation_id':'b'*32,'installation_id':'asa-test',
+            result=execute({}, {'action':'execute','operation_id':'b'*32,'installation_id':'asa-test','installation_instance_id':'c'*32,
                                'command':'exec 1>&- 2>&-; sleep 30','cwd':t,'timeout_seconds':1}, Path(t))
             self.assertTrue(result['timed_out'])
             self.assertLess(time.monotonic()-before, 6)

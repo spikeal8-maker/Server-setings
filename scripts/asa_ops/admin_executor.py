@@ -37,6 +37,8 @@ def authorize(config, payload, peer_uid):
     require(payload.get('installation_id') == config['installation_id'], 'ADMIN_INSTALLATION')
     current = json.loads((Path(config['root']) / '.asa/installation.json').read_text())
     require(current.get('instanceId') == config['installation_instance_id'], 'STALE_INSTALLATION')
+    if payload.get('action') == 'execute':
+        require(payload.get('installation_instance_id') == config['installation_instance_id'], 'STALE_INSTALLATION')
 
 
 def redact(text, config):
@@ -65,6 +67,14 @@ def redact(text, config):
     return text
 
 
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def save(path, value):
     temp = path.with_suffix('.tmp')
     with open(temp, 'w', encoding='utf-8') as out:
@@ -73,6 +83,7 @@ def save(path, value):
         out.flush()
         os.fsync(out.fileno())
     os.replace(temp, path)
+    sync_directory(path.parent)
 
 
 def execute(config, payload, state=STATE):
@@ -88,7 +99,7 @@ def execute(config, payload, state=STATE):
         result = json.loads((target / 'state.json').read_text())
         result.pop('request_hash', None)
         return result
-    require(set(payload) == {'action', 'operation_id', 'installation_id', 'command', 'cwd', 'timeout_seconds'}, 'ADMIN_ARGUMENTS')
+    require(set(payload) == {'action', 'operation_id', 'installation_id', 'installation_instance_id', 'command', 'cwd', 'timeout_seconds'}, 'ADMIN_ARGUMENTS')
     command, cwd, timeout = payload['command'], payload['cwd'], payload['timeout_seconds']
     require(isinstance(command, str) and 0 < len(command) <= 32000 and '\0' not in command, 'ADMIN_COMMAND')
     require(isinstance(cwd, str) and Path(cwd).is_absolute() and Path(cwd).is_dir() and '\0' not in cwd, 'ADMIN_CWD')
@@ -96,6 +107,7 @@ def execute(config, payload, state=STATE):
     request_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     try:
         target.mkdir(mode=0o700)
+        sync_directory(state)
     except FileExistsError:
         old = json.loads((target / 'state.json').read_text())
         require(old.get('request_hash') == request_hash, 'ADMIN_IDEMPOTENCY_CONFLICT')

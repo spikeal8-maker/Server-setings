@@ -56,7 +56,7 @@ def work(config_path, opid, action):
         if action == 'admin':
             from .admin import request
             result = request(config, {'action': 'execute', 'operation_id': opid,
-                                     **{k: planned[k] for k in ('command', 'cwd', 'timeout_seconds')}})
+                                     **{k: planned[k] for k in ('installation_instance_id', 'command', 'cwd', 'timeout_seconds')}})
             if result.get('status') != 'complete':
                 raise OpsError('ADMIN_RUNNING', 'Root audit shows an unfinished administration command; never replay')
             status = 'success' if result.get('exit_code') == 0 and not result.get('timed_out') else 'failed'
