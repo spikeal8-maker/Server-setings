@@ -1,0 +1,103 @@
+{
+  "date_msk": "2026-10-25",
+  "host": "admins-MS-7D22",
+  "installation_id": "asa-test",
+  "application": {
+    "entry": "https://test.asa-lab.ru",
+    "before_revision": "0fa22f01017f36d96b1bd02768750d1dc2ae30c1",
+    "before_schema": 241,
+    "revision": "67ecc2dec63d09d129911cee74c58a9d1549395f",
+    "schema": 245,
+    "update_operation": "4f0e1cb94b6f4efe81bfd85b302ee56a",
+    "status": "success",
+    "backup": "/srv/asa-lab/backups/20261025T140212Z-efdb5063",
+    "volumes_preserved": [
+      "asa-lab-dev_postgres-data",
+      "asa-lab-dev_blocks-object-data"
+    ],
+    "private_environment_changed": false,
+    "browser_checks": {
+      "teacher_login": true,
+      "student_login": true,
+      "course_open": true,
+      "existing_project_open": true,
+      "scratch_save_reopen": true,
+      "electronics_save_reopen": true
+    },
+    "finalization_repeated_migration": false,
+    "finalization_restarted_containers": false
+  },
+  "mcp": {
+    "existing_endpoint": "https://test.asa-lab.ru/mcp",
+    "app_permission": "Allow all actions",
+    "server_and_chatgpt_ui_tool_count": 23,
+    "ui_write_count": 11,
+    "ui_read_count": 12,
+    "added": [
+      "asa_host_inventory",
+      "asa_admin_status",
+      "asa_admin_execute",
+      "asa_cloud_transfer"
+    ],
+    "owner_confirmed_client_refresh": true,
+    "privilege": "full root shell of test host, not a command allowlist or sandbox",
+    "root_proof_operation": "bc6f36978401444d8895f7787fbba36f",
+    "root_owned_file_proof": "UID0 mode0600, removed after test",
+    "duplicate_idempotency_reused": true,
+    "unauthorized_user_socket_denied": true,
+    "root_audit_before_execution": true,
+    "root_generation_bound": true,
+    "new_public_root_listener": false,
+    "backend_policy_permissions": "root:admins0640",
+    "root_executor_policy_permissions": "root0600"
+  },
+  "cloud": {
+    "project": "asa-cloud-storage",
+    "container": "asa-cloud-storage-rclone-1",
+    "image": "rclone/rclone@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5",
+    "configured": true,
+    "container_health": "healthy",
+    "user": "1000:1000",
+    "public_ports": [],
+    "live_database_mounts": false,
+    "account": "owner-confirmed same account containing ASA-Backups; no identifiers published",
+    "oauth_completed_by_owner": true,
+    "token_values_disclosed": false,
+    "file_access_verified": false,
+    "provider_quota_http": 200,
+    "provider_resource_http": 410,
+    "status_code": "CLOUD_PROVIDER_GONE",
+    "own_oauth_application": "ASA Lab Server Backups form prepared; creation/authorization awaiting owner confirmation",
+    "project_namespaces": {
+      "asa-lab": "ASA-Backups",
+      "others": "Server-Backups/project-slug"
+    },
+    "encrypted_upload_download_roundtrip": "NOT_ACCEPTED; provider file access blocked",
+    "test_marker": "encrypted proof prepared, not uploaded; not a live database",
+    "restore_live_database": false,
+    "backup_schedule_enabled": false
+  },
+  "source_revision": "a4e567b6af139cdc223fd812f8b12615e1e6c1ad",
+  "tests": {
+    "ubuntu_full": {
+      "run": 76,
+      "result": "PASS"
+    },
+    "windows_focused": {
+      "host_admin_pass": 5,
+      "host_admin_linux_only_skipped": 2,
+      "cloud_pass": 5
+    },
+    "independent_reviews": "PASS exact fe88653/fda1c73/f353adb/a4e567b; earlier two root blockers repaired before live enrollment"
+  },
+  "scope_preserved": [
+    "OS",
+    "1Panel",
+    "OpenResty",
+    "SSH",
+    "existing PostgreSQL/MinIO",
+    "school server",
+    "production"
+  ],
+  "private_evidence": "D:/ASA25 and root-only server operation journals; not for publication"
+}
