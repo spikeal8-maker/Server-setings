@@ -67,6 +67,10 @@ def main():
     if not backup.exists():
         shutil.copyfile(CONFIG, backup); backup.chmod(0o600)
     save(CONFIG, c)
+    # Root controls the backend policy, but its unprivileged service must read it.
+    # Executor credentials/config remain root-only; this file contains metadata.
+    os.chown(CONFIG, 0, owner.pw_gid)
+    CONFIG.chmod(0o640)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
     subprocess.run(['systemctl', 'enable', '--now', 'asa-admin-executor.socket'], check=True)
     subprocess.run(['systemctl', 'restart', 'asa-operations.service'], check=True)
