@@ -75,16 +75,32 @@ def install():
     subprocess.run(['docker','pull',IMAGE],check=True,capture_output=True)
     subprocess.run(['docker','compose','-p',PROJECT,'-f',str(ROOT/'compose.json'),'config','--quiet'],check=True,capture_output=True)
     subprocess.run(['docker','compose','-p',PROJECT,'-f',str(ROOT/'compose.json'),'up','-d','--no-build'],check=True,capture_output=True)
-    return {'project':PROJECT,'image':IMAGE,'public_ports':[],'connected':connected(),'backup_schedule_enabled':False}
+    return {'project':PROJECT,'image':IMAGE,'public_ports':[],'token_configured':connected(),
+            'connection_verified':False,'backup_schedule_enabled':False}
 
 
-def rclone(*args):
+def rclone(*args, timeout_seconds=6800):
     command=['docker','exec',PROJECT+'-rclone-1','rclone','--config','/config/rclone/rclone.conf',
-             '--contimeout','20s','--timeout','60s','--max-duration','100m','--retries','2',*args]
-    p=subprocess.run(command,capture_output=True,text=True,timeout=6800)
+             '--contimeout','20s','--timeout','60s','--max-duration',str(min(6000,max(1,timeout_seconds-5)))+'s','--retries','2',*args]
+    p=subprocess.run(command,capture_output=True,text=True,timeout=timeout_seconds)
     # Never return raw provider errors: these may contain account or token details.
-    require(p.returncode==0, 'CLOUD_TRANSFER_FAILED')
+    if p.returncode:
+        code = 'CLOUD_PROVIDER_GONE' if '410' in p.stderr and 'Gone' in p.stderr else 'CLOUD_AUTHORIZATION' if any(x in p.stderr for x in ['401','403']) else 'CLOUD_TRANSFER_FAILED'
+        raise ValueError(code)
     return p.stdout
+
+
+def status():
+    value={'installed':ROOT.exists(),'token_configured':connected(),'connected':False,
+           'project':PROJECT,'backup_schedule_enabled':False}
+    if value['token_configured']:
+        try:
+            # Disk quota alone can succeed while Yandex rejects all file requests.
+            rclone('lsjson','--stat',remote_path('asa-lab'),timeout_seconds=25)
+            value['connected']=True
+        except (ValueError,subprocess.TimeoutExpired) as e:
+            value['provider_error']=str(e) if isinstance(e,ValueError) else 'CLOUD_TIMEOUT'
+    return value
 
 
 def transfer(action, project, filename=None, expected_sha256=None):
@@ -138,7 +154,7 @@ def main():
     a=p.parse_args()
     try:
         if a.action=='status':
-            value={'installed':ROOT.exists(),'connected':connected(),'project':PROJECT,'backup_schedule_enabled':False}
+            value=status()
         elif a.action=='list':
             value=transfer(a.action,a.project)
         elif not a.apply:

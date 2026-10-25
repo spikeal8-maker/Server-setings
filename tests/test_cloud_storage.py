@@ -31,6 +31,13 @@ class CloudStorageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'CLOUD_NOT_CONNECTED'):cloud.transfer('list','asa-lab')
             run.assert_not_called()
 
+    def test_token_presence_is_not_proof_of_working_file_access(self):
+        with patch.object(cloud,'connected',return_value=True),patch.object(cloud,'rclone',side_effect=ValueError('CLOUD_PROVIDER_GONE')):
+            result=cloud.status()
+            self.assertTrue(result['token_configured'])
+            self.assertFalse(result['connected'])
+            self.assertEqual(result['provider_error'],'CLOUD_PROVIDER_GONE')
+
     def test_download_refuses_existing_file_and_plaintext_upload_rejected(self):
         with tempfile.TemporaryDirectory() as t:
             root=Path(t);base=root/'data/asa-lab'
