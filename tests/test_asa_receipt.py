@@ -50,6 +50,7 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
         self.stderr = 'BLOCKED IO_OR_CONFIGURATION: sanitized manager fixture'
         self.receipt_bytes = None
         self.stop_at_source = False
+        self.stop_after_doctor = False
         self.do_backup = True
         self.verify_error = None
 
@@ -65,6 +66,9 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
     def fake_main(self, argv):
         self.assertEqual(argv[0], 'update')
         self.manager.doctor(self.install)
+        if self.stop_after_doctor:
+            print(self.stderr, file=sys.stderr)
+            return self.exit_code
         self.manager.fetch_images(self.release)
         self.manager.selected_source(self.install, self.release)
         if not self.stop_at_source:
@@ -227,6 +231,37 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
         self.assertEqual(result['error'], {'code': 'RETRY_NEW_MANAGER', 'stage': 'select_source'})
         self.assertEqual(result['backup_status'], 'not_observed')
 
+    def test_retry_new_manager_is_denied_after_backup(self):
+        self.install.checkout = self.release['revision']
+        self.stderr = 'BLOCKED RETRY_NEW_MANAGER: synthetic after-backup spoof'
+        result = self.run_case()
+        self.assertFalse(result['retry_new_manager'])
+        self.assertEqual(result['error']['stage'], 'post_backup')
+        self.assertEqual(result['backup_status'], 'verified')
+        self.assertEqual(result['manager_status'], 'failed')
+
+    def test_zero_exit_without_receipt_after_source_selection_is_not_no_change(self):
+        self.exit_code = 0
+        self.do_backup = False
+        self.current = {'revision': self.release['revision'], 'schema': self.release['schema']}
+        self.plan['current'] = self.current
+        result = self.run_case()
+        self.assertEqual(result['manager_exit_code'], 0)
+        self.assertEqual(result['receipt_evidence'], 'missing')
+        self.assertFalse(result['no_change'])
+        self.assertFalse(result['receipt_attributed'])
+        self.assertEqual(result['manager_status'], 'not_written')
+
+    def test_zero_exit_without_receipt_after_backup_is_not_no_change(self):
+        self.exit_code = 0
+        self.current = {'revision': self.release['revision'], 'schema': self.release['schema']}
+        self.plan['current'] = self.current
+        result = self.run_case()
+        self.assertEqual(result['manager_exit_code'], 0)
+        self.assertEqual(result['backup_status'], 'verified')
+        self.assertFalse(result['no_change'])
+        self.assertEqual(result['manager_status'], 'not_written')
+
     def test_error_code_is_allowlisted_and_never_leaks_secret(self):
         self.stderr = 'BLOCKED SEARCH_SECRET_INVALID: synthetic-secret-DO-NOT-EXPOSE\nSAFE_ACTION: secret'
         result = self.run_case()
@@ -244,6 +279,7 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
     def test_success_without_new_receipt_only_no_change_when_already_deployed(self):
         self.exit_code = 0
         self.do_backup = False
+        self.stop_after_doctor = True
         self.current = {'revision': self.release['revision'], 'schema': self.release['schema']}
         self.plan['current'] = self.current
         result = self.run_case()
