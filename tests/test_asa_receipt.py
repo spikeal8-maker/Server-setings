@@ -174,6 +174,35 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
         self.assertEqual(result['manager_status'], 'failed')
         self.assertNotIn('synthetic-never-expose', json.dumps(result))
 
+    def test_inconsistent_receipt_status_and_phase_are_rejected(self):
+        for status, phase in (('success', 'switch'), ('failed_switch', 'complete')):
+            with self.subTest(status=status, phase=phase):
+                self.receipt_bytes = json.dumps(
+                    self.fixture_receipt(status=status, phase=phase)).encode()
+                result = self.run_case()
+                self.assertEqual(result['receipt_evidence'], 'invalid')
+                self.assertFalse(result['receipt_attributed'])
+                self.assertEqual(result['manager_status'], 'failed')
+
+    def test_oversized_receipt_fails_closed_without_exposing_contents(self):
+        self.receipt.write_bytes(b'PRIVATE_REDACTION_' + b'x' * 65536)
+        snapshot = bridge._receipt_snapshot(self.receipt)
+        self.assertEqual(snapshot, {'invalid': True})
+        result = self.run_case()
+        self.assertEqual(result['receipt_evidence'], 'invalid')
+        self.assertEqual(result['manager_status'], 'failed')
+        self.assertNotIn('PRIVATE_REDACTION_', json.dumps(result))
+
+    def test_symlinked_receipt_is_never_trusted(self):
+        external = self.root / 'private-target.json'
+        external.write_text(json.dumps(self.fixture_receipt()))
+        self.receipt.symlink_to(external)
+        self.assertEqual(bridge._receipt_snapshot(self.receipt), {'invalid': True})
+        result = self.run_case()
+        self.assertEqual(result['receipt_evidence'], 'invalid')
+        self.assertFalse(result['receipt_attributed'])
+        self.assertEqual(result['manager_status'], 'failed')
+
     def test_new_receipt_with_historical_timestamp_is_rejected(self):
         receipt = self.fixture_receipt(
             time=(dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat())
