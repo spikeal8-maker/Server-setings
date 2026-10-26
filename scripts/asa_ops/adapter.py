@@ -324,7 +324,7 @@ def _verified_manager_backup(install, exported, previous):
         if not isinstance(files, dict):
             raise ValueError('Backup verification did not report files')
         return {'status': 'verified', 'path': str(destination), 'files': len(files)}
-    except (OSError, ValueError, KeyError, TypeError, Exception):
+    except Exception:
         # The export remains untouched for server-side forensic inspection.
         return {'status': 'unverified', 'path': None, 'files': 0}
 
@@ -379,8 +379,11 @@ def update(config, payload):
     receipt, receipt_state = _attributed_receipt(
         before_receipt, _receipt_snapshot(receipt_path), started_at, release, planned['current'])
     backup = _verified_manager_backup(install, transition.get('backup_path'), planned['current'])
-    if receipt_state == 'current' and receipt.get('backup'):
-        if backup['status'] != 'verified' or Path(receipt['backup']).resolve() != Path(backup['path']):
+    if receipt_state == 'current':
+        backup_pointer = receipt.get('backup')
+        if (not isinstance(backup_pointer, str) or not backup_pointer or
+                backup['status'] != 'verified' or
+                Path(backup_pointer).resolve() != Path(backup['path'])):
             receipt, receipt_state = {}, 'backup_mismatch'
     if receipt_state == 'current' and (code == 0) != (receipt['status'] == 'success'):
         receipt, receipt_state = {}, 'conflicting_exit'

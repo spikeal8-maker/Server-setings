@@ -156,6 +156,32 @@ class ManagerReceiptAttributionTests(unittest.TestCase):
         self.assertTrue(result['receipt_attributed'])
         self.assertEqual(result['backup_status'], 'verified')
 
+    def test_new_receipt_with_foreign_backup_pointer_is_rejected(self):
+        receipt = self.fixture_receipt(backup=self.backup_root / 'unrelated-old-export')
+        self.receipt_bytes = json.dumps(receipt).encode()
+        result = self.run_case()
+        self.assertEqual(result['receipt_evidence'], 'backup_mismatch')
+        self.assertEqual(result['manager_status'], 'failed')
+        self.assertEqual(result['backup_status'], 'verified')
+        self.assertEqual(result['backup'], str(self.backup))
+
+    def test_receipt_backup_pointer_with_wrong_type_is_safe(self):
+        receipt = self.fixture_receipt()
+        receipt['backup'] = {'secret': 'synthetic-never-expose'}
+        self.receipt_bytes = json.dumps(receipt).encode()
+        result = self.run_case()
+        self.assertEqual(result['receipt_evidence'], 'backup_mismatch')
+        self.assertEqual(result['manager_status'], 'failed')
+        self.assertNotIn('synthetic-never-expose', json.dumps(result))
+
+    def test_new_receipt_with_historical_timestamp_is_rejected(self):
+        receipt = self.fixture_receipt(
+            time=(dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat())
+        self.receipt_bytes = json.dumps(receipt).encode()
+        result = self.run_case()
+        self.assertEqual(result['receipt_evidence'], 'mismatch')
+        self.assertFalse(result['receipt_attributed'])
+
     def test_valid_success_receipt_with_nonzero_exit_is_conflict(self):
         self.receipt_bytes = json.dumps(self.fixture_receipt()).encode()
         result = self.run_case()
