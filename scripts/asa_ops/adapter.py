@@ -245,6 +245,98 @@ def verify(config, payload):
             'data_source': {'kind': 'existing_postgresql_minio', 'snapshot_id': None, 'snapshot_time': None}}
 
 
+# Receipt provenance is computed locally and never exposes its raw content.
+# A historical receipt is only evidence of the historical operation.
+_MAX_RECEIPT_BYTES = 65536
+_SAFE_MANAGER_CODES = frozenset({
+    'RETRY_NEW_MANAGER', 'SEARCH_SECRET_INVALID', 'IO_OR_CONFIGURATION',
+    'MAINTENANCE', 'FAILED_SWITCH', 'BACKUP', 'BACKUP_SERVICES',
+    'BACKUP_STORAGE', 'BACKUP_CONFIGURATION', 'SPACE', 'WINDOW_CLOSED',
+    'RELEASE_DOWNGRADE', 'IMAGE_DRIFT', 'IDENTITY', 'DIRTY', 'ORIGIN',
+    'MANIFEST_PIN', 'USER_FLOW', 'ENTRY_ORIGIN',
+})
+
+
+def _receipt_snapshot(path):
+    """Return an ephemeral receipt fingerprint + bounded bytes; never send bytes via MCP."""
+    try:
+        if path.is_symlink() or (path.exists() and not path.is_file()):
+            return {'invalid': True}
+        metadata = path.stat()
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        return None
+    except OSError:
+        return {'invalid': True}
+    if len(raw) > _MAX_RECEIPT_BYTES:
+        return {'invalid': True}
+    return {'identity': (metadata.st_ino, metadata.st_mtime_ns, hashlib.sha256(raw).hexdigest()),
+            'raw': raw}
+
+
+def _attributed_receipt(before, after, started_at, release, previous):
+    if after is None:
+        return {}, 'missing'
+    if after.get('invalid'):
+        return {}, 'invalid'
+    if before and not before.get('invalid') and before['identity'] == after['identity']:
+        return {}, 'stale'
+    try:
+        receipt = json.loads(after['raw'].decode('utf-8'))
+        if not isinstance(receipt, dict):
+            return {}, 'invalid'
+        timestamp = dt.datetime.fromisoformat(receipt['at'])
+        if timestamp.tzinfo is None:
+            return {}, 'invalid'
+        timestamp = timestamp.astimezone(dt.timezone.utc)
+        if not started_at - dt.timedelta(seconds=2) <= timestamp <= dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=2):
+            return {}, 'mismatch'
+    except (ValueError, UnicodeError, KeyError, TypeError, OverflowError):
+        return {}, 'invalid'
+    if receipt.get('selected') != release:
+        return {}, 'mismatch'
+    old = receipt.get('previous')
+    if previous is not None and (not isinstance(old, dict) or
+                                 any(old.get(key) != previous.get(key) for key in ('revision', 'schema'))):
+        return {}, 'mismatch'
+    if receipt.get('status') not in ('success', 'failed_switch') or receipt.get('phase') not in ('switch', 'verify_entry', 'complete'):
+        return {}, 'invalid'
+    return receipt, 'current'
+
+
+def _verified_manager_backup(install, exported, previous):
+    """Independently check the export from this invocation, not an old receipt."""
+    if exported is None:
+        return {'status': 'not_observed', 'path': None, 'files': 0}
+    try:
+        from deployment.contracts import verify_backup
+        configured = Path(install.settings.get('backupDirectory', install.root / 'backups')).resolve()
+        source = Path(exported)
+        destination = source.resolve()
+        if source.is_symlink() or configured not in destination.parents or not destination.is_dir():
+            raise ValueError('Backup path is not an owned export directory')
+        manifest = verify_backup(destination)
+        runtime = manifest.get('runtime')
+        if previous is not None and (not isinstance(runtime, dict) or
+                                     any(runtime.get(key) != previous.get(key) for key in ('revision', 'schema'))):
+            raise ValueError('Backup runtime does not match the prior running version')
+        files = manifest.get('files')
+        if not isinstance(files, dict):
+            raise ValueError('Backup verification did not report files')
+        return {'status': 'verified', 'path': str(destination), 'files': len(files)}
+    except (OSError, ValueError, KeyError, TypeError, Exception):
+        # The export remains untouched for server-side forensic inspection.
+        return {'status': 'unverified', 'path': None, 'files': 0}
+
+
+def _safe_manager_error(stderr):
+    import re
+    match = re.search(r'(?m)^BLOCKED ([A-Z][A-Z0-9_]{0,63}):', stderr)
+    if match and match.group(1) in _SAFE_MANAGER_CODES:
+        return match.group(1)
+    return 'MANAGER_EXIT_NONZERO'
+
+
 def update(config, payload):
     manager, install = load(config)
     planned = payload['plan']
@@ -261,35 +353,62 @@ def update(config, payload):
     if not recheck['ready']:
         return {'manager_exit_code': None, 'status': 'blocked_preflight', 'preflight': recheck}
     manager.discover_release = lambda: json.loads(json.dumps(release))
-    # Emit safe stages only. Raw manager/subprocess output remains private server-side.
-    transition = {}
+    transition = {'stage': 'manager_update'}
     for name, phase in [('doctor', 'doctor'), ('fetch_images', 'download_images'),
                         ('selected_source', 'select_source'), ('export_backup', 'backup')]:
         original = getattr(manager, name)
         def wrapped(*args, _original=original, _phase=phase, **kw):
+            transition['stage'] = _phase
             event(_phase)
             if _phase == 'select_source':
                 transition['fingerprint'] = fingerprint(args[0])
-            return _original(*args, **kw)
+            value = _original(*args, **kw)
+            if _phase == 'backup' and value is not None:
+                transition['backup_path'] = str(value)
+                transition['stage'] = 'post_backup'
+                event('post_backup')
+            return value
         setattr(manager, name, wrapped)
+    receipt_path = install.state / 'last-operation.json'
+    before_receipt = _receipt_snapshot(receipt_path)
+    started_at = dt.datetime.now(dt.timezone.utc)
     event('manager_update')
     errors = io.StringIO()
     with contextlib.redirect_stderr(errors):
         code = manager.main(['update', '--root', config['root'], '--profile', config['profile']])
-    last_path = install.state/'last-operation.json'
-    last = json.loads(last_path.read_text()) if last_path.exists() else {}
-    return {'manager_exit_code': code, 'manager_status': last.get('status'), 'phase': last.get('phase'),
-            'no_change': bool(code == 0 and fingerprint(install)['files']['.asa/last-operation.json']
-                              == planned['fingerprint']['files']['.asa/last-operation.json']
-                              and planned['current']['revision'] == release['revision']),
-            'backup': last.get('backup'), 'selected_revision': release['revision'],
-            'checkout_revision': install.git('rev-parse', 'HEAD'),
+    receipt, receipt_state = _attributed_receipt(
+        before_receipt, _receipt_snapshot(receipt_path), started_at, release, planned['current'])
+    backup = _verified_manager_backup(install, transition.get('backup_path'), planned['current'])
+    if receipt_state == 'current' and receipt.get('backup'):
+        if backup['status'] != 'verified' or Path(receipt['backup']).resolve() != Path(backup['path']):
+            receipt, receipt_state = {}, 'backup_mismatch'
+    if receipt_state == 'current' and (code == 0) != (receipt['status'] == 'success'):
+        receipt, receipt_state = {}, 'conflicting_exit'
+    no_change = bool(code == 0 and receipt_state != 'current'
+                     and fingerprint(install)['files']['.asa/last-operation.json']
+                     == planned['fingerprint']['files']['.asa/last-operation.json']
+                     and planned['current']['revision'] == release['revision'])
+    if code != 0:
+        manager_status = receipt['status'] if receipt_state == 'current' else 'failed'
+        phase = receipt['phase'] if receipt_state == 'current' else 'failed'
+    elif receipt_state == 'current':
+        manager_status, phase = receipt['status'], receipt['phase']
+    elif no_change:
+        manager_status, phase = 'no_change', 'complete'
+    else:
+        manager_status, phase = 'not_written', 'unverified'
+    error = {'code': _safe_manager_error(errors.getvalue()), 'stage': transition['stage']} if code != 0 else None
+    checkout = install.git('rev-parse', 'HEAD')
+    return {'manager_exit_code': code, 'manager_status': manager_status, 'phase': phase,
+            'receipt_attributed': receipt_state == 'current', 'receipt_evidence': receipt_state,
+            'error': error, 'no_change': no_change,
+            'backup': backup['path'], 'backup_status': backup['status'], 'backup_files': backup['files'],
+            'selected_revision': release['revision'], 'checkout_revision': checkout,
             'transition_fingerprint': transition.get('fingerprint'),
-            'retry_new_manager': bool(code == 2 and 'BLOCKED RETRY_NEW_MANAGER:' in errors.getvalue()
-                                      and install.git('rev-parse', 'HEAD') == release['revision']
+            'retry_new_manager': bool(code == 2 and error['code'] == 'RETRY_NEW_MANAGER'
+                                      and checkout == release['revision']
                                       and planned['fingerprint']['checkout_revision'] != release['revision']
                                       and not any((install.state/n).exists() for n in ('maintenance.json', 'failed-switch.json')))}
-
 
 def continuation(config, payload):
     manager, install = load(config)

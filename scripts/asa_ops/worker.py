@@ -79,6 +79,8 @@ def work(config_path, opid, action):
             if result.get('manager_exit_code') != 0:
                 status = 'acceptance_pending' if result.get('manager_status') == 'failed_switch' else 'failed'
             else:
+                if not (result.get('receipt_attributed') or result.get('no_change')):
+                    raise OpsError('RECEIPT_NOT_CURRENT', 'Manager returned zero without a current receipt; release is not accepted')
                 result['verification'] = adapter(config_path, 'verify', {'release': planned['release']}, store, opid)
                 status = 'success' if result['verification']['accepted'] else 'acceptance_pending'
                 if status == 'success' and not result.get('no_change'):
