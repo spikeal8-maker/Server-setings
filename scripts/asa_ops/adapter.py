@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -258,19 +259,28 @@ _SAFE_MANAGER_CODES = frozenset({
 
 
 def _receipt_snapshot(path):
-    """Return an ephemeral receipt fingerprint + bounded bytes; never send bytes via MCP."""
+    """Read at most 64 KiB of a regular receipt; refuse symlinks or changing files."""
     try:
-        if path.is_symlink() or (path.exists() and not path.is_file()):
-            return {'invalid': True}
-        metadata = path.stat()
-        raw = path.read_bytes()
+        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, 'rb') as stream:
+            metadata = os.fstat(stream.fileno())
+            if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+                return {'invalid': True}
+            raw = stream.read(_MAX_RECEIPT_BYTES + 1)
+            final_metadata = os.fstat(stream.fileno())
     except FileNotFoundError:
         return None
     except OSError:
         return {'invalid': True}
-    if len(raw) > _MAX_RECEIPT_BYTES:
+    if len(raw) > _MAX_RECEIPT_BYTES or (
+        metadata.st_dev, metadata.st_ino, metadata.st_mtime_ns, metadata.st_size
+    ) != (
+        final_metadata.st_dev, final_metadata.st_ino, final_metadata.st_mtime_ns, final_metadata.st_size
+    ):
         return {'invalid': True}
-    return {'identity': (metadata.st_ino, metadata.st_mtime_ns, hashlib.sha256(raw).hexdigest()),
+    return {'identity': (metadata.st_dev, metadata.st_ino, metadata.st_mtime_ns,
+                         metadata.st_size, hashlib.sha256(raw).hexdigest()),
             'raw': raw}
 
 
@@ -299,7 +309,9 @@ def _attributed_receipt(before, after, started_at, release, previous):
     if previous is not None and (not isinstance(old, dict) or
                                  any(old.get(key) != previous.get(key) for key in ('revision', 'schema'))):
         return {}, 'mismatch'
-    if receipt.get('status') not in ('success', 'failed_switch') or receipt.get('phase') not in ('switch', 'verify_entry', 'complete'):
+    status, phase = receipt.get('status'), receipt.get('phase')
+    if not ((status == 'success' and phase in ('verify_entry', 'complete')) or
+            (status == 'failed_switch' and phase in ('switch', 'verify_entry'))):
         return {}, 'invalid'
     return receipt, 'current'
 
