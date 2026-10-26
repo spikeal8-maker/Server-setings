@@ -400,6 +400,7 @@ def update(config, payload):
     if receipt_state == 'current' and (code == 0) != (receipt['status'] == 'success'):
         receipt, receipt_state = {}, 'conflicting_exit'
     no_change = bool(code == 0 and receipt_state != 'current'
+                     and transition['stage'] == 'doctor' and backup['status'] == 'not_observed'
                      and fingerprint(install)['files']['.asa/last-operation.json']
                      == planned['fingerprint']['files']['.asa/last-operation.json']
                      and planned['current']['revision'] == release['revision'])
@@ -421,6 +422,8 @@ def update(config, payload):
             'selected_revision': release['revision'], 'checkout_revision': checkout,
             'transition_fingerprint': transition.get('fingerprint'),
             'retry_new_manager': bool(code == 2 and error['code'] == 'RETRY_NEW_MANAGER'
+                                      and transition['stage'] == 'select_source'
+                                      and backup['status'] == 'not_observed' and receipt_state != 'current'
                                       and checkout == release['revision']
                                       and planned['fingerprint']['checkout_revision'] != release['revision']
                                       and not any((install.state/n).exists() for n in ('maintenance.json', 'failed-switch.json')))}
