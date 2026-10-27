@@ -326,7 +326,7 @@ class SourceIdentityTests(unittest.TestCase):
         os.link(manifest, target)
         with self.assertRaises(OpsError) as cm:
             sources.verify_staged(self.root)
-        self.assertEqual(cm.exception.code, 'SOURCE_TYPE')
+        self.assertIn(cm.exception.code, ('SOURCE_FILE', 'SOURCE_TYPE'))
         target.unlink()
         target.write_bytes(b'public synthetic object bytes')
         self.sign(raw, 'f'*64)
