@@ -16,6 +16,11 @@ import stat
 INSTANCE = re.compile(r"[0-9a-f]{32}\Z")
 EMAIL = re.compile(r"asa-ops-([0-9a-f]{16})@example\.invalid\Z")
 UUID = re.compile(r"[0-9a-fA-F-]{36}\Z")
+# Matches the generator in ASA Lab: contexts/classroom/domain/classroom-code.ts.
+CLASSROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+CLASSROOM_JOIN_CODE = re.compile(
+    rf"[{CLASSROOM_CODE_ALPHABET}]{{3}}(?: [{CLASSROOM_CODE_ALPHABET}]{{3}}){{2}}\Z"
+)
 MAX_BYTES = 32768
 OPEN_SAFE = getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
 
@@ -152,10 +157,16 @@ def validate(value, origin, generation, installation):
     for item in value["projects"].values():
         if not isinstance(item, str) or not UUID.fullmatch(item):
             _fail("FIXTURE_REFERENCE_INVALID")
-    for item in ("student_code", "join_code"):
-        if item in value and (not isinstance(value[item], str)
-                              or not re.fullmatch(r"[A-Za-z0-9_-]{4,48}", value[item])):
-            _fail("FIXTURE_REFERENCE_INVALID")
+    if "student_code" in value and (
+        not isinstance(value["student_code"], str)
+        or not re.fullmatch(r"[A-Za-z0-9_-]{4,48}", value["student_code"])
+    ):
+        _fail("FIXTURE_REFERENCE_INVALID")
+    if "join_code" in value and (
+        not isinstance(value["join_code"], str)
+        or not CLASSROOM_JOIN_CODE.fullmatch(value["join_code"])
+    ):
+        _fail("FIXTURE_REFERENCE_INVALID")
     if "electronics_seeded" in value and not isinstance(value["electronics_seeded"], bool):
         _fail("FIXTURE_SCHEMA_INVALID")
     if "recovery" in value:
