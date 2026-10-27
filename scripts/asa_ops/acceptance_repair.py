@@ -67,25 +67,78 @@ def context(config, config_path):
     return cfg, root, generation, path
 
 
-def assert_no_workers(cfg):
-    """Fail closed if any active update/verify/repair worker is running."""
+def _descends_from_admin_command(command_pid):
+    """Root-audited command PID must be an actual ancestor of this CLI process.
+
+    An opaque operation ID, an environment variable or a matching UID is not
+    proof of ownership. Fail closed if /proc lineage cannot be inspected.
+    """
+    if type(command_pid) is not int or command_pid < 2:
+        return False
+    current = os.getppid()
+    seen = set()
+    for _ in range(64):
+        if current < 2 or current in seen:
+            return False
+        if current == command_pid:
+            return True
+        seen.add(current)
+        try:
+            fields = Path(f"/proc/{current}/stat").read_text().rsplit(")", 1)[1].split()
+            current = int(fields[1])  # PPID follows process state in /proc stat.
+        except (OSError, IndexError, ValueError):
+            return False
+    return False
+
+
+def assert_no_workers(cfg, config):
+    """Exempt only the verified current MCP admin command, never another worker.
+
+    The Store's unique index keeps the admin worker's writer lease until
+    completion. An unresolved recovery_required receipt blocks regardless of
+    whether its worker still has a live PID or process identity.
+    """
     path = Path(cfg["state_root"]) / "operations.sqlite3"
     if path.is_symlink() or not path.is_file():
         _deny("OPS_STATE_UNAVAILABLE")
     try:
         with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5) as db:
             rows = db.execute(
-                "SELECT status,pid,process_identity FROM operations "
+                "SELECT id,kind,status,pid,process_identity FROM operations "
                 "WHERE installation=? AND status IN ('queued','running','recovery_required')",
                 (cfg["id"],),
             ).fetchall()
     except (sqlite3.Error, OSError):
         _deny("OPS_STATE_UNAVAILABLE")
-    for status, pid, identity in rows:
-        if status in ("queued", "running"):
-            _deny("ACTIVE_OPS_WORKER")
-        if pid and identity and process_identity(pid) == identity:
-            _deny("ACTIVE_RECOVERY_WORKER")
+
+    # A lost worker does not prove a reconciled installation. Deny before
+    # considering the self-admin exemption, including recovery rehearsals.
+    if any(row[2] == "recovery_required" for row in rows):
+        _deny("RECOVERY_RECONCILIATION_REQUIRED")
+    if any(row[1] != "admin" or row[2] != "running" for row in rows):
+        _deny("ACTIVE_OPS_WORKER")
+    if not rows:
+        _deny("MCP_ADMIN_OPERATION_REQUIRED")
+    if len(rows) != 1:
+        _deny("ACTIVE_OPS_WORKER")
+
+    opid, _, _, pid, identity = rows[0]
+    if (type(pid) is not int or pid < 2 or not isinstance(identity, str)
+            or not identity or process_identity(pid) != identity):
+        _deny("MCP_ADMIN_PROOF_INVALID")
+
+    # The root-owned audit is accessed through the executor's private
+    # SO_PEERCRED-protected Unix socket. The returned root command PID must
+    # be in *this* process's real ancestry, excluding unrelated admin shells.
+    from .admin import request as root_admin_request
+    try:
+        audit = root_admin_request(config, {"action": "status", "operation_id": opid})
+    except Exception:
+        _deny("MCP_ADMIN_PROOF_UNAVAILABLE")
+    if (not isinstance(audit, dict) or audit.get("operation_id") != opid
+            or audit.get("status") != "running"
+            or not _descends_from_admin_command(audit.get("command_pid"))):
+        _deny("MCP_ADMIN_PROOF_INVALID")
 
 
 def postgres_matches(cfg, email, username):
@@ -133,7 +186,7 @@ def postgres_matches(cfg, email, username):
 def inspect(config, config_path):
     cfg, _, generation, path = context(config, config_path)
     with locked_fixture(path):
-        assert_no_workers(cfg)
+        assert_no_workers(cfg, config)
         value, sha, legacy = read_fixture(path, cfg["entry_origin"], generation, cfg["id"])
         if value is None:
             return {"status": "blocked", "code": "FIXTURE_MISSING"}
@@ -155,7 +208,7 @@ def apply(config, config_path, expected_sha):
         _deny("EXPECTED_DIGEST_REQUIRED")
     cfg, _, generation, path = context(config, config_path)
     with locked_fixture(path):
-        assert_no_workers(cfg)
+        assert_no_workers(cfg, config)
         value, sha, _ = read_fixture(path, cfg["entry_origin"], generation, cfg["id"])
         if value is None:
             _deny("FIXTURE_MISSING")
@@ -172,7 +225,7 @@ def apply(config, config_path, expected_sha):
         operation_id = uuid.uuid4().hex
         candidate["recovery"] = {"source_sha256": sha, "operation_id": operation_id}
         # Verify worker/identity a second time directly before file mutation.
-        assert_no_workers(cfg)
+        assert_no_workers(cfg, config)
         if postgres_matches(cfg, value["email"], value["username"]) != 0:
             _deny("ACCOUNT_PRESENT_INVESTIGATE_401")
         archive_fixture(path, sha)
