@@ -16,6 +16,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from asa_ops import acceptance_repair as repair
+from asa_ops.store import Store, OpsError, process_identity
 from asa_ops.acceptance_fixture import (
     FixtureError, archive_fixture, bound_path, fresh_fixture,
     locked_fixture, read_fixture, save_fixture,
@@ -286,6 +287,151 @@ class RepairTests(PrivateFixtureTests):
                 with self.assertRaisesRegex(FixtureError, "POSTGRES_AUTHORITY_UNVERIFIED"):
                     repair.postgres_matches({"root": str(self.root)}, synthetic["email"], synthetic["username"])
 
+
+
+class StoreAuthorizationTests(unittest.TestCase):
+    """Real SQLite Store and private fixture; only root socket responses are simulated."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.path = bound_path(self.root / "acceptance.json", GEN)
+        fixture = fresh_fixture(ORIGIN, GEN, INSTALL)
+        fixture["registered"] = True
+        save_fixture(self.path, fixture, ORIGIN, GEN, INSTALL)
+        self.store = Store(self.root)
+        self.cfg = {"id": INSTALL, "entry_origin": ORIGIN,
+                    "state_root": str(self.root)}
+        self.config = {"installation": self.cfg, "host_admin_enabled": True}
+        self.initial = self.path.read_bytes()
+
+    def start(self, kind="admin", status="running", key="synthetic-repair-operation-0001",
+              pid=None, identity=None):
+        plan = self.store.plan(INSTALL, {"kind": kind, "installation_instance_id": GEN})
+        op, created = self.store.start(INSTALL, kind, plan["plan_id"], key,
+                                       {"purpose": "offline-fixture-guard"})
+        self.assertTrue(created)
+        fields = {"status": status}
+        if pid is not None:
+            fields["pid"] = pid
+            fields["process_identity"] = identity
+        self.store.update(op["operation_id"], **fields)
+        return op["operation_id"]
+
+    @contextlib.contextmanager
+    def authorized(self, opid, command_pid=None, postgres=(0, 0, 0, 0)):
+        root_state = {"status": "running", "operation_id": opid,
+                      "command_pid": os.getppid() if command_pid is None else command_pid}
+        with (patch.object(repair, "context", return_value=(self.cfg, self.root, GEN, self.path)),
+              patch("asa_ops.admin.request", return_value=root_state) as root,
+              patch.object(repair, "postgres_matches", side_effect=postgres) as pg):
+            yield root, pg
+
+    def test_confirmed_own_admin_running_plan_apply_and_retry(self):
+        opid = self.start(pid=os.getpid(), identity=process_identity(os.getpid()))
+        with self.authorized(opid) as (root, pg):
+            planned = repair.inspect(self.config, "offline")
+            self.assertEqual(planned["status"], "eligible")
+            result = repair.apply(self.config, "offline", planned["fixture_sha256"])
+            self.assertEqual(result["status"], "pending_registration")
+            after = self.path.read_bytes()
+            replay = repair.apply(self.config, "offline", planned["fixture_sha256"])
+            self.assertEqual(replay["status"], "already_repaired")
+            self.assertEqual(replay["operation_id"], result["operation_id"])
+            self.assertEqual(after, self.path.read_bytes())
+            self.assertEqual(pg.call_count, 4)
+            self.assertGreaterEqual(root.call_count, 3)
+            for call in root.call_args_list:
+                self.assertEqual(call.args[1],
+                                 {"action": "status", "operation_id": opid})
+        self.assertNotEqual(self.initial, self.path.read_bytes())
+        same, created = self.store.start(
+            INSTALL, "admin", self.store.get_plan(self.store.get(opid)["plan_id"])["plan_id"],
+            "synthetic-repair-operation-0001", {"purpose": "offline-fixture-guard"})
+        self.assertFalse(created)
+        self.assertEqual(same["operation_id"], opid)
+
+    def test_foreign_admin_running_denied_without_root_process_ancestry(self):
+        opid = self.start(pid=os.getpid(), identity=process_identity(os.getpid()))
+        with self.authorized(opid, command_pid=os.getpid()) as (_, pg):
+            with self.assertRaisesRegex(FixtureError, "MCP_ADMIN_PROOF_INVALID"):
+                repair.apply(self.config, "offline", self.digest())
+            pg.assert_not_called()
+        self.assertEqual(self.path.read_bytes(), self.initial)
+
+    def test_queued_admin_and_non_admin_workers_denied(self):
+        for i, (kind, status) in enumerate((("admin", "queued"), ("update", "queued"),
+                                            ("update", "running"), ("verify", "running"))):
+            with self.subTest(kind=kind, status=status):
+                opid = self.start(kind, status, f"synthetic-foreign-worker-key-{i:04d}")
+                with self.authorized(opid) as (root, pg):
+                    with self.assertRaises(FixtureError):
+                        repair.inspect(self.config, "offline")
+                    root.assert_not_called()
+                    pg.assert_not_called()
+                self.store.update(opid, status="failed")
+        self.assertEqual(self.path.read_bytes(), self.initial)
+
+    def test_recovery_required_live_or_dead_pid_never_auto_expires(self):
+        for i, (pid, identity) in enumerate((
+            (os.getpid(), process_identity(os.getpid())),
+            (99999999, "old-boot:123"),
+            (None, None),
+        )):
+            with self.subTest(pid=pid):
+                opid = self.start("update", "recovery_required",
+                                  f"synthetic-recovery-worker-key-{i:04d}", pid, identity)
+                self.store.reconcile()
+                self.assertEqual(self.store.get(opid)["status"], "recovery_required")
+                with self.authorized(opid) as (root, pg):
+                    with self.assertRaisesRegex(FixtureError, "RECOVERY_RECONCILIATION_REQUIRED"):
+                        repair.apply(self.config, "offline", self.digest())
+                    root.assert_not_called()
+                    pg.assert_not_called()
+                self.store.update(opid, status="failed")
+        self.assertEqual(self.path.read_bytes(), self.initial)
+
+    def test_outstanding_rehearsal_recovery_blocks_current_admin(self):
+        rehearsal = self.start("restore_rehearse", "recovery_required",
+                               "synthetic-rehearsal-recovery-0001")
+        opid = self.start("admin", "running",
+                          "synthetic-legitimate-admin-0002", os.getpid(),
+                          process_identity(os.getpid()))
+        with self.authorized(opid) as (root, pg):
+            with self.assertRaisesRegex(FixtureError, "RECOVERY_RECONCILIATION_REQUIRED"):
+                repair.apply(self.config, "offline", self.digest())
+            root.assert_not_called()
+            pg.assert_not_called()
+        self.assertEqual(self.store.get(rehearsal)["status"], "recovery_required")
+        self.assertEqual(self.path.read_bytes(), self.initial)
+
+    def test_db_probe_failure_and_store_exclusivity_keep_fixture(self):
+        opid = self.start(pid=os.getpid(), identity=process_identity(os.getpid()))
+        with self.authorized(opid, postgres=(FixtureError("POSTGRES_PROBE_UNAVAILABLE"),)) as (_, pg):
+            with self.assertRaisesRegex(FixtureError, "POSTGRES_PROBE_UNAVAILABLE"):
+                repair.apply(self.config, "offline", self.digest())
+            pg.assert_called_once()
+        another = self.store.plan(INSTALL, {"kind": "update"})
+        with self.assertRaises(OpsError) as busy:
+            self.store.start(INSTALL, "update", another["plan_id"],
+                             "synthetic-conflicting-update-0001", {"purpose": "conflict"})
+        self.assertEqual(busy.exception.code, "BUSY")
+        self.assertEqual(self.path.read_bytes(), self.initial)
+        self.assertFalse((self.root / ".fixture-audit").exists())
+
+    def test_missing_or_untrusted_root_audit_denied(self):
+        opid = self.start(pid=os.getpid(), identity=process_identity(os.getpid()))
+        with self.authorized(opid) as (root, pg):
+            root.side_effect = OSError("private socket inaccessible")
+            with self.assertRaisesRegex(FixtureError, "MCP_ADMIN_PROOF_UNAVAILABLE"):
+                repair.inspect(self.config, "offline")
+            pg.assert_not_called()
+        self.assertEqual(self.path.read_bytes(), self.initial)
+
+    def digest(self):
+        import hashlib
+        return hashlib.sha256(self.path.read_bytes()).hexdigest()
 
 class BrowserContractTests(unittest.TestCase):
     def test_real_ui_and_login_identity_guard(self):
