@@ -12,6 +12,12 @@ import secrets
 import sys
 import uuid
 
+# Standalone execution works in both repository checkout and private install.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from asa_ops.acceptance_fixture import (
+    bound_path, fresh_fixture, locked_fixture, read_fixture, save_fixture,
+)
+
 
 def main():
     from playwright.sync_api import sync_playwright
@@ -19,27 +25,19 @@ def main():
     parser.add_argument('--fixture', required=True)
     args = parser.parse_args()
     origin, revision = os.environ['ASA_ACCEPTANCE_ORIGIN'], os.environ['ASA_ACCEPTANCE_REVISION']
-    fixture_path = Path(args.fixture)
-    generation=os.environ.get('ASA_ACCEPTANCE_INSTANCE_ID')
-    if generation:
-        if not re.fullmatch('[a-f0-9]{32}',generation):raise RuntimeError('Invalid acceptance instance')
-        fixture_path=fixture_path.with_name(fixture_path.stem+'-'+generation+fixture_path.suffix)
-    fixture_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    fixture = json.loads(fixture_path.read_text()) if fixture_path.exists() else None
-    if fixture and fixture['origin'] != origin:
-        raise RuntimeError('Fixture belongs to a different entry origin')
-    if not fixture:
-        ident = uuid.uuid4().hex[:16]
-        fixture = {'origin': origin, 'email': 'asa-ops-'+ident+'@example.invalid',
-                   'username': 'asaops_'+ident, 'password': secrets.token_urlsafe(32),
-                   'projects': {}, 'authorized_test_fixture': True}
+    generation = os.environ['ASA_ACCEPTANCE_INSTANCE_ID']
+    installation = os.environ['ASA_ACCEPTANCE_INSTALLATION_ID']
+    fixture_path = bound_path(Path(args.fixture), generation)
+    fixture, fixture_sha, legacy = read_fixture(fixture_path, origin, generation, installation)
+    if fixture is None:
+        fixture = fresh_fixture(origin, generation, installation)
+        fixture_sha = save_fixture(fixture_path, fixture, origin, generation, installation)
     def save():
-        temporary = fixture_path.with_name(fixture_path.name+'.tmp')
-        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, 'w') as f:
-            json.dump(fixture, f);f.flush();os.fsync(f.fileno())
-        os.replace(temporary, fixture_path)
-    save()
+        nonlocal fixture_sha
+        fixture_sha = save_fixture(
+            fixture_path, fixture, origin, generation, installation,
+            expected_sha=fixture_sha,
+        )
     checks = {k: False for k in ('teacher_login', 'student_login', 'course_open', 'existing_project_open',
                                  'scratch_save_reopen', 'electronics_save_reopen')}
     report = {'revision': revision, 'entry_origin': origin, 'checks': checks, 'error': None}
@@ -66,35 +64,55 @@ def main():
             stage = 'teacher_registration_or_login'
             page.goto(origin, wait_until='networkidle')
             if not fixture.get('registered'):
-                page.get_by_text('Создать аккаунт',exact=True).first.click()
-                page.get_by_label('Email',exact=True).fill(fixture['email'])
-                # New registration derives the login from email; old releases
-                # still expose an optional explicit username field.
-                username = page.get_by_label('Имя пользователя',exact=True)
-                if username.count():
-                    username.fill(fixture['username'])
-                page.get_by_label('Отображаемое имя',exact=True).fill('ASA Operations Test Teacher')
-                page.get_by_label('Дата рождения',exact=True).fill('1990-04-12')
-                page.get_by_label('Пароль',exact=True).fill(fixture['password'])
+                # Current ASA Lab exposes these stable DOM ids; an older release
+                # may still ask for a username. No auth/BotCheck bypass.
+                signup = page.get_by_text('Создать аккаунт', exact=True)
+                if signup.count():
+                    signup.first.click()
+                else:
+                    page.get_by_role('button', name='Войти', exact=True).first.click()
+                    page.get_by_role('button', name='Создать', exact=True).click()
+                page.locator('#register-email').fill(fixture['email'])
+                legacy_username = page.locator('#register-username')
+                if legacy_username.count():
+                    legacy_username.fill(fixture['username'])
+                page.locator('#register-name').fill('ASA Operations Test Teacher')
+                page.locator('#register-birth-date').fill('1990-04-12')
+                page.locator('#register-password').fill(fixture['password'])
                 page.get_by_role('checkbox').press('Space')
                 with page.expect_response(lambda r: r.url.endswith('/api/auth/register') and r.request.method=='POST') as pending:
                     page.get_by_role('button',name='Создать аккаунт',exact=True).click()
-                if pending.value.status not in (200,201):raise RuntimeError('API_STATUS_'+str(pending.value.status))
-                fixture['registered']=True;save()
+                # A crash after a successful POST but before the fixture was
+                # saved can make a resumed POST return 409. In that case only
+                # a real login with the SAME saved credentials may recover it.
+                if pending.value.status not in (200, 201, 409):
+                    raise RuntimeError('API_STATUS_'+str(pending.value.status))
                 context.close()
                 context=browser.new_context(base_url=origin)
                 context.set_default_timeout(45000)
                 page=context.new_page();page.goto(origin,wait_until='networkidle')
             page.get_by_role('button',name='Войти',exact=True).first.click()
             stage = 'teacher_login_identity'
-            page.get_by_label(re.compile(r'^(?:Email или имя пользователя|Почта или логин)$')).fill(fixture['email'])
+            page.locator('#identifier').fill(fixture['email'])
             stage = 'teacher_login_submit'
-            page.get_by_label('Пароль',exact=True).fill(fixture['password'])
+            page.locator('#password').fill(fixture['password'])
             page.get_by_role('checkbox').press('Space')
             with page.expect_response(lambda r: r.url.endswith('/api/auth/login') and r.request.method=='POST') as pending:
                 page.get_by_role('button',name='Войти',exact=True).click()
             if pending.value.status!=200:raise RuntimeError('API_STATUS_'+str(pending.value.status))
-            api('GET', '/api/auth/me')
+            me = api('GET', '/api/auth/me')
+            owner = me.get('account') or me.get('user')
+            if not isinstance(owner, dict) or owner.get('email', '').lower() != fixture['email']:
+                raise RuntimeError('SYNTHETIC_LOGIN_IDENTITY_MISMATCH')
+            # Record registration only after authenticating the exact synthetic
+            # identity; a 409 or partial registration is never treated as PASS.
+            if legacy or fixture.get('registered') is not True:
+                if legacy:
+                    fixture['generation'] = generation
+                    fixture['installation_id'] = installation
+                    legacy = False
+                fixture['registered'] = True
+                save()
             page.goto(origin+'/#/home', wait_until='domcontentloaded')
             page.locator('body').wait_for()
             checks['teacher_login'] = True
@@ -104,8 +122,10 @@ def main():
                 cls = api('POST', '/api/classrooms', {'title': 'ASA Operations Acceptance (TEST)',
                          'ageBand': 'mixed', 'topicKeys': [], 'safeModeDefault': True})['classroom']
                 fixture['classroom'] = cls['id'];save()
+            detail = api('GET', '/api/classrooms/'+fixture['classroom'])['classroom']
+            if detail.get('title') != 'ASA Operations Acceptance (TEST)':
+                raise RuntimeError('FOREIGN_TEST_CLASSROOM')
             if not fixture.get('join_code'):
-                detail = api('GET', '/api/classrooms/'+fixture['classroom'])['classroom']
                 fixture['join_code'] = detail['joinCode'];save()
             if not fixture.get('student_code'):
                 seat = api('POST', '/api/classrooms/'+fixture['classroom']+'/seats',
@@ -127,7 +147,10 @@ def main():
                 made=api('POST','/api/courses',{'title':'ASA Operations Course (TEST)',
                     'summary':None,'visibility':'private','requestId':str(uuid.uuid4())})
                 fixture['course']=made['id'];save()
-            api('GET','/api/courses/'+fixture['course']+'/outline')
+            outline = api('GET','/api/courses/'+fixture['course']+'/outline')
+            course = outline.get('course')
+            if not isinstance(course, dict) or course.get('title') != 'ASA Operations Course (TEST)':
+                raise RuntimeError('FOREIGN_TEST_COURSE')
             page.goto(origin+'/#/challenges',wait_until='domcontentloaded')
             # Self-attestation changes capabilities; a hash-only route transition
             # keeps the previous in-memory session until the document reloads.
@@ -144,6 +167,12 @@ def main():
                     fixture['projects'][module] = created['project']['id'];save()
                 project = fixture['projects'][module]
                 before = api('GET', '/api/projects/'+project)
+                metadata = before.get('project')
+                if (not isinstance(metadata, dict)
+                        or metadata.get('title') != 'ASA Operations '+module+' (TEST)'
+                        or metadata.get('module') != module
+                        or metadata.get('scope') != 'personal'):
+                    raise RuntimeError('FOREIGN_TEST_PROJECT')
                 if module=='electronics' and not fixture.get('electronics_seeded'):
                     # Seed a real Arduino board through the ordinary draft API on
                     # this dedicated TEST project. Editing/saving/reopening its
@@ -209,10 +238,14 @@ def main():
             code = str(exc) if re.fullmatch(r'API_STATUS_[0-9]{3}', str(exc)) else type(exc).__name__
             report['error'] = {'stage': stage, 'code': code}
             report['http_failures']=failures
-            try:
-                page.screenshot(path=str(fixture_path.parent/'browser-acceptance-failure.png'))
-            except Exception:
-                pass
+            # Authentication forms can show synthetic identifiers: never persist
+            # screenshots of forms or any page containing credential inputs.
+            if not stage.startswith('teacher_'):
+                try:
+                    if not page.locator('input[type="password"]').count():
+                        page.screenshot(path=str(fixture_path.parent/'browser-acceptance-failure.png'))
+                except Exception:
+                    pass
         finally:
             context.close();browser.close()
     print(json.dumps(report))
@@ -220,4 +253,11 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    # Shared with the explicit repair command; no overlapping browser/repair
+    # runs or concurrent updates of the private fixture.
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--fixture', required=True)
+    arguments = parser.parse_args()
+    fixture_path = bound_path(arguments.fixture, os.environ['ASA_ACCEPTANCE_INSTANCE_ID'])
+    with locked_fixture(fixture_path):
+        sys.exit(main())
