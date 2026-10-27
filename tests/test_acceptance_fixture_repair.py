@@ -19,7 +19,7 @@ from asa_ops import acceptance_repair as repair
 from asa_ops.store import Store, OpsError, process_identity
 from asa_ops.acceptance_fixture import (
     FixtureError, archive_fixture, bound_path, fresh_fixture,
-    locked_fixture, read_fixture, save_fixture,
+    locked_fixture, read_fixture, save_fixture, validate,
 )
 
 ORIGIN = "https://test.asa-lab.ru"
@@ -108,6 +108,102 @@ class PrivateFixtureTests(unittest.TestCase):
                 return "unexpected_lock"
         except FixtureError as error:
             return str(error)
+
+
+class ClassroomJoinCodeTests(unittest.TestCase):
+    """Offline validation against ASA Lab's canonical XXX XXX XXX join-code format."""
+
+    CODE = "ABC DEF 234"
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.path = bound_path(self.root / "acceptance.json", GEN)
+        self.fixture = fresh_fixture(ORIGIN, GEN, INSTALL)
+        self.fixture["registered"] = True
+        self.fixture["join_code"] = self.CODE
+
+    def test_canonical_codes_pass_exact_validator(self):
+        for code in ("ABC DEF 234", "HJK LMN PQR", "XYZ 567 89Q"):
+            with self.subTest(code=code):
+                value = dict(self.fixture, join_code=code)
+                self.assertFalse(validate(value, ORIGIN, GEN, INSTALL))
+                self.assertEqual(value["join_code"], code)
+
+    def test_canonical_code_save_and_read_preserves_bytes_and_value(self):
+        original = json.loads(json.dumps(self.fixture))
+        sha = save_fixture(self.path, self.fixture, ORIGIN, GEN, INSTALL)
+        before = self.path.read_bytes()
+        value, loaded_sha, legacy = read_fixture(self.path, ORIGIN, GEN, INSTALL)
+        self.assertEqual(value, original)
+        self.assertEqual(value["join_code"], self.CODE)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(loaded_sha, sha)
+        self.assertFalse(legacy)
+        self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
+
+    def test_legacy_fixture_with_canonical_code_reads_without_rewriting(self):
+        legacy_fixture = dict(self.fixture)
+        legacy_fixture.pop("generation")
+        legacy_fixture.pop("installation_id")
+        original = json.dumps(legacy_fixture, separators=(",", ":")).encode()
+        self.path.write_bytes(original)
+        self.path.chmod(0o600)
+        value, sha, legacy = read_fixture(self.path, ORIGIN, GEN, INSTALL)
+        self.assertTrue(legacy)
+        self.assertEqual(value, legacy_fixture)
+        self.assertEqual(value["join_code"], self.CODE)
+        self.assertEqual(self.path.read_bytes(), original)
+        self.assertEqual(len(sha), 64)
+
+    def test_malformed_join_codes_fail_closed_without_normalization(self):
+        invalid = (
+            "", "ABCDEF234", "ABC DEF 23", "ABC DEF 2345",
+            " ABC DEF 234", "ABC DEF 234 ",
+            "ABC  DEF 234", "ABC DEF  234",
+            "ABC\tDEF 234", "ABC\nDEF 234", "ABC DEF 234\n",
+            "ABC\u00a0DEF 234", "ABC\u2003DEF 234",
+            "ABC-DEF-234", "ABC_DEF_234", "ABC/DEF/234",
+            "abc DEF 234", "AIC DEF 234", "AOC DEF 234",
+            "ABC DEF 230", "ABC DEF 231", "АBC DEF 234",
+            123456789, None,
+        )
+        for code in invalid:
+            with self.subTest(code=repr(code)):
+                fixture = dict(self.fixture, join_code=code)
+                with self.assertRaisesRegex(FixtureError, "^FIXTURE_REFERENCE_INVALID$"):
+                    validate(fixture, ORIGIN, GEN, INSTALL)
+                with self.assertRaisesRegex(FixtureError, "^FIXTURE_REFERENCE_INVALID$"):
+                    save_fixture(self.path, fixture, ORIGIN, GEN, INSTALL)
+        self.assertFalse(self.path.exists())
+
+    def test_student_code_retains_original_independent_rule(self):
+        # The pre-existing student code contract accepts plain ASCII
+        # alphanumerics, underscore and hyphen, length 4 through 48.
+        for code in ("Ab_0", "O0I1", "A-12", "x" * 48):
+            with self.subTest(valid=code):
+                self.assertFalse(validate(dict(self.fixture, student_code=code),
+                                          ORIGIN, GEN, INSTALL))
+        for code in ("ABC", "x" * 49, "ABC DEF 234", "AB C",
+                     "AB\u00a0C", "\u0410BCD", "", None, 1234):
+            with self.subTest(invalid=repr(code)):
+                with self.assertRaisesRegex(FixtureError, "^FIXTURE_REFERENCE_INVALID$"):
+                    validate(dict(self.fixture, student_code=code),
+                             ORIGIN, GEN, INSTALL)
+
+    def test_canonical_join_code_does_not_relax_identity_or_installation(self):
+        self.assertFalse(validate(self.fixture, ORIGIN, GEN, INSTALL))
+        with self.assertRaisesRegex(FixtureError, "^FIXTURE_IDENTITY_INVALID$"):
+            validate(dict(self.fixture, authorized_test_fixture=False), ORIGIN, GEN, INSTALL)
+        with self.assertRaisesRegex(FixtureError, "^FIXTURE_IDENTITY_INVALID$"):
+            validate(dict(self.fixture, email="teacher@example.net"), ORIGIN, GEN, INSTALL)
+        with self.assertRaisesRegex(FixtureError, "^FIXTURE_FOREIGN_INSTALLATION$"):
+            validate(self.fixture, ORIGIN, "b" * 32, INSTALL)
+        with self.assertRaisesRegex(FixtureError, "^FIXTURE_FOREIGN_INSTALLATION$"):
+            validate(self.fixture, ORIGIN, GEN, "another-installation")
+        with self.assertRaisesRegex(FixtureError, "^FIXTURE_IDENTITY_INVALID$"):
+            validate(self.fixture, "https://foreign.invalid", GEN, INSTALL)
 
 
 class RepairTests(PrivateFixtureTests):
