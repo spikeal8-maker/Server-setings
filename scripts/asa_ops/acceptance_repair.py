@@ -97,7 +97,8 @@ def postgres_matches(cfg, email, username):
     _, installation = load(cfg)
     sql = (
         "BEGIN TRANSACTION READ ONLY;\n"
-        "SELECT (SELECT count(*) FROM public.accounts WHERE lower(email)=lower('" + email + "')),"
+        "SELECT (CASE WHEN current_setting('is_superuser')='on' THEN 1 ELSE 0 END),"
+        "(SELECT count(*) FROM public.accounts WHERE lower(email)=lower('" + email + "')),"
         "(SELECT count(*) FROM public.users WHERE lower(email)=lower('" + email + "')),"
         "(SELECT count(*) FROM public.profiles WHERE lower(username)=lower('" + username + "'));\n"
         "COMMIT;\n"
@@ -116,9 +117,12 @@ def postgres_matches(cfg, email, username):
     if result.returncode != 0:
         _deny("POSTGRES_PROBE_UNAVAILABLE")
     lines = [s.strip() for s in result.stdout.splitlines() if s.strip()]
-    if len(lines) != 1 or not re.fullmatch(r"[0-9]+\|[0-9]+\|[0-9]+", lines[0]):
+    if len(lines) != 1 or not re.fullmatch(r"[0-9]+\|[0-9]+\|[0-9]+\|[0-9]+", lines[0]):
         _deny("POSTGRES_PROBE_UNVERIFIED")
-    return sum(int(item) for item in lines[0].split("|"))
+    authorized, *counts = (int(item) for item in lines[0].split("|"))
+    if authorized != 1:
+        _deny("POSTGRES_AUTHORITY_UNVERIFIED")
+    return sum(counts)
 
 
 def inspect(config, config_path):
