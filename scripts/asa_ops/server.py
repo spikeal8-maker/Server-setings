@@ -160,7 +160,7 @@ class Controller:
             with self.lock:
                 if any(r['status'] in ('queued', 'running') for r in self.store.list(args['installation_id'], 100)):
                     raise OpsError('BUSY', 'Wait for the active server worker')
-                value = adapter(self.config_path, 'restore_plan', {})
+                value = adapter(self.config_path, 'restore_plan', {'snapshot_id': args['snapshot_id']})
                 return {'plan': self.store.plan(args['installation_id'], value)}
         if name == 'asa_update_plan':
             with self.lock:
@@ -196,6 +196,13 @@ class Controller:
                     raise OpsError('PLAN_KIND', 'Restore plans and update plans are not interchangeable')
                 if name == 'asa_update_start' and not plan.get('ready'):
                     raise OpsError('BLOCKED_PLAN', 'Preflight blockers must be resolved in a new plan')
+                if name == 'asa_restore_rehearse' and plan.get('ready_to_rehearse') is not True:
+                    raise OpsError('BLOCKED_PLAN', 'Source or isolated rehearsal has not been approved')
+                if name == 'asa_restore_rehearse' and plan.get('snapshot_id') == '20261026T231505Z-038beee0':
+                    import datetime as dt
+                    age = (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(plan['created_at'])).total_seconds()
+                    if age > self.config.get('plan_ttl_seconds', 3600) or age < -60:
+                        raise OpsError('EXPIRED_PLAN', 'Prepare a fresh source-attested restore plan')
                 if name == 'asa_update_start':
                     import datetime as dt
                     age = (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(plan['created_at'])).total_seconds()

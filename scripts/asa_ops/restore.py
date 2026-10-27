@@ -11,6 +11,7 @@ import uuid
 
 from .adapter import load, runtime, fingerprint, check_entry
 from .store import OpsError, digest, now
+from .source_registry import NEW_ID, NEW_SOURCE, ROOT as SOURCE_ROOT, select, verify_staged
 
 SNAPSHOT = '20261017T231505Z-65b68074'
 MANIFEST_SHA = '8be098e3c37cd43fb704e7f92f300574bb685445d92697223ba0b158ac2e8a01'
@@ -28,6 +29,27 @@ def snapshot():
     if manifest['createdAt'] != SNAPSHOT:
         raise OpsError('SNAPSHOT_IDENTITY', 'Snapshot identity differs')
     return root, manifest, read_env(root/'private.env')
+
+
+def selected_snapshot(snapshot_id):
+    """Legacy source stays byte-for-byte pinned; the new one must be attested."""
+    from deployment.contracts import read_env
+    select(snapshot_id)
+    if snapshot_id == SNAPSHOT:
+        root, manifest, private = snapshot()
+        return root, manifest, private, None
+    proof = verify_staged(SOURCE_ROOT, snapshot_id)
+    root = proof['root']
+    return root, proof['manifest'], read_env(root/'private.env'), proof
+
+
+def provenance(proof):
+    """Only nonsecret immutable hashes may enter the public durable plan."""
+    return {key: proof[key] for key in (
+        'source', 'manifest_sha256',
+        'owner_receipt_sha256', 'staging_receipt_sha256',
+    )}
+
 
 
 def release_for_running(install):
@@ -67,11 +89,20 @@ def population(install, database):
 
 
 def plan(config, payload):
+    snapshot_id = select(payload.get('snapshot_id', SNAPSHOT))
+    if snapshot_id == NEW_ID:
+        # No manager, Docker, PostgreSQL or MinIO access until source is proved.
+        verify_staged(SOURCE_ROOT, snapshot_id)
     manager, install = load(config)
     from deployment.system import operation_lock
     with operation_lock(install.root):
         manager.clean_checkout(install)
-        root, manifest, private = snapshot()
+        root, manifest, private, proof = selected_snapshot(snapshot_id)
+        if proof and (manifest.get('project') != install.project
+                      or manifest.get('profile') != install.profile
+                      or not isinstance(manifest.get('postgresImage'), str)
+                      or not isinstance(manifest.get('runtime'), dict)):
+            raise OpsError('SOURCE_IDENTITY', 'Snapshot project/profile/runtime differs')
         selected = release_for_running(install)
         entry = check_entry(config, install, selected)
         current = population(install, install.env['POSTGRES_DB'])
@@ -84,13 +115,19 @@ def plan(config, payload):
         required = 4*sum(v['bytes'] for v in manifest['files'].values())+2*1024**3
         if shutil.disk_usage(config['state_root']).free < required:
             raise OpsError('SPACE', 'Insufficient space for isolated restore rehearsal')
-        return {'installation_instance_id': install.settings.get('instanceId'), 'kind': 'restore', 'snapshot_id': SNAPSHOT, 'archive_sha256': ARCHIVE_SHA,
-                'manifest_sha256': MANIFEST_SHA, 'source_schema': source_schema,
-                'source_timestamp_utc': '2026-10-17T23:15:05Z', 'release': selected,
-                'fingerprint': fingerprint(install), 'current': current, 'entry': entry,
-                'ready_to_rehearse': True, 'ready_to_apply': False,
-                'blockers': ['REHEARSAL_AND_ROW_COMPARISON_REQUIRED', 'USER_FLOW_ACCEPTANCE_REQUIRED'],
+        result = {'installation_instance_id': install.settings.get('instanceId'), 'kind': 'restore', 'snapshot_id': snapshot_id,
+                'archive_sha256': NEW_SOURCE['ciphertext_sha256'] if proof else ARCHIVE_SHA,
+                'manifest_sha256': proof['manifest_sha256'] if proof else MANIFEST_SHA,
+                'source_schema': source_schema,
+                'source_timestamp_utc': '2026-10-26T23:15:05Z' if proof else '2026-10-17T23:15:05Z',
+                'release': selected, 'fingerprint': fingerprint(install), 'current': current, 'entry': entry,
+                'ready_to_rehearse': not bool(proof), 'ready_to_apply': False,
+                'blockers': (['ISOLATED_REHEARSAL_NOT_IMPLEMENTED', 'USER_FLOW_ACCEPTANCE_REQUIRED'] if proof else
+                            ['REHEARSAL_AND_ROW_COMPARISON_REQUIRED', 'USER_FLOW_ACCEPTANCE_REQUIRED']),
                 'data_mode': 'restore_separate_database_and_objects', 'created_at': now()}
+        if proof:
+            result['source_provenance'] = provenance(proof)
+        return result
 
 
 def compare_rows(install, source, current):
@@ -215,13 +252,23 @@ def rehearse(config, payload):
     from deployment.contracts import atomic_json
     from urllib.parse import urlsplit, urlunsplit
     planned = payload['plan']
-    if planned.get('kind') != 'restore' or planned.get('snapshot_id') != SNAPSHOT:
-        raise OpsError('RESTORE_PLAN', 'Use a restore plan for the approved snapshot')
+    snapshot_id = select(planned.get('snapshot_id'))
+    if planned.get('kind') != 'restore':
+        raise OpsError('RESTORE_PLAN', 'Use a restore plan for an approved snapshot')
+    if snapshot_id == NEW_ID and planned.get('ready_to_rehearse') is not True:
+        raise OpsError('BLOCKED_PLAN', 'Dedicated isolated rehearsal has not been implemented')
     with operation_lock(install.root):
-        root, manifest, private = snapshot()
+        root, manifest, private, proof = selected_snapshot(snapshot_id)
         selected = release_for_running(install)
-        if selected != planned['release'] or MANIFEST_SHA != planned['manifest_sha256']:
+        if (selected != planned['release'] or
+                (proof['manifest_sha256'] if proof else MANIFEST_SHA) != planned['manifest_sha256']):
             raise OpsError('RESTORE_DRIFT', 'Selected release or snapshot differs from plan')
+        if proof:
+            from .maintenance import check_generation
+            check_generation(install.root, planned)
+            if (provenance(proof) != planned.get('source_provenance') or
+                    fingerprint(install) != planned.get('fingerprint')):
+                raise OpsError('RESTORE_DRIFT', 'Owner/staging receipt or runtime identity changed')
         manager.assert_ci(selected)
         apply_release_environment(install, selected)
         validate_resolved_images(install, selected)
@@ -230,8 +277,8 @@ def rehearse(config, payload):
         database = 'asa_restore_'+ident+'_test'
         state = Path(config['state_root'])/'restore-rehearsals'/ident
         state.mkdir(mode=0o700, parents=True)
-        receipt = {'snapshot_id': SNAPSHOT, 'database': database, 'phase': 'restore_start',
-                   'manifest_sha256': MANIFEST_SHA, 'release': selected, 'started_at': now()}
+        receipt = {'snapshot_id': snapshot_id, 'database': database, 'phase': 'restore_start',
+                   'manifest_sha256': planned['manifest_sha256'], 'release': selected, 'started_at': now()}
         atomic_json(state/'receipt.json', receipt)
         restore_check(install, root, database)  # preserves ACL; never globals.sql or live DB
         receipt.update(phase='restored', restored=population(install, database))
