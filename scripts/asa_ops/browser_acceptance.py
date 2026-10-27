@@ -147,10 +147,15 @@ def main():
                 made=api('POST','/api/courses',{'title':'ASA Operations Course (TEST)',
                     'summary':None,'visibility':'private','requestId':str(uuid.uuid4())})
                 fixture['course']=made['id'];save()
-            outline = api('GET','/api/courses/'+fixture['course']+'/outline')
-            course = outline.get('course')
-            if not isinstance(course, dict) or course.get('title') != 'ASA Operations Course (TEST)':
+            # Outline contains lessons but no title. The dedicated owner's course
+            # library supplies verifiable provenance before opening the outline.
+            library = api('GET', '/api/courses')
+            if not any(item.get('id') == fixture['course']
+                       and item.get('title') == 'ASA Operations Course (TEST)'
+                       and item.get('visibility') == 'private'
+                       for item in library.get('items', [])):
                 raise RuntimeError('FOREIGN_TEST_COURSE')
+            api('GET','/api/courses/'+fixture['course']+'/outline')
             page.goto(origin+'/#/challenges',wait_until='domcontentloaded')
             # Self-attestation changes capabilities; a hash-only route transition
             # keeps the previous in-memory session until the document reloads.
@@ -170,7 +175,7 @@ def main():
                 metadata = before.get('project')
                 if (not isinstance(metadata, dict)
                         or metadata.get('title') != 'ASA Operations '+module+' (TEST)'
-                        or metadata.get('module') != module
+                        or metadata.get('moduleKey') != module
                         or metadata.get('scope') != 'personal'):
                     raise RuntimeError('FOREIGN_TEST_PROJECT')
                 if module=='electronics' and not fixture.get('electronics_seeded'):
