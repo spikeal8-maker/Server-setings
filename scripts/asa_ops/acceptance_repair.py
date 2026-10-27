@@ -57,8 +57,13 @@ def context(config, config_path):
     if not base.is_absolute():
         base = root / base
     path = bound_path(base, generation)
-    if root not in path.parents:
-        _deny("FIXTURE_OUTSIDE_INSTALLATION")
+    # The official acceptance command keeps fixtures in the private Operations
+    # state_root, not in the ASA Lab source checkout.
+    state_root = Path(cfg["state_root"]).absolute()
+    if state_root.resolve() != state_root or state_root not in path.parents:
+        _deny("FIXTURE_OUTSIDE_OPS_STATE")
+    if state_root.stat().st_uid != os.geteuid():
+        _deny("OPS_STATE_OWNER_INVALID")
     return cfg, root, generation, path
 
 
