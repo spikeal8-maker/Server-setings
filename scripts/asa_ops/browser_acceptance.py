@@ -123,7 +123,9 @@ def main():
                          'ageBand': 'mixed', 'topicKeys': [], 'safeModeDefault': True})['classroom']
                 fixture['classroom'] = cls['id'];save()
             detail = api('GET', '/api/classrooms/'+fixture['classroom'])['classroom']
-            if detail.get('title') != 'ASA Operations Acceptance (TEST)':
+            if (detail.get('title') != 'ASA Operations Acceptance (TEST)'
+                    or detail.get('teacherRole') != 'owner'
+                    or detail.get('workspaceKind') != 'personal'):
                 raise RuntimeError('FOREIGN_TEST_CLASSROOM')
             if not fixture.get('join_code'):
                 fixture['join_code'] = detail['joinCode'];save()
