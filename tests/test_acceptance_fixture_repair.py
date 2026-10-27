@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import stat
 import sys
 import tempfile
@@ -191,7 +192,6 @@ class RepairTests(PrivateFixtureTests):
     def test_interrupted_after_archive_retains_original_and_retries(self):
         self.write_legacy()
         before = self.path.read_bytes()
-        original_save = save_fixture
         with self.guards([0, 0, 0]):
             with patch.object(repair, "save_fixture", side_effect=KeyboardInterrupt()):
                 with self.assertRaises(KeyboardInterrupt):
@@ -200,7 +200,7 @@ class RepairTests(PrivateFixtureTests):
         with self.guards([0, 0, 0]):
             outcome = repair.apply({}, "ignored", self.sha())
         self.assertEqual(outcome["status"], "pending_registration")
-        self.assertEqual(len(list((self.root / ".fixture-audit").glob("fixture-*.json"))), 2)
+        self.assertEqual(len(list((self.root / ".fixture-audit").glob("fixture-*.json"))), 1)
 
     def test_interrupted_after_swap_resumes_without_regenerating(self):
         self.write_legacy()
@@ -234,13 +234,32 @@ class RepairTests(PrivateFixtureTests):
     def test_no_secret_echo_in_plan_or_apply_errors(self):
         self.write_legacy()
         raw = json.loads(self.path.read_text())
-        with self.guards([FixtureError("POSTGRES_PROBE_UNAVAILABLE")]):
+        with self.guards([FixtureError("POSTGRES_PROBE_UNAVAILABLE")]) as (_, db):
             buf = io.StringIO()
-            with patch("sys.stdout", buf):
-                code = repair.main(["--config", "/etc/server-settings/asa-operations.json", "--plan"])
+            with patch.object(Path, "read_text", return_value=json.dumps({"installation": self.cfg})):
+                with patch("sys.stdout", buf):
+                    code = repair.main(["--config", "/etc/server-settings/asa-operations.json", "--plan"])
+            db.assert_called_once()
         self.assertEqual(code, 2)
         self.assertNotIn(raw["email"], buf.getvalue())
         self.assertNotIn(raw["password"], buf.getvalue())
+
+    def test_direct_db_probe_is_read_only_and_requires_superuser(self):
+        synthetic = fresh_fixture(ORIGIN, GEN, INSTALL)
+        installation = SimpleNamespace(compose_args=["docker", "compose", "-p", "asa-test"])
+        completed = SimpleNamespace(returncode=0, stdout="1|0|0|0\n", stderr="")
+        with patch("asa_ops.adapter.load", return_value=(None, installation)):
+            with patch.object(repair.subprocess, "run", return_value=completed) as runner:
+                self.assertEqual(repair.postgres_matches({"root": str(self.root)}, synthetic["email"], synthetic["username"]), 0)
+                command = runner.call_args.args[0]
+                sql = runner.call_args.kwargs["input"]
+                self.assertNotIn(synthetic["email"], repr(command))
+                self.assertIn("BEGIN TRANSACTION READ ONLY", sql)
+                self.assertNotIn("INSERT INTO", sql)
+                self.assertIn("-T", command)
+            with patch.object(repair.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="0|0|0|0\n")):
+                with self.assertRaisesRegex(FixtureError, "POSTGRES_AUTHORITY_UNVERIFIED"):
+                    repair.postgres_matches({"root": str(self.root)}, synthetic["email"], synthetic["username"])
 
 
 class BrowserContractTests(unittest.TestCase):
