@@ -136,7 +136,7 @@ def validate(value, origin, generation, installation):
             or not isinstance(value.get("password"), str)
             or not re.fullmatch(r"[A-Za-z0-9_-]{32,256}", value["password"])
             or value.get("origin") != origin
-            or value.get("registered", False) not in (True, False)
+            or type(value.get("registered", False)) is not bool
             or not isinstance(value.get("projects"), dict)
             or set(value["projects"]) - {"blocks", "electronics"}):
         _fail("FIXTURE_IDENTITY_INVALID")
@@ -225,9 +225,19 @@ def archive_fixture(path, expected_sha):
         _fail("FIXTURE_CHANGED")
     root = Path(path).parent / ".fixture-audit"
     _private_dir(root, create=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    target = root / ("fixture-" + stamp + "-" + secrets.token_hex(8) + ".json")
-    _exclusive(target, raw)
+    # SHA names are versioned by content; a crash after archive but before
+    # replace can safely reuse the exact same private archive on a retry.
+    target = root / ("fixture-" + expected_sha + ".json")
+    existing = _regular(target, allow_missing=True)
+    if existing is not None:
+        if existing != raw:
+            _fail("ARCHIVE_INTEGRITY")
+        return target
+    try:
+        _exclusive(target, raw)
+    except FileExistsError:
+        if _regular(target) != raw:
+            _fail("ARCHIVE_INTEGRITY")
     _sync_dir(root)
     return target
 
@@ -241,7 +251,8 @@ def audit_event(path, action, operation_id, source_sha):
     fd = os.open(ledger, flags, 0o600)
     try:
         mode = os.fstat(fd)
-        if not stat.S_ISREG(mode.st_mode) or mode.st_mode & 0o077 or mode.st_uid != os.geteuid():
+        if (not stat.S_ISREG(mode.st_mode) or mode.st_mode & 0o077
+                or mode.st_uid != os.geteuid() or mode.st_nlink != 1):
             _fail("AUDIT_FILE_UNSAFE")
         record = {
             "at": datetime.now(timezone.utc).isoformat(),
