@@ -279,5 +279,61 @@ class SourceIdentityTests(unittest.TestCase):
             launch.assert_not_called()
 
 
+    def test_stale_runtime_cannot_reuse_source_attested_plan(self):
+        """Future rehearsal enablement still must revalidate the pinned runtime."""
+        import contextlib
+        from types import ModuleType
+
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        self.stage(raw)
+        proof = sources.verify_staged(self.root)
+        planned = {
+            'kind': 'restore', 'snapshot_id': sources.NEW_ID,
+            'ready_to_rehearse': True,
+            'release': {'revision': 'a'*40, 'schema': 267},
+            'manifest_sha256': proof['manifest_sha256'],
+        }
+        modules = {name: ModuleType(name) for name in (
+            'deployment', 'deployment.system', 'deployment.backup',
+            'deployment.releases', 'deployment.contracts',
+        )}
+        modules['deployment.system'].operation_lock = lambda root: contextlib.nullcontext()
+        modules['deployment.backup'].restore_check = lambda *args: self.fail('restore_check was called')
+        modules['deployment.backup'].privileges = lambda *args: self.fail('privileges was called')
+        modules['deployment.releases'].apply_release_environment = lambda *args: self.fail('release environment was modified')
+        modules['deployment.releases'].validate_resolved_images = lambda *args: self.fail('runtime images were inspected')
+        modules['deployment.contracts'].atomic_json = lambda *args: self.fail('receipt file was written')
+        fake_install = SimpleNamespace(root=self.root)
+        with patch.dict(sys.modules, modules), \
+             patch.object(restore, 'load', return_value=(object(), fake_install)), \
+             patch.object(restore, 'selected_snapshot', return_value=(
+                 proof['root'], proof['manifest'], {}, proof)), \
+             patch.object(restore, 'release_for_running', return_value={
+                 'revision': 'b'*40, 'schema': 267}):
+            with self.assertRaises(OpsError) as cm:
+                restore.rehearse({}, {'plan': planned})
+        self.assertEqual(cm.exception.code, 'RESTORE_DRIFT')
+
+    def test_new_staging_hardlink_and_owner_receipt_rotation_are_rejected(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        self.stage(raw)
+        target = self.root/sources.NEW_ID/'objects/item'
+        manifest = self.root/sources.NEW_ID/'manifest.json'
+        target.unlink()
+        import os
+        os.link(manifest, target)
+        with self.assertRaises(OpsError) as cm:
+            sources.verify_staged(self.root)
+        self.assertEqual(cm.exception.code, 'SOURCE_TYPE')
+        target.unlink()
+        target.write_bytes(b'public synthetic object bytes')
+        self.sign(raw, 'f'*64)
+        with self.assertRaises(OpsError) as cm:
+            sources.verify_staged(self.root)
+        self.assertEqual(cm.exception.code, 'SOURCE_STAGE')
+
+
 if __name__ == '__main__':
     unittest.main()
