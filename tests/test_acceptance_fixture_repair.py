@@ -244,6 +244,31 @@ class RepairTests(PrivateFixtureTests):
         self.assertNotIn(raw["email"], buf.getvalue())
         self.assertNotIn(raw["password"], buf.getvalue())
 
+
+    def test_configured_fixture_is_in_ops_state_not_checkout(self):
+        checkout = self.root / "checkout"
+        checkout.mkdir(mode=0o700)
+        state = self.root / "operations-state"
+        state.mkdir(mode=0o700)
+        command = [
+            "/opt/server-settings/asa-browser-venv/bin/python",
+            "/opt/server-settings/asa-operations/asa_ops/browser_acceptance.py",
+            "--fixture", str(state / "browser-fixture.json"),
+        ]
+        cfg = {"installation": {
+            "id": INSTALL, "entry_origin": ORIGIN, "root": str(checkout),
+            "owner_uid": os.geteuid(), "state_root": str(state),
+            "acceptance_command": command,
+        }}
+        with patch.object(repair, "instance", return_value=GEN):
+            with patch.object(repair.socket, "gethostname", return_value="admins-MS-7D22"):
+                _, _, generation, fixture = repair.context(cfg, "/etc/server-settings/asa-operations.json")
+                self.assertEqual(generation, GEN)
+                self.assertEqual(fixture, bound_path(state / "browser-fixture.json", GEN))
+                cfg["installation"]["acceptance_command"][-1] = str(checkout / "browser-fixture.json")
+                with self.assertRaisesRegex(FixtureError, "FIXTURE_OUTSIDE_OPS_STATE"):
+                    repair.context(cfg, "/etc/server-settings/asa-operations.json")
+
     def test_direct_db_probe_is_read_only_and_requires_superuser(self):
         synthetic = fresh_fixture(ORIGIN, GEN, INSTALL)
         installation = SimpleNamespace(compose_args=["docker", "compose", "-p", "asa-test"])
