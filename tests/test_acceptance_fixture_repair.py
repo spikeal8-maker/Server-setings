@@ -224,7 +224,7 @@ class RepairTests(PrivateFixtureTests):
         self.write_legacy(projects={"blocks": "b" * 8 + "-bbbb-bbbb-bbbb-bbbbbbbbbbbb"},
                           classroom="c" * 8 + "-cccc-cccc-cccc-cccccccccccc",
                           course="d" * 8 + "-dddd-dddd-dddd-dddddddddddd",
-                          student_code="ABCD56", join_code="ZXCV78")
+                          student_code="ABCD56", join_code="ZXC V78 ABC")
         with self.guards([0, 0, 0, 0]) as (_, db):
             plan = repair.inspect({}, "ignored")
             self.assertEqual(plan["status"], "eligible")
