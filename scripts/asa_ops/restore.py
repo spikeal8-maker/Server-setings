@@ -245,18 +245,18 @@ def rehearse_objects(install, root, private, selected, state, ident):
 
 
 def rehearse(config, payload):
-    manager, install = load(config)
-    from deployment.system import operation_lock
-    from deployment.backup import restore_check, privileges
-    from deployment.releases import apply_release_environment, validate_resolved_images
-    from deployment.contracts import atomic_json
-    from urllib.parse import urlsplit, urlunsplit
     planned = payload['plan']
     snapshot_id = select(planned.get('snapshot_id'))
     if planned.get('kind') != 'restore':
         raise OpsError('RESTORE_PLAN', 'Use a restore plan for an approved snapshot')
     if snapshot_id == NEW_ID and planned.get('ready_to_rehearse') is not True:
         raise OpsError('BLOCKED_PLAN', 'Dedicated isolated rehearsal has not been implemented')
+    manager, install = load(config)
+    from deployment.system import operation_lock
+    from deployment.backup import restore_check, privileges
+    from deployment.releases import apply_release_environment, validate_resolved_images
+    from deployment.contracts import atomic_json
+    from urllib.parse import urlsplit, urlunsplit
     with operation_lock(install.root):
         root, manifest, private, proof = selected_snapshot(snapshot_id)
         selected = release_for_running(install)
