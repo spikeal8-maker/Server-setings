@@ -194,15 +194,16 @@ def owner_attestation(root=ROOT, snapshot_id=NEW_ID):
         raise OpsError('OWNER_SIGNATURE', 'Invalid Ed25519 signature length')
 
     try:
-        with _sealed_verifier_input('asa-owner-key', key_bytes) as key_fd, \
+        with _sealed_verifier_input('asa-owner-receipt', raw) as receipt_fd, \
+                _sealed_verifier_input('asa-owner-key', key_bytes) as key_fd, \
                 _sealed_verifier_input('asa-owner-signature', signature_bytes) as sig_fd:
             result = subprocess.run([
                 'openssl', 'pkeyutl', '-verify', '-pubin', '-rawin',
                 '-inkey', '/proc/self/fd/'+str(key_fd),
-                '-in', '/dev/stdin',
+                '-in', '/proc/self/fd/'+str(receipt_fd),
                 '-sigfile', '/proc/self/fd/'+str(sig_fd),
-            ], input=raw, capture_output=True, timeout=15, check=False,
-                pass_fds=(key_fd, sig_fd))
+            ], capture_output=True, timeout=15, check=False,
+                pass_fds=(receipt_fd, key_fd, sig_fd))
     except (OSError, subprocess.TimeoutExpired):
         raise OpsError('OWNER_SIGNATURE', 'Owner signature verification is unavailable') from None
 
