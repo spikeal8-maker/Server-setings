@@ -98,6 +98,13 @@ class Controller:
 
     def dispatch(self, name, args):
         validate(input_schema(name,self.config['installation']['id']), args)
+        if name == 'asa_restore_rehearse':
+            # Reject before installation checks, reconciliation or worker launch.
+            # Even a forged ready=True plan cannot access the legacy restore path.
+            from .source_registry import NEW_ID
+            pinned = self.store.get_plan(args['plan_id'])
+            if pinned.get('snapshot_id') == NEW_ID:
+                raise OpsError('BLOCKED_PLAN', '26 October rehearsal requires the separate P1-R3 isolation')
         self.store.reconcile()
         if 'installation_id' in args:
             self.installation(args['installation_id'])
@@ -160,7 +167,7 @@ class Controller:
             with self.lock:
                 if any(r['status'] in ('queued', 'running') for r in self.store.list(args['installation_id'], 100)):
                     raise OpsError('BUSY', 'Wait for the active server worker')
-                value = adapter(self.config_path, 'restore_plan', {})
+                value = adapter(self.config_path, 'restore_plan', {'snapshot_id': args['snapshot_id']})
                 return {'plan': self.store.plan(args['installation_id'], value)}
         if name == 'asa_update_plan':
             with self.lock:
@@ -186,16 +193,30 @@ class Controller:
                 return result
         if name in ('asa_update_start', 'asa_deployment_verify', 'asa_restore_rehearse'):
             with self.lock:
+                # Hard-deny the new source even if an old or forged immutable plan
+                # claims ready_to_rehearse=True. Check before idempotent replay,
+                # generation reads or any worker/manager invocation.
+                plan = self.store.get_plan(args['plan_id']) if name == 'asa_restore_rehearse' else None
+                if plan is not None and plan.get('snapshot_id') == '20261026T231505Z-038beee0':
+                    raise OpsError('BLOCKED_PLAN', '26 October rehearsal requires the separate P1-R3 isolation')
                 reused = self.store.reused(args['idempotency_key'], {'method': name, **args})
                 if reused:
                     return {'operation': reused, 'reused': True}
-                plan = self.store.get_plan(args['plan_id'])
+                if plan is None:
+                    plan = self.store.get_plan(args['plan_id'])
                 self.installation(plan['installation_id'])
                 check_generation(self.config['installation']['root'],plan)
                 if (name == 'asa_restore_rehearse') != (plan.get('kind') == 'restore'):
                     raise OpsError('PLAN_KIND', 'Restore plans and update plans are not interchangeable')
                 if name == 'asa_update_start' and not plan.get('ready'):
                     raise OpsError('BLOCKED_PLAN', 'Preflight blockers must be resolved in a new plan')
+                if name == 'asa_restore_rehearse' and plan.get('ready_to_rehearse') is not True:
+                    raise OpsError('BLOCKED_PLAN', 'Source or isolated rehearsal has not been approved')
+                if name == 'asa_restore_rehearse' and plan.get('snapshot_id') == '20261026T231505Z-038beee0':
+                    import datetime as dt
+                    age = (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(plan['created_at'])).total_seconds()
+                    if age > self.config.get('plan_ttl_seconds', 3600) or age < -60:
+                        raise OpsError('EXPIRED_PLAN', 'Prepare a fresh source-attested restore plan')
                 if name == 'asa_update_start':
                     import datetime as dt
                     age = (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(plan['created_at'])).total_seconds()

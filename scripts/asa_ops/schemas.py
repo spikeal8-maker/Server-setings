@@ -2,6 +2,7 @@
 import re
 import copy
 from .store import OpsError
+from .source_registry import ALLOWED_IDS
 
 INSTALLATION = {'type': 'string', 'enum': ['asa-test']}
 ID = {'type': 'string', 'pattern': '^[a-f0-9]{32}$'}
@@ -25,7 +26,7 @@ INPUTS = {
                               'filename': {'type':'string','pattern':'^[A-Za-z0-9][A-Za-z0-9_.-]{0,180}\\.age$','maxLength':185},
                               'sha256': {'type':'string','pattern':'^[a-f0-9]{64}$'},
                               'idempotency_key':KEY}, ['installation_id','action','project','idempotency_key']),
-    'asa_restore_plan': obj({'installation_id': INSTALLATION, 'snapshot_id': {'type': 'string', 'enum': ['20261017T231505Z-65b68074']}}, ['installation_id', 'snapshot_id']),
+    'asa_restore_plan': obj({'installation_id': INSTALLATION, 'snapshot_id': {'type': 'string', 'enum': list(ALLOWED_IDS)}}, ['installation_id', 'snapshot_id']),
     'asa_restore_rehearse': obj({'installation_id': INSTALLATION, 'plan_id': ID, 'idempotency_key': KEY}, ['installation_id', 'plan_id', 'idempotency_key']),
     'asa_update_plan': obj({'installation_id': INSTALLATION, 'data_mode': {'type': 'string', 'enum': ['preserve']}}, ['installation_id', 'data_mode']),
     'asa_update_start': obj({'installation_id': INSTALLATION, 'plan_id': ID, 'idempotency_key': KEY}, ['installation_id', 'plan_id', 'idempotency_key']),
@@ -39,7 +40,7 @@ DESCRIPTIONS = {
     'asa_admin_status': 'Inspect the private root executor or root audit state of an administration operation. Never reruns commands. Reconciles a completed root job after a lost worker response.',
     'asa_admin_execute': 'FULL ROOT ADMINISTRATION of the configured test host, explicitly enabled by its owner. Run a shell command for Docker/Compose, Git, builds, files, services or recovery. This can bypass ordinary deployment gates and can destroy data. Do not put credentials in commands or print secrets. Prefer update_plan/start for normal releases. Returns durable operation_id; poll operation_get. Retry only with the SAME idempotency_key. cwd defaults to the ASA root; timeout defaults to3600 seconds, maximum7200. Private raw logs and root audit are retained; only bounded known-secret-redacted output is returned. No automatic backup or rollback is performed for arbitrary commands.',
     'asa_cloud_transfer': 'Shared Docker Yandex Disk: asynchronously list/upload/download encrypted .age backup archives for any project. Project asa-lab uses existing ASA-Backups; other project slugs use Server-Backups/project. Upload reads /srv/asa-cloud-storage/data/project/outgoing/filename. Download writes incoming only, refuses existing files and never restores a live database. Optional sha256 verifies bytes. Poll operation_get for JSON output/result. Requires one-time owner OAuth connection. Never sends login tokens in arguments; no mirror/delete or backup schedule.',
-    'asa_restore_plan': 'Plan restoration of the explicitly approved catalog snapshot, pin its manifest and the actual live release, and inventory current data. Never replaces a database or objects. This is separate from update_start.',
+    'asa_restore_plan': 'Plan only an allowlisted snapshot; 26 Oct requires signed owner attestation and full staging proof, and cannot rehearse until the separate isolation phase. Legacy 17 Oct remains supported. Never replaces live data.',
     'asa_restore_rehearse': 'Restore only into a new test database, migrate it to the pinned schema, compare row fingerprints, and verify a disposable network-isolated MinIO clone. Returns durable operation_id; success means rehearsal completed, not live restore accepted. Never switches live data.',
     'asa_update_plan': 'Preflight the fixed ASA installation and pin an immutable release plan. Preserve existing PostgreSQL/MinIO data. Reports blockers before downtime; never starts an update.',
     'asa_update_start': 'Start one approved, ready, immutable ASA update plan on the server. Returns operation_id immediately. Reuse the same idempotency key after a lost response; never launch a second update.',
