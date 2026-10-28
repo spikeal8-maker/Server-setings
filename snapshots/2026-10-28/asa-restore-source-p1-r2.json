@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-28",
+  "status": "SYNTHETIC_VALIDATION_PASS_REAL_RECOVERY_UNVERIFIED",
+  "evidence_scope": "GitHub code, review and synthetic CI for PR #22; no new runtime inspection. Execution flags describe PR #22/P1-R2, and new-source limitations concern the 26 Oct snapshot only.",
+  "repository": "https://github.com/spikeal8-maker/Server-setings",
+  "approved_starting_main_sha": "35af85a5b847291635fc0923e58c70fe72c051c0",
+  "documentation_base_main_sha": "35af85a5b847291635fc0923e58c70fe72c051c0",
+  "pr22": {
+    "url": "https://github.com/spikeal8-maker/Server-setings/pull/22",
+    "state": "MERGED",
+    "approved_head_sha": "b9f1fc9256cb4f8635c37aee49263d7331c3a40a",
+    "base_main_sha": "f6007e16dc8fb1343f38e255baff7eb377e027e7",
+    "merge_commit_sha": "35af85a5b847291635fc0923e58c70fe72c051c0",
+    "merged_at": "2026-10-28T13:37:30+03:00",
+    "approved_head_and_merge_tree_sha": "ef3426455bd3089133a0b71630021adec2a5d256",
+    "tree_comparison": "IDENTICAL"
+  },
+  "post_merge_ci": {
+    "run_id": 40673602830,
+    "url": "https://github.com/spikeal8-maker/Server-setings/actions/runs/40673602830",
+    "head_sha": "35af85a5b847291635fc0923e58c70fe72c051c0",
+    "event": "push",
+    "branch": "main",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 122766274931,
+    "job_name": "verify",
+    "tests_passed": 153,
+    "tests_total": 153,
+    "unittest_result": "Ran 153 tests in 2.287s / OK",
+    "bash_syntax": "PASS",
+    "python_compileall": "PASS",
+    "dry_run_profiles": "PASS: home-static, home-dynamic, vps",
+    "diff_check": "PASS",
+    "evidence_kind": "SYNTHETIC_TESTS_NOT_REAL_ARCHIVE_RESTORE"
+  },
+  "security_db_review": {
+    "url": "https://github.com/spikeal8-maker/Server-setings/pull/22#pullrequestreview-5680738485",
+    "reviewed_head_sha": "b9f1fc9256cb4f8635c37aee49263d7331c3a40a",
+    "technical_verdict": "READY_FOR_MERGE",
+    "github_event": "COMMENTED",
+    "acceptance_scope": "Code only; not formal APPROVED, deployment authorization or recovery acceptance."
+  },
+  "security_fixes": {
+    "P1-A": {
+      "status": "PASS_SYNTHETIC",
+      "result": "Reviewed-code Ed25519 SPKI SHA-256 pin, strict key type and fingerprint checks reject substituted/non-Ed25519 keys. Missing pin fails closed before staging access."
+    },
+    "P1-B": {
+      "status": "PASS_SYNTHETIC",
+      "result": "OpenSSL verifies the exact captured receipt/signature/PEM bytes through sealed memfd; post-verification byte and file-identity checks reject swaps, rotation and truncation."
+    },
+    "P1-C": {
+      "status": "PASS_SYNTHETIC",
+      "result": "Controller and backend unconditionally deny the new snapshot rehearsal before installation/manager/worker access, including forged ready_to_rehearse=true."
+    }
+  },
+  "legacy_snapshot": {
+    "snapshot_id": "20261017T231505Z-65b68074",
+    "manifest_sha256": "8be098e3c37cd43fb704e7f92f300574bb685445d92697223ba0b158ac2e8a01",
+    "identity_and_routing_preserved": true,
+    "regression_tests": "PASS_SYNTHETIC",
+    "real_rehearsal_repeated_by_pr22": "NOT_RUN"
+  },
+  "new_source": {
+    "snapshot_id": "20261026T231505Z-038beee0",
+    "allowlisted": true,
+    "provider": "yandex-disk",
+    "namespace": "ASA-Backups",
+    "project": "asa-lab",
+    "ciphertext_filename": "asa-lab-20261026T231505Z-038beee0.tar.age",
+    "ciphertext_bytes": 207415432,
+    "ciphertext_sha256": "526988100deb2ba55028ff00255ff3a63add0f3ebcf772c8ba4f9cee0b296592",
+    "descriptor_evidence": "Pinned constants checked against merged source_registry.py; real archive bytes were not remeasured in this documentation task.",
+    "plaintext_tar_sha256": null,
+    "manifest_sha256": null,
+    "owner_receipt_sha256": null,
+    "ciphertext_to_plaintext_provenance": "UNVERIFIED"
+  },
+  "OWNER_ED25519_SPKI_SHA256": null,
+  "owner_key_provisioned": false,
+  "owner_fingerprint_status": "NOT_PROVISIONED",
+  "real_manifest_verified": false,
+  "real_manifest_status": "UNVERIFIED",
+  "age_decryption_performed": false,
+  "age_decryption_status": "NOT_RUN",
+  "isolated_rehearsal_implemented": false,
+  "isolated_rehearsal_status": "NOT_IMPLEMENTED",
+  "new_source_rehearsal_allowed": false,
+  "new_source_rehearsal_status": "BLOCKED_PLAN",
+  "live_restore_performed": false,
+  "live_restore_status": "NOT_RUN",
+  "server_deployed_by_pr22": false,
+  "mcp_installation_by_pr22_status": "NOT_RUN",
+  "asa_restore_apply_exposed": false,
+  "receiving_runtime_crypto_support": "UNKNOWN",
+  "real_postgresql_minio_rls_acl_user_flow_tests": "NOT_RUN",
+  "limitations": [
+    "JSON null for OWNER_ED25519_SPKI_SHA256 represents Python None. An unprovisioned pin continues to block new-source owner attestation with BLOCKED_KEY_ACCESS.",
+    "Synthetic tar/signature fixtures do not establish a real ciphertext-to-plaintext relationship. A future trusted owner workflow must verify exact encrypted bytes/hash before decrypting and signing.",
+    "New-source rehearsal remains blocked even after valid staging; isolated PostgreSQL/MinIO implementation and acceptance belong to a separate P1-R3.",
+    "Historical legacy evidence is not evidence of real recovery from the 26 Oct archive. No server state was freshly measured for this record."
+  ],
+  "references": {
+    "source_registry": "https://github.com/spikeal8-maker/Server-setings/blob/35af85a5b847291635fc0923e58c70fe72c051c0/scripts/asa_ops/source_registry.py",
+    "restore_backend": "https://github.com/spikeal8-maker/Server-setings/blob/35af85a5b847291635fc0923e58c70fe72c051c0/scripts/asa_ops/restore.py",
+    "controller": "https://github.com/spikeal8-maker/Server-setings/blob/35af85a5b847291635fc0923e58c70fe72c051c0/scripts/asa_ops/server.py",
+    "integration_report": "https://github.com/spikeal8-maker/asa-lab/issues/792#issuecomment-6466844356",
+    "tracking_issue": "https://github.com/spikeal8-maker/asa-lab/issues/792",
+    "documentation_finding": "https://github.com/spikeal8-maker/Server-setings/pull/22#discussion_r4399552087"
+  },
+  "documentation_finding_status_at_capture": "OPEN_UNRESOLVED",
+  "documentation_finding_resolution_policy": "Keep open until the documentation fix is merged and linked.",
+  "secrets_or_personal_data_included": false
+}
