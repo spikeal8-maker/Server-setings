@@ -98,6 +98,13 @@ class Controller:
 
     def dispatch(self, name, args):
         validate(input_schema(name,self.config['installation']['id']), args)
+        if name == 'asa_restore_rehearse':
+            # Reject before installation checks, reconciliation or worker launch.
+            # Even a forged ready=True plan cannot access the legacy restore path.
+            from .source_registry import NEW_ID
+            pinned = self.store.get_plan(args['plan_id'])
+            if pinned.get('snapshot_id') == NEW_ID:
+                raise OpsError('BLOCKED_PLAN', '26 October rehearsal requires the separate P1-R3 isolation')
         self.store.reconcile()
         if 'installation_id' in args:
             self.installation(args['installation_id'])
