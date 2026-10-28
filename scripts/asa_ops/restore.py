@@ -249,8 +249,10 @@ def rehearse(config, payload):
     snapshot_id = select(planned.get('snapshot_id'))
     if planned.get('kind') != 'restore':
         raise OpsError('RESTORE_PLAN', 'Use a restore plan for an approved snapshot')
-    if snapshot_id == NEW_ID and planned.get('ready_to_rehearse') is not True:
-        raise OpsError('BLOCKED_PLAN', 'Dedicated isolated rehearsal has not been implemented')
+    # P1-R2: unconditional hard deny. No legacy shared-PostgreSQL route for NEW_ID.
+    # A forged ready_to_rehearse=True flag must never reach manager/Docker.
+    if snapshot_id == NEW_ID:
+        raise OpsError('BLOCKED_PLAN', '26 October rehearsal is disabled until separately reviewed P1-R3')
     manager, install = load(config)
     from deployment.system import operation_lock
     from deployment.backup import restore_check, privileges

@@ -1,9 +1,16 @@
 """Pinned encrypted backup provenance. No AGE secret, arbitrary paths or live restore.
 
 The owner signs a JSON receipt after *local* decryption with a separate Ed25519
-signing key. Only its public verification key may be installed under the private
-staging root. A ciphertext hash alone is never a plaintext attestation.
+signing key. The verification key may exist in staging, but is NEVER trusted
+unless its SPKI digest matches the independently owner-approved release pin.
+The pin is initially absent (fail closed). Key rotation requires a distinct,
+owner-approved and independently reviewed release commit replacing the pin.
+The AGE identity and the signing private key never enter GitHub or the server.
+A ciphertext hash alone is never a plaintext attestation.
 """
+import base64
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -30,6 +37,16 @@ NEW_SOURCE = {
 RECEIPT_FORMAT = 'asa-owner-attestation-v1'
 STAGE_FORMAT = 'asa-staging-receipt-v1'
 HEX = re.compile(r'[a-f0-9]{64}\Z')
+
+# RELEASE TRUST ANCHOR: unprovisioned until the owner approves an actual key.
+# The code/release, NOT the writable staging directory, owns this fingerprint.
+# Rotation is a separately authorized and reviewed commit to this constant.
+# Never source this value from MCP arguments, staging, environment or receipts.
+OWNER_ED25519_SPKI_SHA256 = None
+
+# RFC 8410: DER SubjectPublicKeyInfo for Ed25519 is exactly this 12-byte prefix
+# followed by the raw 32-byte public key. Other algorithms/parameters fail closed.
+ED25519_SPKI_PREFIX = bytes.fromhex('302a300506032b6570032100')
 
 
 def select(snapshot_id):
@@ -90,16 +107,112 @@ def attest_dir(root):
     return _private_dir(Path(root)/'.owner-attestations', 'BLOCKED_KEY_ACCESS')
 
 
+def ed25519_spki_sha256(pem):
+    """Fingerprint an exact Ed25519 SPKI, not any PEM an attacker provides."""
+    try:
+        lines = pem.splitlines()
+        if (len(lines) < 3 or lines[0] != b'-----BEGIN PUBLIC KEY-----'
+                or lines[-1] != b'-----END PUBLIC KEY-----'):
+            raise ValueError('Invalid PEM envelope')
+        der = base64.b64decode(b''.join(lines[1:-1]), validate=True)
+    except (AttributeError, TypeError, ValueError):
+        raise OpsError('OWNER_KEY_TYPE', 'Owner public key PEM is not valid Ed25519') from None
+    if len(der) != len(ED25519_SPKI_PREFIX) + 32 or not der.startswith(ED25519_SPKI_PREFIX):
+        raise OpsError('OWNER_KEY_TYPE', 'Only Ed25519 public keys are accepted')
+    return sha(der)
+
+
+def _file_identity(st):
+    return (st.st_dev, st.st_ino, st.st_size, st.st_uid, st.st_gid,
+            st.st_mode, st.st_nlink, st.st_mtime_ns, st.st_ctime_ns)
+
+
+def _capture_private(path, limit):
+    """Read and pin the exact bytes and metadata of one private regular file."""
+    path = Path(path)
+    try:
+        before = path.lstat()
+        payload = _read_private(path, limit)
+        after = path.lstat()
+    except OSError:
+        raise OpsError('OWNER_IDENTITY_CHANGED', 'Owner proof changed during read') from None
+    identity = _file_identity(after)
+    if _file_identity(before) != identity or len(payload) != after.st_size:
+        raise OpsError('OWNER_IDENTITY_CHANGED', 'Owner proof changed during read')
+    return payload, identity
+
+
+def _assert_unchanged(path, data, identity, limit):
+    """A replace, truncate or in-place mutation during verification is fatal."""
+    latest, current = _capture_private(path, limit)
+    if current != identity or latest != data:
+        raise OpsError('OWNER_IDENTITY_CHANGED', 'Owner proof changed during verification')
+
+
+@contextlib.contextmanager
+def _sealed_verifier_input(name, data):
+    """Transfer captured key/signature bytes using sealed anonymous Linux FDs."""
+    try:
+        fd = os.memfd_create(name, os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    except (AttributeError, OSError):
+        raise OpsError('OWNER_SIGNATURE', 'Immutable signature verification is unavailable') from None
+    try:
+        view = memoryview(data)
+        while view:
+            length = os.write(fd, view)
+            if length <= 0:
+                raise OSError('Unable to copy immutable verification material')
+            view = view[length:]
+        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, fcntl.F_SEAL_WRITE |
+                    fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
+        os.lseek(fd, 0, os.SEEK_SET)
+        yield fd
+    except OSError:
+        raise OpsError('OWNER_SIGNATURE', 'Immutable signature verification failed') from None
+    finally:
+        os.close(fd)
+
+
 def owner_attestation(root=ROOT, snapshot_id=NEW_ID):
     if select(snapshot_id) != NEW_ID:
         raise OpsError('SOURCE_ID', 'Only the new source uses a signed owner receipt')
+    expected_pin = OWNER_ED25519_SPKI_SHA256
+    if type(expected_pin) is not str or not HEX.fullmatch(expected_pin):
+        raise OpsError('BLOCKED_KEY_ACCESS', 'An independently approved owner key fingerprint is required')
     att = attest_dir(root)
     receipt = att/(snapshot_id+'.json')
     signature = att/(snapshot_id+'.sig')
     public_key = att/'owner-ed25519-public.pem'
-    raw = _read_private(receipt)
-    _private_file(signature, 512)
-    _private_file(public_key, 8192)
+
+    # Everything OpenSSL consumes is captured once; no verifier pathname reopen.
+    raw, receipt_id = _capture_private(receipt, 65536)
+    signature_bytes, signature_id = _capture_private(signature, 512)
+    key_bytes, key_id = _capture_private(public_key, 8192)
+    if ed25519_spki_sha256(key_bytes) != expected_pin:
+        raise OpsError('OWNER_KEY_UNTRUSTED', 'Public key is not the approved owner key')
+    if len(signature_bytes) != 64:
+        raise OpsError('OWNER_SIGNATURE', 'Invalid Ed25519 signature length')
+
+    try:
+        with _sealed_verifier_input('asa-owner-key', key_bytes) as key_fd, \
+                _sealed_verifier_input('asa-owner-signature', signature_bytes) as sig_fd:
+            result = subprocess.run([
+                'openssl', 'pkeyutl', '-verify', '-pubin', '-rawin',
+                '-inkey', '/proc/self/fd/'+str(key_fd),
+                '-in', '/dev/stdin',
+                '-sigfile', '/proc/self/fd/'+str(sig_fd),
+            ], input=raw, capture_output=True, timeout=15, check=False,
+                pass_fds=(key_fd, sig_fd))
+    except (OSError, subprocess.TimeoutExpired):
+        raise OpsError('OWNER_SIGNATURE', 'Owner signature verification is unavailable') from None
+
+    # Files may change while OpenSSL runs. Such a rotation is *never* accepted
+    # even if their captured immutable bytes happened to verify successfully.
+    _assert_unchanged(receipt, raw, receipt_id, 65536)
+    _assert_unchanged(signature, signature_bytes, signature_id, 512)
+    _assert_unchanged(public_key, key_bytes, key_id, 8192)
+    if result.returncode:
+        raise OpsError('OWNER_SIGNATURE', 'Owner signature is not valid')
     try:
         signed = json.loads(raw)
     except (ValueError, UnicodeError):
@@ -112,15 +225,6 @@ def owner_attestation(root=ROOT, snapshot_id=NEW_ID):
             or not isinstance(signed['plaintext_sha256'], str) or not HEX.fullmatch(signed['plaintext_sha256'])
             or raw != canonical(signed) + b'\n'):
         raise OpsError('OWNER_RECEIPT', 'Owner receipt does not match the pinned source')
-    try:
-        result = subprocess.run([
-            'openssl', 'pkeyutl', '-verify', '-pubin', '-rawin',
-            '-inkey', str(public_key), '-in', str(receipt), '-sigfile', str(signature),
-        ], capture_output=True, timeout=15, check=False)
-    except (OSError, subprocess.TimeoutExpired):
-        raise OpsError('OWNER_SIGNATURE', 'Owner signature verification is unavailable') from None
-    if result.returncode:
-        raise OpsError('OWNER_SIGNATURE', 'Owner signature is not valid')
     return signed, sha(raw)
 
 

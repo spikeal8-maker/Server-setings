@@ -186,10 +186,17 @@ class Controller:
                 return result
         if name in ('asa_update_start', 'asa_deployment_verify', 'asa_restore_rehearse'):
             with self.lock:
+                # Hard-deny the new source even if an old or forged immutable plan
+                # claims ready_to_rehearse=True. Check before idempotent replay,
+                # generation reads or any worker/manager invocation.
+                plan = self.store.get_plan(args['plan_id']) if name == 'asa_restore_rehearse' else None
+                if plan is not None and plan.get('snapshot_id') == '20261026T231505Z-038beee0':
+                    raise OpsError('BLOCKED_PLAN', '26 October rehearsal requires the separate P1-R3 isolation')
                 reused = self.store.reused(args['idempotency_key'], {'method': name, **args})
                 if reused:
                     return {'operation': reused, 'reused': True}
-                plan = self.store.get_plan(args['plan_id'])
+                if plan is None:
+                    plan = self.store.get_plan(args['plan_id'])
                 self.installation(plan['installation_id'])
                 check_generation(self.config['installation']['root'],plan)
                 if (name == 'asa_restore_rehearse') != (plan.get('kind') == 'restore'):

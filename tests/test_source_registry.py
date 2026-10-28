@@ -282,7 +282,7 @@ class SourceIdentityTests(unittest.TestCase):
                 ctrl.dispatch('asa_restore_rehearse', {
                     'installation_id':'asa-test', 'plan_id':artificial['plan_id'],
                     'idempotency_key':'new-rehearsal-generation-001'})
-            self.assertEqual(cm.exception.code, 'STALE_INSTALLATION')
+            self.assertEqual(cm.exception.code, 'BLOCKED_PLAN')
             launch.assert_not_called()
 
 
@@ -320,7 +320,7 @@ class SourceIdentityTests(unittest.TestCase):
                  'revision': 'b'*40, 'schema': 267}):
             with self.assertRaises(OpsError) as cm:
                 restore.rehearse({}, {'plan': planned})
-        self.assertEqual(cm.exception.code, 'RESTORE_DRIFT')
+        self.assertEqual(cm.exception.code, 'BLOCKED_PLAN')
 
     def test_new_staging_hardlink_and_owner_receipt_rotation_are_rejected(self):
         raw, manifest_sha = self.tar()
