@@ -26,6 +26,10 @@ class SourceIdentityTests(unittest.TestCase):
         self.root = self.base/'staging'
         self.root.mkdir(mode=0o700)
         self.att = self.root/'.owner-attestations'
+        if hasattr(sources, 'OWNER_ED25519_SPKI_SHA256'):
+            pin = patch.object(sources, 'OWNER_ED25519_SPKI_SHA256', None)
+            pin.start()
+            self.addCleanup(pin.stop)
 
     @staticmethod
     def digest(content):
@@ -72,6 +76,9 @@ class SourceIdentityTests(unittest.TestCase):
             subprocess.run(['openssl', 'pkey', '-in', str(private), '-pubout', '-out', str(pub)],
                            capture_output=True, check=True)
             pub.chmod(0o600)
+        if hasattr(sources, 'OWNER_ED25519_SPKI_SHA256'):
+            sources.OWNER_ED25519_SPKI_SHA256 = sources.ed25519_spki_sha256(
+                (self.att/'owner-ed25519-public.pem').read_bytes())
         payload = {
             'format': sources.RECEIPT_FORMAT, 'snapshot_id': sources.NEW_ID,
             'source': source if source is not None else dict(sources.NEW_SOURCE),
@@ -333,6 +340,58 @@ class SourceIdentityTests(unittest.TestCase):
         with self.assertRaises(OpsError) as cm:
             sources.verify_staged(self.root)
         self.assertEqual(cm.exception.code, 'SOURCE_STAGE')
+
+
+    def test_security_p1a_replacement_key_must_not_be_owner(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        receipt = self.att/(sources.NEW_ID+'.json')
+        rogue = self.base/'rogue-signing-key.pem'
+        public = self.att/'owner-ed25519-public.pem'
+        signature = self.att/(sources.NEW_ID+'.sig')
+        subprocess.run(['openssl', 'genpkey', '-algorithm', 'ed25519',
+                        '-out', str(rogue)], check=True, capture_output=True)
+        subprocess.run(['openssl', 'pkey', '-in', str(rogue), '-pubout',
+                        '-out', str(public)], check=True, capture_output=True)
+        public.chmod(0o600)
+        subprocess.run(['openssl', 'pkeyutl', '-sign', '-rawin',
+                        '-inkey', str(rogue), '-in', str(receipt),
+                        '-out', str(signature)], check=True, capture_output=True)
+        signature.chmod(0o600)
+        with self.assertRaises(OpsError):
+            sources.owner_attestation(self.root)
+
+    def test_security_p1b_swapped_receipt_during_verify_is_rejected(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        receipt = self.att/(sources.NEW_ID+'.json')
+        signature = self.att/(sources.NEW_ID+'.sig')
+        original_receipt, original_sig = receipt.read_bytes(), signature.read_bytes()
+        self.sign(raw, 'f'*64)
+        replacement_receipt, replacement_sig = receipt.read_bytes(), signature.read_bytes()
+        receipt.write_bytes(original_receipt)
+        signature.write_bytes(original_sig)
+        original_run = subprocess.run
+        def swap_between_read_and_verify(argv, **kwargs):
+            if argv[0] == 'openssl' and 'pkeyutl' in argv and '-verify' in argv:
+                receipt.write_bytes(replacement_receipt)
+                signature.write_bytes(replacement_sig)
+            return original_run(argv, **kwargs)
+        with patch.object(sources.subprocess, 'run', side_effect=swap_between_read_and_verify):
+            with self.assertRaises(OpsError):
+                sources.owner_attestation(self.root)
+
+    def test_security_p1c_forged_true_plan_cannot_load_manager(self):
+        forged = {'kind':'restore', 'snapshot_id':sources.NEW_ID,
+                  'ready_to_rehearse':True,
+                  'release':{'revision':'a'*40}}
+        with patch.object(restore, 'load', side_effect=AssertionError(
+                'manager or Docker accessed for forbidden rehearsal')) as load:
+            with self.assertRaises(OpsError) as caught:
+                restore.rehearse({}, {'plan': forged})
+        self.assertEqual(caught.exception.code, 'BLOCKED_PLAN')
+        load.assert_not_called()
+
 
 
 if __name__ == '__main__':
