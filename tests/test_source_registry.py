@@ -394,5 +394,135 @@ class SourceIdentityTests(unittest.TestCase):
 
 
 
+    def test_security_p1a_missing_pin_and_non_ed25519_key_fail_closed(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        with patch.object(sources, 'OWNER_ED25519_SPKI_SHA256', None):
+            with self.assertRaises(OpsError) as caught:
+                sources.owner_attestation(self.root)
+            self.assertEqual(caught.exception.code, 'BLOCKED_KEY_ACCESS')
+        rsa = self.base/'synthetic-rsa.pem'
+        public = self.att/'owner-ed25519-public.pem'
+        subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA',
+                        '-pkeyopt', 'rsa_keygen_bits:1024', '-out', str(rsa)],
+                       capture_output=True, check=True)
+        subprocess.run(['openssl', 'pkey', '-in', str(rsa), '-pubout',
+                        '-out', str(public)], capture_output=True, check=True)
+        public.chmod(0o600)
+        with self.assertRaises(OpsError) as caught:
+            sources.owner_attestation(self.root)
+        self.assertEqual(caught.exception.code, 'OWNER_KEY_TYPE')
+
+    def test_security_p1b_signature_and_key_swap_during_verify(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        original_run = subprocess.run
+        signature = self.att/(sources.NEW_ID+'.sig')
+        public = self.att/'owner-ed25519-public.pem'
+        for path, injected in (
+                (signature, b'\x00'*64),
+                (public, b'-----BEGIN PUBLIC KEY-----\ncorrupted\n-----END PUBLIC KEY-----\n')):
+            with self.subTest(path=path.name):
+                original = path.read_bytes()
+                def change_as_verifier_starts(argv, **kwargs):
+                    if argv[0] == 'openssl' and 'pkeyutl' in argv and '-verify' in argv:
+                        path.write_bytes(injected)
+                    return original_run(argv, **kwargs)
+                with patch.object(sources.subprocess, 'run', side_effect=change_as_verifier_starts):
+                    with self.assertRaises(OpsError) as caught:
+                        sources.owner_attestation(self.root)
+                self.assertEqual(caught.exception.code, 'OWNER_IDENTITY_CHANGED')
+                path.write_bytes(original)
+
+    def test_security_p1b_concurrent_owner_receipt_rotation(self):
+        import threading
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        receipt = self.att/(sources.NEW_ID+'.json')
+        signature = self.att/(sources.NEW_ID+'.sig')
+        first_receipt, first_sig = receipt.read_bytes(), signature.read_bytes()
+        self.sign(raw, 'a'*64)
+        second_receipt, second_sig = receipt.read_bytes(), signature.read_bytes()
+        receipt.write_bytes(first_receipt)
+        signature.write_bytes(first_sig)
+        original_run = subprocess.run
+        rotated = []
+        def change_in_thread():
+            receipt.write_bytes(second_receipt)
+            signature.write_bytes(second_sig)
+            rotated.append(True)
+        def verify_with_parallel_rotation(argv, **kwargs):
+            if argv[0] == 'openssl' and 'pkeyutl' in argv and '-verify' in argv:
+                other = threading.Thread(target=change_in_thread)
+                other.start()
+                other.join(timeout=5)
+                if other.is_alive():
+                    self.fail('Synthetic concurrent rotation never completed')
+            return original_run(argv, **kwargs)
+        with patch.object(sources.subprocess, 'run', side_effect=verify_with_parallel_rotation):
+            with self.assertRaises(OpsError) as caught:
+                sources.owner_attestation(self.root)
+        self.assertTrue(rotated)
+        self.assertEqual(caught.exception.code, 'OWNER_IDENTITY_CHANGED')
+
+    def test_security_p1b_truncated_owner_receipt_is_not_authenticated(self):
+        raw, manifest_sha = self.tar()
+        self.sign(raw, manifest_sha)
+        receipt = self.att/(sources.NEW_ID+'.json')
+        original = receipt.read_bytes()
+        receipt.write_bytes(original[:-7])
+        with self.assertRaises(OpsError) as caught:
+            sources.owner_attestation(self.root)
+        self.assertEqual(caught.exception.code, 'OWNER_SIGNATURE')
+
+    def test_security_p1c_controller_forged_ready_true_does_not_load_or_launch(self):
+        config = self.base/'forged-controller.json'
+        config.write_text(json.dumps({'installation': {
+            'id':'asa-test', 'root':str(self.base), 'state_root':str(self.base/'forged-state'),
+        }, 'official_command': []}))
+        meta = self.base/'.asa'
+        meta.mkdir(exist_ok=True)
+        (meta/'installation.json').write_text(json.dumps({'instanceId':'c'*32}))
+        ctrl = Controller(config, official=object())
+        forged = ctrl.store.plan('asa-test', {
+            'kind':'restore', 'snapshot_id':sources.NEW_ID,
+            'installation_instance_id':'c'*32, 'ready_to_rehearse':True,
+        })
+        with patch.object(ctrl, 'installation', side_effect=AssertionError('installation accessed')) as install, \
+             patch.object(ctrl, 'launch', side_effect=AssertionError('worker launched')) as launch, \
+             patch('asa_ops.server.check_generation', side_effect=AssertionError('generation checked')) as generation:
+            with self.assertRaises(OpsError) as caught:
+                ctrl.dispatch('asa_restore_rehearse', {
+                    'installation_id':'asa-test', 'plan_id':forged['plan_id'],
+                    'idempotency_key':'security-forged-rehearsal-2026',
+                })
+        self.assertEqual(caught.exception.code, 'BLOCKED_PLAN')
+        install.assert_not_called()
+        launch.assert_not_called()
+        generation.assert_not_called()
+        self.assertFalse(ctrl.store.list('asa-test', 10))
+
+    def test_security_p1c_legacy_rehearsal_routing_is_unchanged(self):
+        config = self.base/'legacy-controller.json'
+        config.write_text(json.dumps({'installation': {
+            'id':'asa-test', 'root':str(self.base), 'state_root':str(self.base/'legacy-state'),
+        }, 'official_command': []}))
+        meta = self.base/'.asa'
+        meta.mkdir(exist_ok=True)
+        (meta/'installation.json').write_text(json.dumps({'instanceId':'c'*32}))
+        ctrl = Controller(config, official=object())
+        legacy = ctrl.store.plan('asa-test', {
+            'kind':'restore', 'snapshot_id':sources.LEGACY_ID,
+            'installation_instance_id':'c'*32, 'ready_to_rehearse':True,
+        })
+        with patch.object(ctrl, 'launch', side_effect=lambda record, kind: record) as launch:
+            response = ctrl.dispatch('asa_restore_rehearse', {
+                'installation_id':'asa-test', 'plan_id':legacy['plan_id'],
+                'idempotency_key':'security-legacy-routing-2026',
+            })
+        self.assertEqual(response['operation']['kind'], 'restore_rehearse')
+        self.assertEqual(launch.call_count, 1)
+
+
 if __name__ == '__main__':
     unittest.main()
