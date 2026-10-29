@@ -1,0 +1,52 @@
+{
+  "snapshot_date": "2026-10-29T11:48:00+03:00",
+  "status": "SCHOOL_MCP_EDGE_DEPLOYED_CLIENT_AUTH_PENDING",
+  "test_host": {
+    "hostname": "admins-MS-7D22",
+    "public_edge_ip": "94.29.44.211",
+    "school_transport_unit": "asa-school-mcp-ssh-tunnel.service",
+    "transport_bind": "127.0.0.1:39454",
+    "school_gateway_container": "asa-school-mcp-gateway",
+    "school_gateway_bind": "127.0.0.1:39453",
+    "compose_project": "asa-school-mcp",
+    "oauth_volume": "asa-school-mcp_school_oauth_data"
+  },
+  "school_host": {
+    "hostname": "serv",
+    "panel_version": "v2.4.1",
+    "school_mcp_bind": "127.0.0.1:39443",
+    "school_mcp_mode": "readonly",
+    "school_mcp_tools_count": 6,
+    "school_mcp_status": "active"
+  },
+  "public_endpoint": {
+    "url": "https://school-mcp.asa-lab.ru/mcp",
+    "dns_a": "94.29.44.211",
+    "managed_by": "1Panel OpenResty",
+    "certificate": "Let's Encrypt",
+    "certificate_expires_utc": "2027-01-27T07:45:44Z",
+    "auto_renew_config": true
+  },
+  "checks": {
+    "ssh_forward_unauth_http": 401,
+    "oauth_resource_metadata_http": 200,
+    "oauth_resource": "https://school-mcp.asa-lab.ru/mcp",
+    "oauth_issuer": "https://school-mcp.asa-lab.ru/",
+    "public_unauth_http": 401,
+    "invalid_bearer_http": 401,
+    "d2r2_https_cert_verify": 0,
+    "d2r2_unauth_http": 401,
+    "dcr_http": 201,
+    "test_asa_site_http": 200,
+    "test_mcp_unauth_http": 401
+  },
+  "not_verified": [
+    "owner OAuth login and consent",
+    "PKCE authorization code token exchange through public endpoint",
+    "authenticated public MCP tool call",
+    "ChatGPT custom plugin connection",
+    "real reboot and independent security audit"
+  ],
+  "secrets_included": false,
+  "issue": "https://github.com/spikeal8-maker/Server-setings/issues/25"
+}
