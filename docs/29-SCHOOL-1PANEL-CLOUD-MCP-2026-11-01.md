@@ -2,6 +2,28 @@
 
 **Статус: частичное внедрение, эксплуатационная приёмка не пройдена.** Актуализация 01.11.2026.
 
+
+## Дополнение 01.11.2026 — TLS, Tailscale и Яндекс OAuth
+
+### Публичные сертификаты и 1Panel
+
+- Публичный HTTPS для x.asa-lab.ru завершается на внешнем Leticia/Traefik. VM100 1Panel управляет внутренним HTTP-сайтом и не располагает внешним сертификатом, поэтому раздел «Сертификаты» VM100 пуст. Не копировать закрытый ключ с Leticia и не выпускать дублирующий ACME-сертификат без отдельного решения о TLS termination.
+- Через D2-R2 проверены реальные TLS 1.3 / Let's Encrypt сертификаты: x.asa-lab.ru и test2.asa-lab.ru действуют до 2027-01-29T19:45Z; asa-lab.ru до 2027-01-18T13:00Z; test.asa-lab.ru до 2027-01-17T20:18Z; school-mcp.asa-lab.ru до 2027-01-27T07:45Z. Доказательство автоматического продления **внешнего Traefik** ещё не собрано.
+- Старый 1Panel H-03 выдаёт отдельный IP-сертификат для 94.29.44.211, срок до 2026-11-06T06:01Z, статус autoRenew=true. По правилам Let's Encrypt сертификат для IP намеренно короткий (~160 часов); необходим контроль фактического продления.
+- 1Panel «Приложения» и Docker «Контейнеры» — разные каталоги. OpenResty управляется 1Panel, asa-lab-school управляется существующим Compose: 6 healthy long-running и 2 успешно завершённых migration/minio-init (Exited 0). Отдельный asa-cloud-storage-rclone-1 healthy ещё не означает авторизацию Яндекс.
+
+### Яндекс — отдельный владелец подтверждает OAuth на D2-R2
+
+- На D2-R2 ранее настроенный rclone OWN конфиг (D:\ASA25\rclone-auth\rclone-own.conf) проверенно читает Yandex ASA-Backups. Прежний токен **не копировался** на VM100.
+- Созданы GUI %LOCALAPPDATA%\ASA-Lab\SchoolSSH\connect_school_yandex_vm100.py и ярлык ASA Lab - Yandex Disk VM100 на D2-R2. Владелец нажимает «Авторизовать Яндекс Диск», в браузере подтверждает новый OAuth. Токен передаётся без чата/аргументов через pinned SSH D2-R2 → PVE:14626 → QEMU Agent VM100.
+- Серверный scripts/store-school-yandex-oauth.py принимает только stdin, проверяет владельца/mode0600 выделенного пустого rclone.conf, отказывается перезаписать существующий OAuth. Затем GUI запускает штатный cloud_storage.py status для проверки ASA-Backups. До входа владельца VM100 token_configured=false и connected=false; backup_scheduler=false. Не включать автокопирование до подтверждения шифрования age и репетиции восстановления.
+
+### Tailscale VM100 и MCP
+
+- Текущая VM100 сообщает NeedsLogin, адрес и node ID отсутствуют; наличие в D2-R2 одноимённого peer с IP 100.124.247.24 не доказывает его принадлежность VM100.
+- Только внутри VM100 перезапущен tailscaled без очистки persistent state. Новый tailscale up с accept-dns=false/accept-routes=false/netfilter-mode=off и hostname=asa-school-01 запущен через QEMU Guest Agent асинхронно, guest task PID 220300; операция ожидала авторизации. Свежая ссылка предоставлена владельцу **только в чате**, не записывается в GitHub или Sheets. Окончательная приёмка: VM100 Running, назначен IP, удалённый tailscale ping проходит.
+- Локальный MCP VM100 слушает 127.0.0.1:39443/mcp (readonly). В этой беседе уже доступен защищённый операторский путь через D2-R2 → pinned SSH Proxmox → QEMU Agent. Прямой облачный ChatGPT-коннектор к VM100 требует отдельного HTTPS/OAuth шлюза, не готов. Не открывать MCP в WAN и не переиспользовать public school-mcp.asa-lab.ru, принадлежащий другому серверу.
+
 ## Изменения по живому серверу VM100 — 01.11.2026
 
 - Создан и проверен online Proxmox ZFS snapshot `before-1panel-openresty-20261101` с QEMU Guest Agent freeze/thaw. Это локальная точка отката, не независимая копия.
