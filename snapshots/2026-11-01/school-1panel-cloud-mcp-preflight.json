@@ -54,7 +54,7 @@
         "has_public_ports": false,
         "local_owner_yandex_oauth_reference_verified": true,
         "owner_yandex_oauth_imported_into_vm": false,
-        "token_configured": false,
+        "token_configured": true,
         "connected": false,
         "remote_folder": "yandex:ASA-Backups",
         "local_windows_rclone_account_verified": true,
@@ -62,7 +62,14 @@
         "owner_approval_state": "WAITING_OWNER_BROWSER_OAUTH",
         "dedicated_server_side_installer": "scripts/store-school-yandex-oauth.py",
         "server_config_present_empty": true,
-        "token_stored_in_repository": false
+        "token_stored_in_repository": false,
+        "provider_error": "CLOUD_PROVIDER_GONE",
+        "oauth_profile": "default rclone OAuth token; file API returns 410",
+        "source_d2_custom_yandex_oauth_verified": true,
+        "repair_helper": "scripts/repair-school-yandex-oauth.py",
+        "owner_gui": "D2-R2 ASA Lab - Yandex Disk VM100 (custom client)",
+        "repair_ready": true,
+        "requires_owner_new_browser_oauth": true
       },
       "network": {
         "school_nic_connected": false,
@@ -148,7 +155,7 @@
     "onepanel_api_inspection": "PASS_SITE_1",
     "vm100_mcp_local": "ACTIVE_READONLY_401_UNAUTH_200_AUTH_INITIALIZE",
     "vm100_mcp_chatgpt_oauth": "NO_PUBLIC_GATEWAY_OPERATOR_SSH_QGA_AVAILABLE",
-    "vm100_yandex_oauth": "OWNER_GUI_READY_NOT_YET_AUTHORIZED",
+    "vm100_yandex_oauth": "DEFAULT_OAUTH_SAVED_BUT_FILE_API_410_CUSTOM_OAUTH_OWNER_APPROVAL_PENDING",
     "vm101_yandex_oauth": "NOT_CONNECTED",
     "backup_scheduler": "OFF",
     "backup_offsite_restore": "NOT_TESTED",
@@ -157,7 +164,8 @@
     "vm100_tailscale": "NEEDS_LOGIN_PERSISTENT_AUTH_TASK_STARTED_PENDING_OWNER",
     "vm100_public_frp_switch": "NOT_DONE_OLD_ROUTE_PRESERVED",
     "vm100_snapshot": "before-1panel-openresty-20261101_QGA_FREEZE_THAW_PASS",
-    "external_tls_cert_expiry": "LIVE_TLS1_3_LETS_ENCRYPT_EXPIRY_VERIFIED_RENEWAL_UNPROVEN"
+    "external_tls_cert_expiry": "LIVE_TLS1_3_LETS_ENCRYPT_EXPIRY_VERIFIED_RENEWAL_UNPROVEN",
+    "vm100_yandex_custom_client": "WORKING_D2_CLIENT_VERIFIED_NEW_VM_TOKEN_NOT_ISSUED"
   },
   "guardrails": [
     "No live ASA database migration or restore",
@@ -166,7 +174,7 @@
     "No new DNS or FRP changes",
     "No backup schedule or cloud token configured"
   ],
-  "evidence": "01.11.2026: VM100 QGA and Proxmox snapshots, official 1Panel API/managed OpenResty, x.asa-lab.ru local Host HTTP 200, MCP systemd + 401 unauth + 200 authenticated initialize, live 197 unit tests PASS, source binary sha256 pinned. D2 peer list does not prove VM100 Tailscale login. Existing VM101/cloud preflight remains historical as recorded before this update. 01.11.2026: D2-R2 verified public TLS certificate expiries, existing local Yandex OWN token remote accessible, VM100 cloud_storage.py status token_configured=false, 200 Server-setings tests; user-facing OAuth UI and strict VM100 stdin-only enrollment helper staged; guest tailscale fresh asynchronous login pending.",
+  "evidence": "01.11.2026: VM100 QGA and Proxmox snapshots, official 1Panel API/managed OpenResty, x.asa-lab.ru local Host HTTP 200, MCP systemd + 401 unauth + 200 authenticated initialize, live 197 unit tests PASS, source binary sha256 pinned. D2 peer list does not prove VM100 Tailscale login. Existing VM101/cloud preflight remains historical as recorded before this update. 01.11.2026: D2-R2 verified public TLS certificate expiries, existing local Yandex OWN token remote accessible, VM100 cloud_storage.py status token_configured=false, 200 Server-setings tests; user-facing OAuth UI and strict VM100 stdin-only enrollment helper staged; guest tailscale fresh asynchronous login pending. Additional 01.11.2026: new standard Yandex OAuth stored VM100 mode 0600, about succeeds but file listings return 410 Gone; D2 custom client works; VM100 rollback-safe repair tool and UI staged; 204 tests pass; await owner confirmation for custom client OAuth.",
   "staging": {
     "school_reconcile_script": "scripts/school-1panel-reconcile.sh",
     "school_reconcile_script_syntax": "PASS",
@@ -178,8 +186,8 @@
     ],
     "dryrun_no_state_change": true,
     "exact_branch_revision": "9c42026ef8cede6d40bb4d80c293c40f3012ce0d",
-    "tests": "197 unittest PASS (live VM100, 2026-11-01)",
-    "d2_owner_gui": "API owner key entered and stored; source of authenticated API successful; no new key registration required",
+    "tests": "204 unittest PASS (live VM100 2026-11-01)",
+    "d2_owner_gui": "Custom-Yandex OAuth GUI replaced and restarted on D2-R2; previous OAuth was rejected by Yandex file API 410; requires new owner browser confirmation",
     "verified_rollback_snapshot": "before-1panel-openresty-20261101",
     "repo_fix_commits": [
       "621924b7fa5fccbc199e7038d8a35a55238c2ad4",
