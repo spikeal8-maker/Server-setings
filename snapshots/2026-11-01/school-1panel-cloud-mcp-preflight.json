@@ -30,12 +30,22 @@
         "authenticated": false,
         "backup_schedule_enabled": false,
         "has_database_mount": false,
-        "has_public_ports": false
+        "has_public_ports": false,
+        "local_owner_yandex_oauth_reference_verified": true,
+        "owner_yandex_oauth_imported_into_vm": false
       },
       "network": {
         "school_nic_connected": false,
         "public_domain": "x.asa-lab.ru",
         "public_https_health_confirmed": true
+      },
+      "mcp": {
+        "pinned_source_commit": "6cd495d74010e762e0ab6ce3ead31730f8ba572a",
+        "compiled_binary_sha256": "467590f02d24e03bdf30ed168d581849e563654d1bd67ea51558dc5aea250884",
+        "compiled_binary_present": true,
+        "service_installed": false,
+        "oauth_gateway_configured": false,
+        "service_blocker": "1Panel API disabled; no owner-created API key"
       }
     },
     "vm101": {
@@ -58,7 +68,9 @@
         "authenticated": false,
         "backup_schedule_enabled": false,
         "has_database_mount": false,
-        "has_public_ports": false
+        "has_public_ports": false,
+        "local_owner_yandex_oauth_reference_verified": true,
+        "owner_yandex_oauth_imported_into_vm": false
       },
       "network": {
         "school_nic_connected": false,
@@ -72,13 +84,14 @@
     "onepanel_managed_openresty": "NOT_INSTALLED",
     "onepanel_managed_site_x": "NOT_REGISTERED",
     "onepanel_api_inspection": "NOT_RUN_NO_API_KEY",
-    "vm100_mcp_local": "NOT_INSTALLED",
+    "vm100_mcp_local": "COMPILED_BINARY_READY_BUT_SERVICE_NOT_CONFIGURED",
     "vm100_mcp_chatgpt_oauth": "NOT_CONNECTED",
     "vm100_yandex_oauth": "NOT_CONNECTED",
     "vm101_yandex_oauth": "NOT_CONNECTED",
     "backup_scheduler": "OFF",
     "backup_offsite_restore": "NOT_TESTED",
-    "asa_user_browser_acceptance": "NOT_CONFIRMED"
+    "asa_user_browser_acceptance": "NOT_CONFIRMED",
+    "yandex_cloud_access": "VALIDATED_ON_OWNER_PC_ONLY; BOTH_GUESTS_NOT_CONNECTED"
   },
   "guardrails": [
     "No live ASA database migration or restore",
@@ -87,5 +100,19 @@
     "No new DNS or FRP changes",
     "No backup schedule or cloud token configured"
   ],
-  "evidence": "VM100/VM101 QEMU Guest Agent, docker inspect, image digest, 1Panel read-only DB metadata; GitHub repo cloud script verified identical to main"
+  "evidence": "VM100/VM101 QEMU Guest Agent, docker inspect, image digest, 1Panel read-only DB metadata; GitHub repo cloud script verified identical to main; 195 live VM100 unit tests pass; official pinned MCP binary built without API key; owner Yandex OAuth local read-only listing verified but not imported",
+  "staging": {
+    "school_reconcile_script": "scripts/school-1panel-reconcile.sh",
+    "school_reconcile_script_syntax": "PASS",
+    "plan_actions": [
+      "plan",
+      "openresty",
+      "site",
+      "mcp"
+    ],
+    "dryrun_no_state_change": true,
+    "exact_branch_revision": "c5e4141e70e4789589923ec4c548f07649b04817",
+    "tests": "195 unittest PASS (live VM100)",
+    "d2_owner_gui": "API enrollment helper running; user must enable 1Panel API and authorize key"
+  }
 }
