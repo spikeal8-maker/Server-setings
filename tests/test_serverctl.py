@@ -146,6 +146,40 @@ class TestProfiles(unittest.TestCase):
         self.assertTrue(config["install_docker"])
         self.assertTrue(config["install_1panel"])
 
+    def test_school_removes_vendor_unscoped_1panel_rule_before_enabling_firewall(self):
+        config = serverctl.load_profile("school-lan")
+        calls = []
+        responses = [
+            subprocess.CompletedProcess(["ufw", "show", "added"], 0,
+                stdout="Added user rules:\\nufw allow 19192/tcp\\n", stderr=""),
+            subprocess.CompletedProcess(["ufw", "show", "added"], 0,
+                stdout="Added user rules:\\n", stderr=""),
+        ]
+        with mock.patch.object(serverctl.subprocess, "run", side_effect=responses) as mock_run:
+            with mock.patch.object(serverctl, "command", side_effect=lambda *args: calls.append(args)):
+                serverctl.apply_firewall(config, ["10.53.0.2/32", "172.23.104.191/32"])
+        self.assertEqual(2, mock_run.call_count)
+        self.assertIn(("ufw", "--force", "delete", "allow", "19192/tcp"), calls)
+        self.assertIn(("ufw", "--force", "enable"), calls)
+        self.assertNotIn(("ufw", "allow", "19192/tcp"), calls)
+        self.assertNotIn(("ufw", "allow", "80/tcp"), calls)
+        self.assertNotIn(("ufw", "allow", "443/tcp"), calls)
+
+    def test_school_refuses_unremoved_unrestricted_1panel_rule(self):
+        config = serverctl.load_profile("school-lan")
+        result = subprocess.CompletedProcess(
+            ["ufw", "show", "added"], 0, stdout="ufw allow 19192/tcp\\n", stderr=""
+        )
+        with mock.patch.object(serverctl.subprocess, "run", return_value=result):
+            with mock.patch.object(serverctl, "command") as change:
+                with self.assertRaisesRegex(RuntimeError, "правило"):
+                    serverctl.apply_firewall(config, ["10.53.0.2/32"])
+                self.assertIn(
+                    mock.call("ufw", "--force", "delete", "allow", "19192/tcp"),
+                    change.call_args_list,
+                )
+                self.assertNotIn(mock.call("ufw", "--force", "enable"), change.call_args_list)
+
     def test_vps_needs_explicit_admin_cidr_when_no_ssh(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertEqual([], serverctl.ssh_admin_cidrs(serverctl.load_profile("vps"), []))
