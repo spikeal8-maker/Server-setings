@@ -3,6 +3,15 @@
 **Статус: частичное внедрение, эксплуатационная приёмка не пройдена.** Актуализация 01.11.2026.
 
 
+## Дополнение 01.11.2026 — исправление Yandex OAuth 410
+
+- При первой авторизации VM100 токен был записан штатно (uid 1000, mode0600), но `cloud_storage.py status` показал `token_configured=true`, `connected=false`, `provider_error=CLOUD_PROVIDER_GONE`. Отдельная диагностическая проба `rclone lsjson yandex:` и `lsjson --stat yandex:ASA-Backups` дала HTTP 410 Gone; `rclone about yandex:` успешно. Это свидетельствует о недостаточной авторизации файлового API, а не о сбое Docker/контейнера.
+- На D2-R2 исходный существующий `rclone-own.conf` имеет отдельный custom OAuth Client ID/Secret, и `lsjson --stat yandex:ASA-Backups` через него успешно работает. Прежний OAuth-токен D2-R2 не пересылался на VM100.
+- Проверен отдельный временный процесс `rclone authorize yandex --auth-no-open-browser` с `RCLONE_YANDEX_CLIENT_ID/SECRET` из защищённой конфигурации в environment (не argv). Проверено: переход в OAuth Яндекса использует именно ожидаемый Client ID; временная проверочная авторизация остановлена без выдачи токена.
+- Для одноразового восстановления создан `scripts/repair-school-yandex-oauth.py`: принимает новый OAuth и client settings **только stdin** по pinned SSH/QEMU, валидирует реальную ошибку 410 старого стандартного OAuth, права и owner файла, после замены проверяет `ASA-Backups`; при любой ошибке возвращает исходный конфиг. Прямое переписывание 1Panel / ASA баз, миграции, автокопии исключены.
+- Операторское окно `ASA Lab - Yandex Disk VM100` на D2-R2 обновлено, передача нового токена только через pinned SSH и QEMU Guest Agent; GUI перезапущен, пользовательский новый OAuth ещё требуется. `204` unit-тестов `Server-setings` на VM100 PASS, включая регрессионные тесты восстановления; `py_compile` GUI и VM-helper PASS.
+- **Статус на момент проверки:** VM100 OAuth токен присутствует, но `connected=false` (410); новый токен через пользовательский custom OAuth ещё не выдан. Считать Яндекс Диск подключённым только после успешного `cloud_storage.py status connected=true` и `lsjson --stat yandex:ASA-Backups` в VM100. Бэкапы и scheduler выключены.
+
 ## Дополнение 01.11.2026 — TLS, Tailscale и Яндекс OAuth
 
 ### Публичные сертификаты и 1Panel
