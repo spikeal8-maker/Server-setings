@@ -1,6 +1,16 @@
 # Школьный Proxmox: передача управления в 1Panel, MCP, Яндекс Диск
 
-**Статус: частичное внедрение, эксплуатационная приёмка не пройдена.** Актуализация 01.11.2026. Этот документ уточняет `README.md`, `docs/04-ПУБЛИКАЦИЯ-САЙТОВ.md`, `docs/05-API-И-MCP.md` и `docs/27-MCP-HOST-ADMIN-AND-CLOUD.md` для новых школьных VM; не переносит настройки старого тестового Ubuntu `admins-MS-7D22` без проверки.
+**Статус: частичное внедрение, эксплуатационная приёмка не пройдена.** Актуализация 01.11.2026.
+
+## Изменения по живому серверу VM100 — 01.11.2026
+
+- Создан и проверен online Proxmox ZFS snapshot `before-1panel-openresty-20261101` с QEMU Guest Agent freeze/thaw. Это локальная точка отката, не независимая копия.
+- Исправлена ошибка в `scripts/panelctl.py`: в `/apps/install` для OpenResty раньше не передавался обязательный параметр `WEBSITE_DIR`, поэтому 1Panel записывал `InstallErr` (`invalid spec: :/www`). Ошибка на VM100 устранена штатным API `/apps/installed/params/update`, без ручной записи в SQLite. Теперь OpenResty `1.27.1.2-5-1-focal` и контейнер `1Panel-openresty-Pozw` имеют `Running`.
+- Сайт `x.asa-lab.ru` (`asa-lab-x`) создан через официальный API 1Panel, `proxy -> http://127.0.0.1:4610`. `websites/search` возвращает `Running`, локальный запрос `Host: x.asa-lab.ru` к OpenResty:80 `/health/ready` вернул 200. В 1Panel VM100 нет локального сертификата; внешний TLS/FRP на Leticia пока не переключён на этот OpenResty. Основной `asa-lab.ru` не менялся.
+- Официальный локальный `mcp-1panel` активирован с `readonly` и `DynamicUser`. Исправлено второе несоответствие: бинарник `mcp-1panel`, собранный при `umask 077`, имел права `0700` и давал systemd `203/EXEC`; выставлены `0755` **только для исполняемого файла**. `/etc/server-settings/mcp.env` остаётся root-only `0600`. Служба `server-settings-1panel-mcp` — active; `127.0.0.1:39443/mcp` без Bearer возвращает 401, с локальным сохранённым Bearer MCP `initialize` возвращает 200. Публичный OAuth/HTTPS MCP gateway для ChatGPT не создавался; не считать старое тестовое MCP подключением новой VM100.
+- `tailscaled` активен, но `tailscale status --json` **внутри VM100** возвращает `BackendState=NeedsLogin`, `Self.Online=false`, `TailscaleIPs=null`. D2-R2 отображает peer с таким же `HostName=asa-school-01` и адресом `100.124.247.24`, однако `tailscale ping` сообщает `unknown peer`; идентичность/живой доступ к VM100 по этому IP не подтверждены. Не публиковать одноразовые AuthURL в GitHub, документации или Sheets. VM100 `eth0` к школьной LAN остаётся `link_down=1`.
+- После исправлений `197` unit-тестов `Server-setings` прошли на VM100; `bash -n` для MCP и `python3 -m py_compile` для `panelctl.py` PASS. Статусы `ASA Lab /health/ready`, MCP и proxy PASS; данные PostgreSQL/MinIO и внешний `asa-lab.ru` не менялись.
+- Ветка PR #27 остаётся **Draft** до независимого review, CI и эксплуатационной приёмки: browser login, save/reopen, подтверждённая сетевая политика, offsite backup и тест восстановления. Этот документ уточняет `README.md`, `docs/04-ПУБЛИКАЦИЯ-САЙТОВ.md`, `docs/05-API-И-MCP.md` и `docs/27-MCP-HOST-ADMIN-AND-CLOUD.md` для новых школьных VM; не переносит настройки старого тестового Ubuntu `admins-MS-7D22` без проверки.
 
 ## Фактическое состояние — проверено через Proxmox/QEMU Guest Agent
 
