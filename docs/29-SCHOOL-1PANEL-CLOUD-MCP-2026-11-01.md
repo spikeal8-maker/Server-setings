@@ -5,6 +5,9 @@
 
 ## Дополнение 01.11.2026 — исправление Yandex OAuth 410
 
+- Через штатный 1Panel API `/websites/update` создана информативная заметка (remark) для `x.asa-lab.ru`: «HTTPS: внешний Leticia/Traefik. SSL не в этой 1Panel; срок сертификата — в таблице „Сетьевая конфигурация“». Сохранены прежние domain/group/expireDate/IPv6/favorite, после изменения локальный Host `/health/ready` HTTP 200. Сертификат и закрытый ключ в VM100 не копировались.
+
+
 - При первой авторизации VM100 токен был записан штатно (uid 1000, mode0600), но `cloud_storage.py status` показал `token_configured=true`, `connected=false`, `provider_error=CLOUD_PROVIDER_GONE`. Отдельная диагностическая проба `rclone lsjson yandex:` и `lsjson --stat yandex:ASA-Backups` дала HTTP 410 Gone; `rclone about yandex:` успешно. Это свидетельствует о недостаточной авторизации файлового API, а не о сбое Docker/контейнера.
 - На D2-R2 исходный существующий `rclone-own.conf` имеет отдельный custom OAuth Client ID/Secret, и `lsjson --stat yandex:ASA-Backups` через него успешно работает. Прежний OAuth-токен D2-R2 не пересылался на VM100.
 - Проверен отдельный временный процесс `rclone authorize yandex --auth-no-open-browser` с `RCLONE_YANDEX_CLIENT_ID/SECRET` из защищённой конфигурации в environment (не argv). Проверено: переход в OAuth Яндекса использует именно ожидаемый Client ID; временная проверочная авторизация остановлена без выдачи токена.
