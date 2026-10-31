@@ -221,6 +221,18 @@ def install_tailscale():
     print("Далее владелец должен выполнить: sudo tailscale up")
 
 
+def generate_panel_credentials() -> tuple[str, str]:
+    """Generate official 1Panel v2 credentials with usable 8-30 and 3-30 character limits."""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+    password = "".join(secrets.choice(alphabet) for _ in range(18))
+    entrance = "access_" + secrets.token_hex(8)
+    if not re.fullmatch(r"[A-Za-z0-9_!@#$%*,.?]{8,30}", password):
+        raise RuntimeError("Сгенерированный пароль не отвечает ограничениям 1Panel")
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", entrance):
+        raise RuntimeError("Сгенерированный путь входа не отвечает ограничениям 1Panel")
+    return password, entrance
+
+
 def install_panel(data: dict, arch: str):
     if is_installed("1pctl"):
         print("1Panel уже установлена; пропускаю")
@@ -229,8 +241,7 @@ def install_panel(data: dict, arch: str):
     credentials = STATE / "1panel-admin.env"
     if credentials.exists():
         raise RuntimeError("Найдены прежние credentials при отсутствии 1Panel. Требуется ручной аудит")
-    password = secrets.token_urlsafe(24)
-    entrance = "access_" + secrets.token_hex(12)
+    password, entrance = generate_panel_credentials()
     version = data["panel_version"]
     basename = f"1panel-{version}-linux-{arch}.tar.gz"
     base = f"{PANEL_ARTIFACT_BASE}/{version}/release"
