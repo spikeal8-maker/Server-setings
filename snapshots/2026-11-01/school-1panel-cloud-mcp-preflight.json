@@ -12,7 +12,13 @@
         "docker_project": "asa-lab-school",
         "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
         "schema": 286,
-        "healthy_services": 6
+        "healthy_services": 6,
+        "docker_compose_status": {
+          "up_healthy": 6,
+          "completed_init": 2,
+          "additional_openresty_running": 1,
+          "additional_rclone_healthy": 1
+        }
       },
       "panel": {
         "version": "v2.3.2",
@@ -33,7 +39,10 @@
           "host_http_health_code": 200
         },
         "api_authenticated_request_verified": true,
-        "api_interface_setting_from_core_db": "Disable (requires reconciliation; authenticated API succeeds)"
+        "api_interface_setting_from_core_db": "Disable (requires reconciliation; authenticated API succeeds)",
+        "external_https_terminated_at": "Leticia/Traefik; certificate not held by VM100 1Panel",
+        "local_website_ssl_certificates": 0,
+        "site_http_proxy_health_code": 200
       },
       "cloud": {
         "docker_project": "asa-cloud-storage",
@@ -44,7 +53,16 @@
         "has_database_mount": false,
         "has_public_ports": false,
         "local_owner_yandex_oauth_reference_verified": true,
-        "owner_yandex_oauth_imported_into_vm": false
+        "owner_yandex_oauth_imported_into_vm": false,
+        "token_configured": false,
+        "connected": false,
+        "remote_folder": "yandex:ASA-Backups",
+        "local_windows_rclone_account_verified": true,
+        "owner_gui_ready": "D2-R2: ASA Lab - Yandex Disk VM100",
+        "owner_approval_state": "WAITING_OWNER_BROWSER_OAUTH",
+        "dedicated_server_side_installer": "scripts/store-school-yandex-oauth.py",
+        "server_config_present_empty": true,
+        "token_stored_in_repository": false
       },
       "network": {
         "school_nic_connected": false,
@@ -60,7 +78,20 @@
           "d2_peer_same_hostname_present": true,
           "d2_peer_ip_not_validated": "100.124.247.24",
           "needs_owner_authorization": true,
-          "one_time_login_url_stored": false
+          "one_time_login_url_stored": false,
+          "auth_loop_running": true,
+          "guest_exec_pid": 220300,
+          "auth_link_stored_in_git": false,
+          "last_persistent_state_bytes": 119,
+          "guest_state_persisted": false,
+          "owner_browser_confirmation_pending": true
+        },
+        "public_certificates_verified_from_d2r2": {
+          "x.asa-lab.ru": "2027-01-29T19:45:22Z",
+          "test2.asa-lab.ru": "2027-01-29T19:45:26Z",
+          "asa-lab.ru": "2027-01-18T13:00:14Z",
+          "test.asa-lab.ru": "2027-01-17T20:18:12Z",
+          "school-mcp.asa-lab.ru": "2027-01-27T07:45:44Z"
         }
       },
       "mcp": {
@@ -116,16 +147,17 @@
     "onepanel_managed_site_x": "RUNNING_LOCAL_HOST_PROXY_HTTP_200",
     "onepanel_api_inspection": "PASS_SITE_1",
     "vm100_mcp_local": "ACTIVE_READONLY_401_UNAUTH_200_AUTH_INITIALIZE",
-    "vm100_mcp_chatgpt_oauth": "NOT_CONNECTED",
-    "vm100_yandex_oauth": "NOT_CONNECTED",
+    "vm100_mcp_chatgpt_oauth": "NO_PUBLIC_GATEWAY_OPERATOR_SSH_QGA_AVAILABLE",
+    "vm100_yandex_oauth": "OWNER_GUI_READY_NOT_YET_AUTHORIZED",
     "vm101_yandex_oauth": "NOT_CONNECTED",
     "backup_scheduler": "OFF",
     "backup_offsite_restore": "NOT_TESTED",
     "asa_user_browser_acceptance": "NOT_CONFIRMED",
     "yandex_cloud_access": "VALIDATED_ON_OWNER_PC_ONLY; BOTH_GUESTS_NOT_CONNECTED",
-    "vm100_tailscale": "NEEDS_LOGIN_NO_VERIFIED_TS_IP",
+    "vm100_tailscale": "NEEDS_LOGIN_PERSISTENT_AUTH_TASK_STARTED_PENDING_OWNER",
     "vm100_public_frp_switch": "NOT_DONE_OLD_ROUTE_PRESERVED",
-    "vm100_snapshot": "before-1panel-openresty-20261101_QGA_FREEZE_THAW_PASS"
+    "vm100_snapshot": "before-1panel-openresty-20261101_QGA_FREEZE_THAW_PASS",
+    "external_tls_cert_expiry": "LIVE_TLS1_3_LETS_ENCRYPT_EXPIRY_VERIFIED_RENEWAL_UNPROVEN"
   },
   "guardrails": [
     "No live ASA database migration or restore",
@@ -134,7 +166,7 @@
     "No new DNS or FRP changes",
     "No backup schedule or cloud token configured"
   ],
-  "evidence": "01.11.2026: VM100 QGA and Proxmox snapshots, official 1Panel API/managed OpenResty, x.asa-lab.ru local Host HTTP 200, MCP systemd + 401 unauth + 200 authenticated initialize, live 197 unit tests PASS, source binary sha256 pinned. D2 peer list does not prove VM100 Tailscale login. Existing VM101/cloud preflight remains historical as recorded before this update.",
+  "evidence": "01.11.2026: VM100 QGA and Proxmox snapshots, official 1Panel API/managed OpenResty, x.asa-lab.ru local Host HTTP 200, MCP systemd + 401 unauth + 200 authenticated initialize, live 197 unit tests PASS, source binary sha256 pinned. D2 peer list does not prove VM100 Tailscale login. Existing VM101/cloud preflight remains historical as recorded before this update. 01.11.2026: D2-R2 verified public TLS certificate expiries, existing local Yandex OWN token remote accessible, VM100 cloud_storage.py status token_configured=false, 200 Server-setings tests; user-facing OAuth UI and strict VM100 stdin-only enrollment helper staged; guest tailscale fresh asynchronous login pending.",
   "staging": {
     "school_reconcile_script": "scripts/school-1panel-reconcile.sh",
     "school_reconcile_script_syntax": "PASS",
