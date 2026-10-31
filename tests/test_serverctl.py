@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -29,6 +30,46 @@ class TestProfiles(unittest.TestCase):
                 self.assertEqual("ubuntu-24.04", profile["os"])
                 self.assertEqual(19192, profile["panel_port"])
                 self.assertTrue(profile["install_1panel"])
+
+    def test_https_download_is_atomic_and_requires_https(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "artifact.txt"
+            with mock.patch.object(serverctl, "is_installed", return_value=True):
+                with self.assertRaisesRegex(RuntimeError, "Небезопасная"):
+                    serverctl.download("http://example.invalid/a", destination)
+
+                def fake_curl(cmd, **kwargs):
+                    self.assertEqual("curl", cmd[0])
+                    self.assertIn("--fail", cmd)
+                    self.assertIn("--proto", cmd)
+                    self.assertIn("=https", cmd)
+                    self.assertIn("--proto-redir", cmd)
+                    self.assertNotIn("--insecure", cmd)
+                    partial = Path(cmd[cmd.index("--output") + 1])
+                    self.assertNotEqual(partial, destination)
+                    partial.write_bytes(b"checksum-manifest")
+                    return subprocess.CompletedProcess(cmd, 0)
+
+                with mock.patch.object(serverctl.subprocess, "run", side_effect=fake_curl):
+                    serverctl.download("https://example.invalid/checksums.txt", destination)
+            self.assertEqual(b"checksum-manifest", destination.read_bytes())
+            self.assertEqual(["artifact.txt"], [p.name for p in Path(tmp).iterdir()])
+
+    def test_failed_https_download_preserves_destination(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "artifact.txt"
+            destination.write_bytes(b"original")
+
+            def interrupted_curl(cmd, **kwargs):
+                Path(cmd[cmd.index("--output") + 1]).write_bytes(b"partial")
+                raise subprocess.CalledProcessError(22, cmd)
+
+            with mock.patch.object(serverctl, "is_installed", return_value=True):
+                with mock.patch.object(serverctl.subprocess, "run", side_effect=interrupted_curl):
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        serverctl.download("https://example.invalid/a", destination)
+            self.assertEqual(b"original", destination.read_bytes())
+            self.assertEqual(["artifact.txt"], [p.name for p in Path(tmp).iterdir()])
 
     def test_home_dynamic_does_not_open_public_ports(self):
         config = serverctl.load_profile("home-dynamic")
