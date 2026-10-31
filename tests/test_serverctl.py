@@ -22,7 +22,7 @@ class TestProfiles(unittest.TestCase):
             int(digest, 16)
 
     def test_all_profiles_valid(self):
-        for name in ("home-static", "home-dynamic", "vps"):
+        for name in ("home-static", "home-dynamic", "vps", "school-lan"):
             with self.subTest(name=name):
                 profile = serverctl.load_profile(name)
                 self.assertEqual(name, profile["name"])
@@ -36,6 +36,22 @@ class TestProfiles(unittest.TestCase):
         self.assertFalse(x["Firewall"]["публичные HTTP/HTTPS"])
         self.assertFalse(x["1Panel"]["публичное открытие панели"])
         self.assertEqual([], x["веб-сайты"])
+
+    def test_school_lan_plan_is_private_and_without_tailscale(self):
+        config = serverctl.load_profile("school-lan")
+        self.assertFalse(config["allow_public_web"])
+        self.assertFalse(config["install_tailscale"])
+        self.assertFalse(config["admin_over_tailscale"])
+        self.assertEqual([], config["websites"])
+        with mock.patch.dict(os.environ, {}, clear=True):
+            admin_cidrs = serverctl.ssh_admin_cidrs(config, [])
+        self.assertEqual(["10.53.0.2/32", "172.23.104.191/32"], admin_cidrs)
+        summary = serverctl.plan(config, admin_cidrs)
+        self.assertFalse(summary["Firewall"]["публичные HTTP/HTTPS"])
+        self.assertFalse(summary["1Panel"]["публичное открытие панели"])
+        self.assertNotIn("Авторизация Tailscale", summary["отдельные этапы после установки"])
+        self.assertTrue(config["install_docker"])
+        self.assertTrue(config["install_1panel"])
 
     def test_vps_needs_explicit_admin_cidr_when_no_ssh(self):
         with mock.patch.dict(os.environ, {}, clear=True):
