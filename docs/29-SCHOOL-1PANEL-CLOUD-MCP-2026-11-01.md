@@ -2,6 +2,16 @@
 
 ## 01.11.2026 — исправленный самостоятельный ввод Яндекс/Tailscale на VM100
 
+### MCP: подтверждённый блокер существующего установщика тестового стенда
+
+- На школьной VM100 checkout `/srv/asa-lab` и `tools/asa_manager.py`, `.asa/installation.json` фактически принадлежат **root**, каталог `/srv/asa-lab` mode0700; доступ владельца 1000 к отдельному rclone-контейнеру не доказывает права на checkout.
+- В `Server-setings/scripts/install-asa-operations.sh` действуют обязательные проверки `root.stat().st_uid == installation.owner_uid`, `owner_uid != 0` и наличие `setfacl`. На VM100 **`setfacl` отсутствует**, `/etc/server-settings/asa-operations.json` отсутствует.
+- Из-за этих фактов **нельзя запускать** installer из тестового стенда на текущей VM100 с копированием конфигурации или массовым chown: это может нарушить идентичность проекта, доступ к PostgreSQL/MinIO или update gates. Нужна адаптация самого `Server-setings` для root-owned bootstrap с предварительным review, изолированным backend, отдельными machine UUID/token и проверенной полной цепочкой публичного OAuth gateway для ChatGPT.
+- Подключённый в этом ChatGPT `asa-test` MCP не является VM100. Проверка 01.11.2026: его базовые 1Panel read-инструменты работают, а `asa_admin_status` возвращает `UNAVAILABLE`; это нельзя выдавать за полноценную проверку тестовой конфигурации.
+- VM100 локальный `server-settings-1panel-mcp.service` active, access readonly; прямой административный MCP HTTPS/OAuth ещё **НЕ** доведён. Пробный `asa-chatgpt-direct-agent.service` отключён (disabled/inactive), не считать его прямым MCP.
+
+
+
 **Факт:** ранее предложенный `127.0.0.1:53682/auth` относится к временному loopback-серверу rclone. Для API-приложения Яндекса правильный redirect — `https://oauth.yandex.ru/verification_code`. На D2-R2 официальный адрес регистрации `https://oauth.yandex.ru/client/new/` открыл вход Яндекс Passport; внутри VM100 HTTP HEAD может ответить 405, что **не** является проверкой страницы браузерным GET. Прежний стандартный rclone OAuth на VM100 остаётся `token_configured=true,connected=false,410 Gone`.
 
 Установлена **на самой VM100** команда `/usr/local/sbin/asa-school-connect` (root0755, код из этой ветки GitHub). 214 тестов Server-setings на VM100 PASS до установки. Она не требует работы D2-R2, тестового сервера и каких-либо внешних авторизационных окон, запущенных на других компьютерах.
