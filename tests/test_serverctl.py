@@ -149,21 +149,65 @@ class TestProfiles(unittest.TestCase):
     def test_school_removes_vendor_unscoped_1panel_rule_before_enabling_firewall(self):
         config = serverctl.load_profile("school-lan")
         calls = []
+        tagged = (
+            "Status: active\n"
+            "[ 1] 19192/tcp ALLOW IN Anywhere # 1panel-rule:5395d579-8c46-4c25-8922-24177503603b\n"
+        )
+        private = (
+            "Status: active\n"
+            "[ 1] 22/tcp ALLOW IN 10.53.0.2\n"
+            "[ 2] 19192/tcp ALLOW IN 10.53.0.2\n"
+            "[ 3] 22/tcp ALLOW IN 172.23.104.191\n"
+            "[ 4] 19192/tcp ALLOW IN 172.23.104.191\n"
+        )
         responses = [
             subprocess.CompletedProcess(["ufw", "show", "added"], 0,
                 stdout="Added user rules:\nufw allow 19192/tcp\n", stderr=""),
             subprocess.CompletedProcess(["ufw", "show", "added"], 0,
                 stdout="Added user rules:\n", stderr=""),
+            subprocess.CompletedProcess(["ufw", "status", "numbered"], 0, stdout=tagged, stderr=""),
+            subprocess.CompletedProcess(["ufw", "status", "numbered"], 0, stdout=private, stderr=""),
         ]
         with mock.patch.object(serverctl.subprocess, "run", side_effect=responses) as mock_run:
             with mock.patch.object(serverctl, "command", side_effect=lambda *args: calls.append(args)):
                 serverctl.apply_firewall(config, ["10.53.0.2/32", "172.23.104.191/32"])
-        self.assertEqual(2, mock_run.call_count)
+        self.assertEqual(4, mock_run.call_count)
         self.assertIn(("ufw", "--force", "delete", "allow", "19192/tcp"), calls)
+        self.assertIn(("ufw", "--force", "delete", "1"), calls)
         self.assertIn(("ufw", "--force", "enable"), calls)
         self.assertNotIn(("ufw", "allow", "19192/tcp"), calls)
         self.assertNotIn(("ufw", "allow", "80/tcp"), calls)
         self.assertNotIn(("ufw", "allow", "443/tcp"), calls)
+
+    def test_school_rejects_unknown_unrestricted_rule(self):
+        config = serverctl.load_profile("school-lan")
+        public = "Status: active\n[ 1] 19192/tcp ALLOW IN Anywhere\n"
+        result = subprocess.CompletedProcess(["ufw", "status", "numbered"], 0, stdout=public, stderr="")
+        with mock.patch.object(serverctl.subprocess, "run", return_value=result):
+            with mock.patch.object(serverctl, "command") as change:
+                with self.assertRaisesRegex(RuntimeError, "Неизвестное публичное"):
+                    serverctl.enforce_school_private_ufw(
+                        config, ["10.53.0.2/32", "172.23.104.191/32"]
+                    )
+                change.assert_not_called()
+
+    def test_school_refuses_post_install_missing_trusted_acl(self):
+        config = serverctl.load_profile("school-lan")
+        private_missing_panel = (
+            "Status: active\n"
+            "[ 1] 22/tcp ALLOW IN 10.53.0.2\n"
+            "[ 2] 22/tcp ALLOW IN 172.23.104.191\n"
+        )
+        result = subprocess.CompletedProcess(
+            ["ufw", "status", "numbered"], 0, stdout=private_missing_panel, stderr=""
+        )
+        with mock.patch.object(serverctl.subprocess, "run", return_value=result):
+            with mock.patch.object(serverctl, "command") as change:
+                with self.assertRaisesRegex(RuntimeError, "Отсутствует"):
+                    serverctl.enforce_school_private_ufw(
+                        config, ["10.53.0.2/32", "172.23.104.191/32"]
+                    )
+                change.assert_not_called()
 
     def test_school_refuses_unremoved_unrestricted_1panel_rule(self):
         config = serverctl.load_profile("school-lan")
