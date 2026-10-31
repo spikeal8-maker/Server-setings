@@ -162,6 +162,25 @@ def download(url: str, path: Path):
         Path(temporary).unlink(missing_ok=True)
 
 
+def stage_panel_bundle(url: str, destination: Path, expected_sha256: str):
+    """Load only an official SHA256-checked panel archive, optionally from a root-only staging cache."""
+    cached = STATE / "verified-artifacts" / destination.name
+    if cached.exists() or cached.is_symlink():
+        if cached.is_symlink() or not cached.is_file():
+            raise RuntimeError("Небезопасный кеш архива 1Panel")
+        metadata = cached.stat()
+        if metadata.st_uid != os.geteuid() or (metadata.st_mode & 0o077):
+            raise RuntimeError("Небезопасные права доступа к кешу 1Panel")
+        if hashlib.sha256(cached.read_bytes()).hexdigest() != expected_sha256:
+            raise RuntimeError("SHA256 кешированного архива 1Panel не совпадает с официальным манифестом")
+        shutil.copyfile(cached, destination)
+        print("Загружен проверенный локальный архив 1Panel", flush=True)
+    else:
+        download(url, destination)
+    if hashlib.sha256(destination.read_bytes()).hexdigest() != expected_sha256:
+        raise RuntimeError("SHA256 пакета 1Panel не совпадает с официальным манифестом")
+
+
 def install_base_packages():
     command("apt-get", "update")
     command("apt-get", "install", "-y", "ca-certificates", "curl", "gnupg", "git", "jq", "openssl", "rsync", "ufw", "python3")
@@ -230,10 +249,7 @@ def install_panel(data: dict, arch: str):
         locked = json.loads((ROOT / "versions.lock.json").read_text(encoding="utf-8"))
         if locked["1panel"]["version"] != version or locked["1panel"]["sha256"].get(arch) != expected:
             raise RuntimeError("Официальный манифест отличается от закреплённого SHA256 в репозитории")
-        download(base + "/" + basename, bundle)
-        actual = hashlib.sha256(bundle.read_bytes()).hexdigest()
-        if actual != expected:
-            raise RuntimeError("SHA256 пакета 1Panel не совпадает с официальным манифестом")
+        stage_panel_bundle(base + "/" + basename, bundle, expected)
         with tarfile.open(bundle, "r:gz") as tar:
             root = folder.resolve()
             for member in tar.getmembers():
