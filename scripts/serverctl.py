@@ -107,8 +107,9 @@ def plan(data: dict, admin_cidrs: list[str]) -> dict:
         "Firewall": {"политика": "deny incoming", "публичные HTTP/HTTPS": data["allow_public_web"],
                      "Tailscale для SSH и панели": data["admin_over_tailscale"]},
         "веб-сайты": data.get("websites", []),
-        "отдельные этапы после установки": ["Авторизация Tailscale", "Установка OpenResty в 1Panel через API",
-                                             "Регистрация сайтов и сертификатов в 1Panel", "Резервные копии приложений"],
+        "отдельные этапы после установки": (["Авторизация Tailscale"] if data["install_tailscale"] else []) +
+            ["Установка OpenResty в 1Panel через API",
+             "Регистрация сайтов и сертификатов в 1Panel", "Резервные копии приложений"],
     }
 
 
@@ -305,7 +306,7 @@ def repair_stale_public_caddy(apply: bool):
 def main():
     parser = argparse.ArgumentParser(description="Установка и аудит сервера Ubuntu с 1Panel")
     parser.add_argument("action", choices=("plan", "install", "doctor", "repair-public-caddy"))
-    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps"), default="home-static")
+    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps", "school-lan"), default="home-static")
     parser.add_argument("--admin-cidr", action="append", default=[])
     parser.add_argument("--apply", action="store_true", help="разрешить изменения системы")
     args = parser.parse_args()
