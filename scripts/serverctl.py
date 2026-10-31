@@ -286,6 +286,17 @@ def install_panel(data: dict, arch: str):
 def apply_firewall(data: dict, cidrs: list[str]):
     if not cidrs:
         raise RuntimeError("Блокировка UFW: нет безопасного CIDR для SSH. Используйте --admin-cidr")
+    if data["name"] == "school-lan":
+        # The official 1Panel installer adds an unrestricted 'ufw allow <panel-port>/tcp'
+        # before this profile configures network ACLs. Remove only that exact rule.
+        unscoped = f"ufw allow {data['panel_port']}/tcp"
+        def ufw_added_rules() -> list[str]:
+            result = subprocess.run(["ufw", "show", "added"], check=True, text=True, capture_output=True)
+            return [line.strip() for line in result.stdout.splitlines()]
+        if unscoped in ufw_added_rules():
+            command("ufw", "--force", "delete", "allow", f"{data['panel_port']}/tcp")
+        if unscoped in ufw_added_rules():
+            raise RuntimeError("Не удалось удалить публичное правило доступа к школьной 1Panel")
     for port in resolve_ssh_ports(data):
         for cidr in cidrs:
             command("ufw", "allow", "from", cidr, "to", "any", "port", str(port), "proto", "tcp")
