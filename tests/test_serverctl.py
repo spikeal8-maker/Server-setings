@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -21,8 +22,17 @@ class TestProfiles(unittest.TestCase):
             self.assertEqual(64, len(digest))
             int(digest, 16)
 
+    def test_generated_panel_credentials_satisfy_official_v2_installer(self):
+        for _ in range(48):
+            password, entrance = serverctl.generate_panel_credentials()
+            self.assertRegex(password, r"^[A-Za-z0-9_!@#$%*,.?]{8,30}$")
+            self.assertRegex(entrance, r"^[A-Za-z0-9_]{3,30}$")
+            self.assertEqual(18, len(password))
+            self.assertEqual(23, len(entrance))
+            self.assertTrue(entrance.startswith("access_"))
+
     def test_all_profiles_valid(self):
-        for name in ("home-static", "home-dynamic", "vps"):
+        for name in ("home-static", "home-dynamic", "vps", "school-lan"):
             with self.subTest(name=name):
                 profile = serverctl.load_profile(name)
                 self.assertEqual(name, profile["name"])
@@ -30,12 +40,145 @@ class TestProfiles(unittest.TestCase):
                 self.assertEqual(19192, profile["panel_port"])
                 self.assertTrue(profile["install_1panel"])
 
+    def test_https_download_is_atomic_and_requires_https(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "artifact.txt"
+            with mock.patch.object(serverctl, "is_installed", return_value=True):
+                with self.assertRaisesRegex(RuntimeError, "Небезопасная"):
+                    serverctl.download("http://example.invalid/a", destination)
+
+                def fake_curl(cmd, **kwargs):
+                    self.assertEqual("curl", cmd[0])
+                    self.assertIn("--fail", cmd)
+                    self.assertIn("--proto", cmd)
+                    self.assertIn("=https", cmd)
+                    self.assertIn("--proto-redir", cmd)
+                    self.assertNotIn("--insecure", cmd)
+                    partial = Path(cmd[cmd.index("--output") + 1])
+                    self.assertNotEqual(partial, destination)
+                    partial.write_bytes(b"checksum-manifest")
+                    return subprocess.CompletedProcess(cmd, 0)
+
+                with mock.patch.object(serverctl.subprocess, "run", side_effect=fake_curl):
+                    serverctl.download("https://example.invalid/checksums.txt", destination)
+            self.assertEqual(b"checksum-manifest", destination.read_bytes())
+            self.assertEqual(["artifact.txt"], [p.name for p in Path(tmp).iterdir()])
+
+    def test_failed_https_download_preserves_destination(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "artifact.txt"
+            destination.write_bytes(b"original")
+
+            def interrupted_curl(cmd, **kwargs):
+                Path(cmd[cmd.index("--output") + 1]).write_bytes(b"partial")
+                raise subprocess.CalledProcessError(22, cmd)
+
+            with mock.patch.object(serverctl, "is_installed", return_value=True):
+                with mock.patch.object(serverctl.subprocess, "run", side_effect=interrupted_curl):
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        serverctl.download("https://example.invalid/a", destination)
+            self.assertEqual(b"original", destination.read_bytes())
+            self.assertEqual(["artifact.txt"], [p.name for p in Path(tmp).iterdir()])
+
+    def test_offline_panel_archive_cache_verified_without_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            cache_dir = state / "verified-artifacts"
+            cache_dir.mkdir()
+            archive = cache_dir / "1panel-v2.3.2-linux-amd64.tar.gz"
+            archive.write_bytes(b"synthetic-pinned-archive")
+            archive.chmod(0o600)
+            target = state / "copied" / archive.name
+            target.parent.mkdir()
+            import hashlib
+            expected = hashlib.sha256(archive.read_bytes()).hexdigest()
+            with mock.patch.object(serverctl, "STATE", state), mock.patch.object(
+                serverctl, "download", side_effect=AssertionError("network fallback not allowed")
+            ):
+                serverctl.stage_panel_bundle("https://resource.1panel.pro/official", target, expected)
+            self.assertEqual(archive.read_bytes(), target.read_bytes())
+
+    def test_offline_panel_archive_rejects_bad_checksum_and_permissions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            cache_dir = state / "verified-artifacts"
+            cache_dir.mkdir()
+            archive = cache_dir / "1panel-v2.3.2-linux-amd64.tar.gz"
+            archive.write_bytes(b"untrusted-bytes")
+            archive.chmod(0o600)
+            target = state / "bundle" / archive.name
+            target.parent.mkdir()
+            with mock.patch.object(serverctl, "STATE", state), mock.patch.object(
+                serverctl, "download", side_effect=AssertionError("must not fetch")
+            ):
+                with self.assertRaisesRegex(RuntimeError, "SHA256"):
+                    serverctl.stage_panel_bundle("https://resource.1panel.pro/official", target, "a" * 64)
+                self.assertFalse(target.exists())
+                archive.chmod(0o644)
+                import hashlib
+                with self.assertRaisesRegex(RuntimeError, "права"):
+                    serverctl.stage_panel_bundle(
+                        "https://resource.1panel.pro/official", target,
+                        hashlib.sha256(archive.read_bytes()).hexdigest(),
+                    )
+                self.assertFalse(target.exists())
+
     def test_home_dynamic_does_not_open_public_ports(self):
         config = serverctl.load_profile("home-dynamic")
         x = serverctl.plan(config, ["192.168.1.0/24"])
         self.assertFalse(x["Firewall"]["публичные HTTP/HTTPS"])
         self.assertFalse(x["1Panel"]["публичное открытие панели"])
         self.assertEqual([], x["веб-сайты"])
+
+    def test_school_lan_plan_is_private_and_without_tailscale(self):
+        config = serverctl.load_profile("school-lan")
+        self.assertFalse(config["allow_public_web"])
+        self.assertFalse(config["install_tailscale"])
+        self.assertFalse(config["admin_over_tailscale"])
+        self.assertEqual([], config["websites"])
+        with mock.patch.dict(os.environ, {}, clear=True):
+            admin_cidrs = serverctl.ssh_admin_cidrs(config, [])
+        self.assertEqual(["10.53.0.2/32", "172.23.104.191/32"], admin_cidrs)
+        summary = serverctl.plan(config, admin_cidrs)
+        self.assertFalse(summary["Firewall"]["публичные HTTP/HTTPS"])
+        self.assertFalse(summary["1Panel"]["публичное открытие панели"])
+        self.assertNotIn("Авторизация Tailscale", summary["отдельные этапы после установки"])
+        self.assertTrue(config["install_docker"])
+        self.assertTrue(config["install_1panel"])
+
+    def test_school_removes_vendor_unscoped_1panel_rule_before_enabling_firewall(self):
+        config = serverctl.load_profile("school-lan")
+        calls = []
+        responses = [
+            subprocess.CompletedProcess(["ufw", "show", "added"], 0,
+                stdout="Added user rules:\nufw allow 19192/tcp\n", stderr=""),
+            subprocess.CompletedProcess(["ufw", "show", "added"], 0,
+                stdout="Added user rules:\n", stderr=""),
+        ]
+        with mock.patch.object(serverctl.subprocess, "run", side_effect=responses) as mock_run:
+            with mock.patch.object(serverctl, "command", side_effect=lambda *args: calls.append(args)):
+                serverctl.apply_firewall(config, ["10.53.0.2/32", "172.23.104.191/32"])
+        self.assertEqual(2, mock_run.call_count)
+        self.assertIn(("ufw", "--force", "delete", "allow", "19192/tcp"), calls)
+        self.assertIn(("ufw", "--force", "enable"), calls)
+        self.assertNotIn(("ufw", "allow", "19192/tcp"), calls)
+        self.assertNotIn(("ufw", "allow", "80/tcp"), calls)
+        self.assertNotIn(("ufw", "allow", "443/tcp"), calls)
+
+    def test_school_refuses_unremoved_unrestricted_1panel_rule(self):
+        config = serverctl.load_profile("school-lan")
+        result = subprocess.CompletedProcess(
+            ["ufw", "show", "added"], 0, stdout="ufw allow 19192/tcp\n", stderr=""
+        )
+        with mock.patch.object(serverctl.subprocess, "run", return_value=result):
+            with mock.patch.object(serverctl, "command") as change:
+                with self.assertRaisesRegex(RuntimeError, "правило"):
+                    serverctl.apply_firewall(config, ["10.53.0.2/32"])
+                self.assertIn(
+                    mock.call("ufw", "--force", "delete", "allow", "19192/tcp"),
+                    change.call_args_list,
+                )
+                self.assertNotIn(mock.call("ufw", "--force", "enable"), change.call_args_list)
 
     def test_vps_needs_explicit_admin_cidr_when_no_ssh(self):
         with mock.patch.dict(os.environ, {}, clear=True):

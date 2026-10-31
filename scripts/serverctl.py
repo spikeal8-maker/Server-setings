@@ -17,7 +17,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "profiles"
@@ -107,8 +106,9 @@ def plan(data: dict, admin_cidrs: list[str]) -> dict:
         "Firewall": {"политика": "deny incoming", "публичные HTTP/HTTPS": data["allow_public_web"],
                      "Tailscale для SSH и панели": data["admin_over_tailscale"]},
         "веб-сайты": data.get("websites", []),
-        "отдельные этапы после установки": ["Авторизация Tailscale", "Установка OpenResty в 1Panel через API",
-                                             "Регистрация сайтов и сертификатов в 1Panel", "Резервные копии приложений"],
+        "отдельные этапы после установки": (["Авторизация Tailscale"] if data["install_tailscale"] else []) +
+            ["Установка OpenResty в 1Panel через API",
+             "Регистрация сайтов и сертификатов в 1Panel", "Резервные копии приложений"],
     }
 
 
@@ -143,9 +143,42 @@ def write_secure(path: Path, content: str):
 def download(url: str, path: Path):
     if not url.startswith("https://"):
         raise RuntimeError("Небезопасная ссылка скачивания")
-    req = urllib.request.Request(url, headers={"User-Agent": "ASA-server-settings/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as response, path.open("wb") as target:
-        shutil.copyfileobj(response, target)
+    if not is_installed("curl"):
+        raise RuntimeError("Для HTTPS-загрузки необходим curl; выполните установку базовых пакетов")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".part", dir=str(path.parent))
+    os.close(fd)
+    try:
+        subprocess.run(
+            ["curl", "--fail", "--silent", "--show-error", "--location",
+             "--proto", "=https", "--proto-redir", "=https",
+             "--connect-timeout", "30", "--max-time", "600",
+             "--retry", "2", "--retry-delay", "2",
+             "--output", temporary, url],
+            check=True, capture_output=True, text=True,
+        )
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def stage_panel_bundle(url: str, destination: Path, expected_sha256: str):
+    """Load only an official SHA256-checked panel archive, optionally from a root-only staging cache."""
+    cached = STATE / "verified-artifacts" / destination.name
+    if cached.exists() or cached.is_symlink():
+        if cached.is_symlink() or not cached.is_file():
+            raise RuntimeError("Небезопасный кеш архива 1Panel")
+        metadata = cached.stat()
+        if metadata.st_uid != os.geteuid() or (metadata.st_mode & 0o077):
+            raise RuntimeError("Небезопасные права доступа к кешу 1Panel")
+        if hashlib.sha256(cached.read_bytes()).hexdigest() != expected_sha256:
+            raise RuntimeError("SHA256 кешированного архива 1Panel не совпадает с официальным манифестом")
+        shutil.copyfile(cached, destination)
+        print("Загружен проверенный локальный архив 1Panel", flush=True)
+    else:
+        download(url, destination)
+    if hashlib.sha256(destination.read_bytes()).hexdigest() != expected_sha256:
+        raise RuntimeError("SHA256 пакета 1Panel не совпадает с официальным манифестом")
 
 
 def install_base_packages():
@@ -188,6 +221,18 @@ def install_tailscale():
     print("Далее владелец должен выполнить: sudo tailscale up")
 
 
+def generate_panel_credentials() -> tuple[str, str]:
+    """Generate official 1Panel v2 credentials with usable 8-30 and 3-30 character limits."""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+    password = "".join(secrets.choice(alphabet) for _ in range(18))
+    entrance = "access_" + secrets.token_hex(8)
+    if not re.fullmatch(r"[A-Za-z0-9_!@#$%*,.?]{8,30}", password):
+        raise RuntimeError("Сгенерированный пароль не отвечает ограничениям 1Panel")
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", entrance):
+        raise RuntimeError("Сгенерированный путь входа не отвечает ограничениям 1Panel")
+    return password, entrance
+
+
 def install_panel(data: dict, arch: str):
     if is_installed("1pctl"):
         print("1Panel уже установлена; пропускаю")
@@ -196,8 +241,7 @@ def install_panel(data: dict, arch: str):
     credentials = STATE / "1panel-admin.env"
     if credentials.exists():
         raise RuntimeError("Найдены прежние credentials при отсутствии 1Panel. Требуется ручной аудит")
-    password = secrets.token_urlsafe(24)
-    entrance = "access_" + secrets.token_hex(12)
+    password, entrance = generate_panel_credentials()
     version = data["panel_version"]
     basename = f"1panel-{version}-linux-{arch}.tar.gz"
     base = f"{PANEL_ARTIFACT_BASE}/{version}/release"
@@ -216,10 +260,7 @@ def install_panel(data: dict, arch: str):
         locked = json.loads((ROOT / "versions.lock.json").read_text(encoding="utf-8"))
         if locked["1panel"]["version"] != version or locked["1panel"]["sha256"].get(arch) != expected:
             raise RuntimeError("Официальный манифест отличается от закреплённого SHA256 в репозитории")
-        download(base + "/" + basename, bundle)
-        actual = hashlib.sha256(bundle.read_bytes()).hexdigest()
-        if actual != expected:
-            raise RuntimeError("SHA256 пакета 1Panel не совпадает с официальным манифестом")
+        stage_panel_bundle(base + "/" + basename, bundle, expected)
         with tarfile.open(bundle, "r:gz") as tar:
             root = folder.resolve()
             for member in tar.getmembers():
@@ -245,6 +286,17 @@ def install_panel(data: dict, arch: str):
 def apply_firewall(data: dict, cidrs: list[str]):
     if not cidrs:
         raise RuntimeError("Блокировка UFW: нет безопасного CIDR для SSH. Используйте --admin-cidr")
+    if data["name"] == "school-lan":
+        # The official 1Panel installer adds an unrestricted 'ufw allow <panel-port>/tcp'
+        # before this profile configures network ACLs. Remove only that exact rule.
+        unscoped = f"ufw allow {data['panel_port']}/tcp"
+        def ufw_added_rules() -> list[str]:
+            result = subprocess.run(["ufw", "show", "added"], check=True, text=True, capture_output=True)
+            return [line.strip() for line in result.stdout.splitlines()]
+        if unscoped in ufw_added_rules():
+            command("ufw", "--force", "delete", "allow", f"{data['panel_port']}/tcp")
+        if unscoped in ufw_added_rules():
+            raise RuntimeError("Не удалось удалить публичное правило доступа к школьной 1Panel")
     for port in resolve_ssh_ports(data):
         for cidr in cidrs:
             command("ufw", "allow", "from", cidr, "to", "any", "port", str(port), "proto", "tcp")
@@ -305,7 +357,7 @@ def repair_stale_public_caddy(apply: bool):
 def main():
     parser = argparse.ArgumentParser(description="Установка и аудит сервера Ubuntu с 1Panel")
     parser.add_argument("action", choices=("plan", "install", "doctor", "repair-public-caddy"))
-    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps"), default="home-static")
+    parser.add_argument("--profile", choices=("home-static", "home-dynamic", "vps", "school-lan"), default="home-static")
     parser.add_argument("--admin-cidr", action="append", default=[])
     parser.add_argument("--apply", action="store_true", help="разрешить изменения системы")
     args = parser.parse_args()
