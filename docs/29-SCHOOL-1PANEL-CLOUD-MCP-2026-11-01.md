@@ -1,5 +1,23 @@
 # Школьный Proxmox: передача управления в 1Panel, MCP, Яндекс Диск
 
+## 01.11.2026 — исправленный самостоятельный ввод Яндекс/Tailscale на VM100
+
+**Факт:** ранее предложенный `127.0.0.1:53682/auth` относится к временному loopback-серверу rclone. Для API-приложения Яндекса правильный redirect — `https://oauth.yandex.ru/verification_code`. На D2-R2 официальный адрес регистрации `https://oauth.yandex.ru/client/new/` открыл вход Яндекс Passport; внутри VM100 HTTP HEAD может ответить 405, что **не** является проверкой страницы браузерным GET. Прежний стандартный rclone OAuth на VM100 остаётся `token_configured=true,connected=false,410 Gone`.
+
+Установлена **на самой VM100** команда `/usr/local/sbin/asa-school-connect` (root0755, код из этой ветки GitHub). 214 тестов Server-setings на VM100 PASS до установки. Она не требует работы D2-R2, тестового сервера и каких-либо внешних авторизационных окон, запущенных на других компьютерах.
+
+В 1Panel **школьной VM100**, в терминале Ubuntu-host (не терминале Docker-контейнера), выполнить:
+
+- `sudo asa-school-connect status` — текущие статусы без секретов;
+- `sudo asa-school-connect yandex` — скрытый ввод Client ID и Client Secret, официальный браузерный OAuth Яндекса с `response_type=code`, `PKCE S256` и `redirect_uri=https://oauth.yandex.ru/verification_code`. Код с Яндекса вводится в этом же терминале. Сервер самостоятельно обменивает code на токен по HTTPS; требует **refresh_token**, записывает client/token в конфигурацию rclone mode0600 uid1000; принимает только пустую конфигурацию или уже подтверждённый сбой 410 старого стандартного OAuth; проверяет реальный `lsjson --stat yandex:ASA-Backups`; при ошибке восстанавливает исходное содержимое. Резервирование автоматически **не включается**.
+- `sudo asa-school-connect tailscale` — скрытый ввод **one-off**, **non-ephemeral**, по необходимости **pre-approved** auth key из `https://login.tailscale.com/admin/settings/keys`. Ключ хранится в кратковременном root0600 файле `/run/tailscale/`, передаётся `tailscale up --auth-key=file:...` без токена в CLI args/history, затем удаляется. После регистрации проверяются Running, выделенный IP, актуальный node ID, Online и DNS-суффикс Tailnet `tail605710.ts.net.`.
+
+**Регистрация приложения Яндекс выполняется владельцем один раз на официальной странице** `https://oauth.yandex.ru/client/new/`, тип «Для доступа к API или отладки», имя `ASA Lab School Server Backups`, права `cloud_api:disk.read`, `cloud_api:disk.write`, `cloud_api:disk.info`. Приложение и OAuth-токен должны оставаться у владельца и на VM100, **не** в чатах, GitHub и D2-R2. Повторно использовать старую локальную форму `ASA Lab - Yandex Disk VM100` на D2-R2 **не нужно**.
+
+**Приёмка ещё не пройдена:** реальный Яндекс OAuth требует входа владельца; реальный Tailscale key требует выдачи владельцем. Не заявлять connected=true или Tailnet Running без успешного live status и проверки чтения облачной папки, не создавать ночное расписание без проверки шифрованного upload/download/restore. Прямой HTTPS/OAuth ChatGPT MCP **не готов** — локальный readonly не является полным удалённым доступом.
+
+
+
 **Статус: частичное внедрение, эксплуатационная приёмка не пройдена.** Актуализация 01.11.2026.
 
 
