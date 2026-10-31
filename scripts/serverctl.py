@@ -17,7 +17,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILES = ROOT / "profiles"
@@ -144,9 +143,23 @@ def write_secure(path: Path, content: str):
 def download(url: str, path: Path):
     if not url.startswith("https://"):
         raise RuntimeError("Небезопасная ссылка скачивания")
-    req = urllib.request.Request(url, headers={"User-Agent": "ASA-server-settings/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as response, path.open("wb") as target:
-        shutil.copyfileobj(response, target)
+    if not is_installed("curl"):
+        raise RuntimeError("Для HTTPS-загрузки необходим curl; выполните установку базовых пакетов")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".part", dir=str(path.parent))
+    os.close(fd)
+    try:
+        subprocess.run(
+            ["curl", "--fail", "--silent", "--show-error", "--location",
+             "--proto", "=https", "--proto-redir", "=https",
+             "--connect-timeout", "30", "--max-time", "600",
+             "--retry", "2", "--retry-delay", "2",
+             "--output", temporary, url],
+            check=True, capture_output=True, text=True,
+        )
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
 
 
 def install_base_packages():
