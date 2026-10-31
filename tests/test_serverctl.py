@@ -22,6 +22,15 @@ class TestProfiles(unittest.TestCase):
             self.assertEqual(64, len(digest))
             int(digest, 16)
 
+    def test_generated_panel_credentials_satisfy_official_v2_installer(self):
+        for _ in range(48):
+            password, entrance = serverctl.generate_panel_credentials()
+            self.assertRegex(password, r"^[A-Za-z0-9_!@#$%*,.?]{8,30}$")
+            self.assertRegex(entrance, r"^[A-Za-z0-9_]{3,30}$")
+            self.assertEqual(18, len(password))
+            self.assertEqual(23, len(entrance))
+            self.assertTrue(entrance.startswith("access_"))
+
     def test_all_profiles_valid(self):
         for name in ("home-static", "home-dynamic", "vps", "school-lan"):
             with self.subTest(name=name):
