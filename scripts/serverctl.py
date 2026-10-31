@@ -283,6 +283,48 @@ def install_panel(data: dict, arch: str):
         print("1Panel установлен. Временные файлы скачивания удалены. Корневые credentials: ", credentials)
 
 
+
+def enforce_school_private_ufw(data: dict, admin_cidrs: list[str]):
+    """Remove only identifiable vendor-created unrestricted 1Panel UFW rules.
+
+    The 1Panel API can create tagged rules invisible to 'ufw show added'.
+    Fail closed on unknown unrestricted rules. Called after enabling UFW.
+    """
+    result = subprocess.run(["ufw", "status", "numbered"], check=True, text=True, capture_output=True)
+    current = result.stdout
+    if "Status: active" not in current:
+        raise RuntimeError("Школьный UFW не активен; проверка ограничений доступа невозможна")
+    allowed = {"80/tcp", "443/tcp", "443/udp", "22/tcp", f"{data['panel_port']}/tcp"}
+    entries = []
+    for line in current.splitlines():
+        if "ALLOW IN" not in line or "Anywhere" not in line:
+            continue
+        found = re.match(
+            r"^\[\s*(\d+)\]\s+(\d+/(?:tcp|udp))(?:\s+\(v6\))?"
+            r"\s+ALLOW IN\s+Anywhere(?:\s+\(v6\))?"
+            r"\s+#\s+1panel-rule:[0-9a-f-]+\s*$", line
+        )
+        if not found or found.group(2) not in allowed:
+            raise RuntimeError("Неизвестное публичное правило UFW — школьная установка требует ручного аудита")
+        entries.append(int(found.group(1)))
+    for number in sorted(entries, reverse=True):
+        command("ufw", "--force", "delete", str(number))
+    after = subprocess.run(["ufw", "status", "numbered"], check=True, text=True, capture_output=True).stdout
+    if "Status: active" not in after:
+        raise RuntimeError("UFW перестал быть активным")
+    if any("ALLOW IN" in line and "Anywhere" in line for line in after.splitlines()):
+        raise RuntimeError("Осталось неограниченное правило UFW на школьной VM")
+    for cidr in admin_cidrs:
+        address = str(ipaddress.ip_network(cidr, strict=False).network_address)
+        for port in (int(data["ssh_port"]), int(data["panel_port"])):
+            if not any(
+                re.search(rf"\b{port}/tcp\b", line) and "ALLOW IN" in line and address in line
+                for line in after.splitlines()
+            ):
+                raise RuntimeError(f"Отсутствует ограниченный доступ {cidr} к TCP {port} для школьной VM")
+
+
+
 def apply_firewall(data: dict, cidrs: list[str]):
     if not cidrs:
         raise RuntimeError("Блокировка UFW: нет безопасного CIDR для SSH. Используйте --admin-cidr")
@@ -311,6 +353,8 @@ def apply_firewall(data: dict, cidrs: list[str]):
     command("ufw", "default", "deny", "incoming")
     command("ufw", "default", "allow", "outgoing")
     command("ufw", "--force", "enable")
+    if data["name"] == "school-lan":
+        enforce_school_private_ufw(data, cidrs)
 
 
 def read_command(args: list[str], limit: int = 10000) -> str:
