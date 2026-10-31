@@ -1,0 +1,91 @@
+{
+  "date": "2026-11-01",
+  "scope": "school-Proxmox-VM100-VM101",
+  "source_of_truth": "spikeal8-maker/Server-setings",
+  "reviewed_cloud_script_blob_sha": "32fd5e811de3547ff36a2a93cc952f78ee25f7fd",
+  "nodes": {
+    "vm100": {
+      "vmid": 100,
+      "host": "asa-school-01",
+      "purpose": "future production",
+      "app": {
+        "docker_project": "asa-lab-school",
+        "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
+        "schema": 286,
+        "healthy_services": 6
+      },
+      "panel": {
+        "version": "v2.3.2",
+        "core_active": true,
+        "agent_active": true,
+        "openresty_installed": false,
+        "websites_registered": 0,
+        "api_interface_enabled": false,
+        "api_key_present": false
+      },
+      "cloud": {
+        "docker_project": "asa-cloud-storage",
+        "container": "asa-cloud-storage-rclone-1",
+        "health": "healthy",
+        "authenticated": false,
+        "backup_schedule_enabled": false,
+        "has_database_mount": false,
+        "has_public_ports": false
+      },
+      "network": {
+        "school_nic_connected": false,
+        "public_domain": "x.asa-lab.ru",
+        "public_https_health_confirmed": true
+      }
+    },
+    "vm101": {
+      "vmid": 101,
+      "host": "asa-school-test-01",
+      "purpose": "test2",
+      "app": {
+        "docker_project": "asa-lab-test2",
+        "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
+        "schema": 286,
+        "healthy_services": 6
+      },
+      "panel": {
+        "installed": false
+      },
+      "cloud": {
+        "docker_project": "asa-cloud-storage",
+        "container": "asa-cloud-storage-rclone-1",
+        "health": "healthy",
+        "authenticated": false,
+        "backup_schedule_enabled": false,
+        "has_database_mount": false,
+        "has_public_ports": false
+      },
+      "network": {
+        "school_nic_connected": false,
+        "public_domain": "test2.asa-lab.ru",
+        "public_https_health_confirmed": true
+      }
+    }
+  },
+  "gates": {
+    "onepanel_api_key": "PENDING_OWNER_UI_ACTION",
+    "onepanel_managed_openresty": "NOT_INSTALLED",
+    "onepanel_managed_site_x": "NOT_REGISTERED",
+    "onepanel_api_inspection": "NOT_RUN_NO_API_KEY",
+    "vm100_mcp_local": "NOT_INSTALLED",
+    "vm100_mcp_chatgpt_oauth": "NOT_CONNECTED",
+    "vm100_yandex_oauth": "NOT_CONNECTED",
+    "vm101_yandex_oauth": "NOT_CONNECTED",
+    "backup_scheduler": "OFF",
+    "backup_offsite_restore": "NOT_TESTED",
+    "asa_user_browser_acceptance": "NOT_CONFIRMED"
+  },
+  "guardrails": [
+    "No live ASA database migration or restore",
+    "No public admin port opened",
+    "No 1Panel internal SQLite writes",
+    "No new DNS or FRP changes",
+    "No backup schedule or cloud token configured"
+  ],
+  "evidence": "VM100/VM101 QEMU Guest Agent, docker inspect, image digest, 1Panel read-only DB metadata; GitHub repo cloud script verified identical to main"
+}
