@@ -151,9 +151,9 @@ class TestProfiles(unittest.TestCase):
         calls = []
         responses = [
             subprocess.CompletedProcess(["ufw", "show", "added"], 0,
-                stdout="Added user rules:\\nufw allow 19192/tcp\\n", stderr=""),
+                stdout="Added user rules:\nufw allow 19192/tcp\n", stderr=""),
             subprocess.CompletedProcess(["ufw", "show", "added"], 0,
-                stdout="Added user rules:\\n", stderr=""),
+                stdout="Added user rules:\n", stderr=""),
         ]
         with mock.patch.object(serverctl.subprocess, "run", side_effect=responses) as mock_run:
             with mock.patch.object(serverctl, "command", side_effect=lambda *args: calls.append(args)):
@@ -168,7 +168,7 @@ class TestProfiles(unittest.TestCase):
     def test_school_refuses_unremoved_unrestricted_1panel_rule(self):
         config = serverctl.load_profile("school-lan")
         result = subprocess.CompletedProcess(
-            ["ufw", "show", "added"], 0, stdout="ufw allow 19192/tcp\\n", stderr=""
+            ["ufw", "show", "added"], 0, stdout="ufw allow 19192/tcp\n", stderr=""
         )
         with mock.patch.object(serverctl.subprocess, "run", return_value=result):
             with mock.patch.object(serverctl, "command") as change:
