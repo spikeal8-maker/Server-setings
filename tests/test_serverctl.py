@@ -71,6 +71,49 @@ class TestProfiles(unittest.TestCase):
             self.assertEqual(b"original", destination.read_bytes())
             self.assertEqual(["artifact.txt"], [p.name for p in Path(tmp).iterdir()])
 
+    def test_offline_panel_archive_cache_verified_without_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            cache_dir = state / "verified-artifacts"
+            cache_dir.mkdir()
+            archive = cache_dir / "1panel-v2.3.2-linux-amd64.tar.gz"
+            archive.write_bytes(b"synthetic-pinned-archive")
+            archive.chmod(0o600)
+            target = state / "copied" / archive.name
+            target.parent.mkdir()
+            import hashlib
+            expected = hashlib.sha256(archive.read_bytes()).hexdigest()
+            with mock.patch.object(serverctl, "STATE", state), mock.patch.object(
+                serverctl, "download", side_effect=AssertionError("network fallback not allowed")
+            ):
+                serverctl.stage_panel_bundle("https://resource.1panel.pro/official", target, expected)
+            self.assertEqual(archive.read_bytes(), target.read_bytes())
+
+    def test_offline_panel_archive_rejects_bad_checksum_and_permissions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            cache_dir = state / "verified-artifacts"
+            cache_dir.mkdir()
+            archive = cache_dir / "1panel-v2.3.2-linux-amd64.tar.gz"
+            archive.write_bytes(b"untrusted-bytes")
+            archive.chmod(0o600)
+            target = state / "bundle" / archive.name
+            target.parent.mkdir()
+            with mock.patch.object(serverctl, "STATE", state), mock.patch.object(
+                serverctl, "download", side_effect=AssertionError("must not fetch")
+            ):
+                with self.assertRaisesRegex(RuntimeError, "SHA256"):
+                    serverctl.stage_panel_bundle("https://resource.1panel.pro/official", target, "a" * 64)
+                self.assertFalse(target.exists())
+                archive.chmod(0o644)
+                import hashlib
+                with self.assertRaisesRegex(RuntimeError, "права"):
+                    serverctl.stage_panel_bundle(
+                        "https://resource.1panel.pro/official", target,
+                        hashlib.sha256(archive.read_bytes()).hexdigest(),
+                    )
+                self.assertFalse(target.exists())
+
     def test_home_dynamic_does_not_open_public_ports(self):
         config = serverctl.load_profile("home-dynamic")
         x = serverctl.plan(config, ["192.168.1.0/24"])
