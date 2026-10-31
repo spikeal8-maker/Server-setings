@@ -34,6 +34,9 @@ export GOTOOLCHAIN=auto
 export GOBIN="$BIN"
 go install "github.com/1Panel-dev/mcp-1panel@${MCP_COMMIT}"
 [[ -x "$BIN/mcp-1panel" ]] || { echo 'Сборка MCP не создала бинарный файл' >&2; exit 1; }
+# Go may create a root-only executable under umask 077. The systemd service uses
+# DynamicUser, so grant execute/read to it. Secrets remain in root-only mcp.env.
+chmod 0755 "$BIN/mcp-1panel"
 install -d -m 0700 "$CONF"
 # Вывод ключа не допускается ни в логи, ни в Git; EnvironmentFile доступен только root.
 PANEL_ACCESS_TOKEN="$(tr -d '\r\n' < "$PANEL_KEY")"
