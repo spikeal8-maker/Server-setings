@@ -65,6 +65,32 @@ class FakeAdapter:
         self.bounded.append(expire)
 
 
+class TrackingAdapter(FakeAdapter):
+    """Track server-created sessions even when their receipt cannot be saved."""
+    def __init__(self, f):
+        super().__init__(f)
+        self.sessions = {}
+        self.fences = []
+
+    def api(self, *args, **kwargs):
+        response, token = super().api(*args, **kwargs)
+        if token:
+            self.sessions[token] = {'hours': 24, 'revoked': False}
+        return response, token
+
+    def bound(self, f, expire=False):
+        fixture.validate(f)
+        self.fences.append(json.loads(json.dumps(f)))
+        super().bound(f, expire)
+        if expire:
+            for session in self.sessions.values():
+                session.update(hours=0, revoked=True)
+        else:
+            for row in f['seats']:
+                if row.get('token') in self.sessions:
+                    self.sessions[row['token']]['hours'] = 2
+
+
 class ProvisionerTests(unittest.TestCase):
     def fresh(self, **kwargs):
         return fixture.fresh('QA-offline-proof', REVISION, 289, ORIGIN, ['docker', 'operations:updates'], **kwargs)
@@ -123,6 +149,91 @@ class ProvisionerTests(unittest.TestCase):
         with self.assertRaises(fixture.FixtureError):
             fixture.provision(f, store, adapter)
         self.assertEqual(f['failureExpiry'], 'UNKNOWN_OPERATOR_MUST_EXPIRE')
+
+    def test_malformed_seat_code_never_poisoned_manifest_or_skips_own_expiry(self):
+        for invalid_code in ('Z' * 32, None, 123456):
+            with self.subTest(code_type=type(invalid_code).__name__):
+                f, store = self.fresh(), MemoryStore()
+                adapter = TrackingAdapter(f)
+                original = adapter.api
+
+                def bad_code(*args, **kwargs):
+                    response, token = original(*args, **kwargs)
+                    if args[1].endswith('/seats'):
+                        response['student']['studentCode'] = invalid_code
+                    return response, token
+
+                adapter.api = bad_code
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                    with self.assertRaisesRegex(fixture.FixtureError, '^PROVISION_PARTIAL_RETAINED$'):
+                        fixture.provision(f, store, adapter)
+                self.assertEqual(adapter.bounded, [True])
+                self.assertEqual(adapter.number, 1)
+                self.assertEqual(f['seats'], [])
+                self.assertEqual(f['pending'], 'create_seat_1')
+                self.assertEqual(f['failureExpiry'], 'OBSERVED_SESSIONS_EXPIRED_INFLIGHT_REQUEST_UNKNOWN')
+                self.assertEqual(fixture.validate(adapter.fences[0]), adapter.fences[0])
+                self.assertTrue(all(value['seats'] == [] for value in store.values))
+                self.assertEqual(output.getvalue(), '')
+
+    def test_permanent_save_failure_after_third_join_still_expires_native_session(self):
+        class FailingStore(MemoryStore):
+            broken = False
+
+            def save(self, f):
+                if len(f['seats']) == 3 and 'token' in f['seats'][2]:
+                    self.broken = True
+                if self.broken:
+                    raise OSError('PRIVATE_DISK_ERROR_TOKEN_SENTINEL')
+                super().save(f)
+
+        f, store = self.fresh(), FailingStore()
+        adapter = TrackingAdapter(f)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+            with self.assertRaisesRegex(fixture.FixtureError, '^PROVISION_PARTIAL_RECEIPT_FAILED$'):
+                fixture.provision(f, store, adapter)
+        self.assertEqual(adapter.number, 3)
+        self.assertEqual(adapter.bounded, [False, False, True])
+        self.assertEqual(len(adapter.sessions), 3)
+        self.assertTrue(all(s == {'hours': 0, 'revoked': True} for s in adapter.sessions.values()))
+        self.assertEqual(len(adapter.fences[-1]['seats']), 3)
+        self.assertIn('token', adapter.fences[-1]['seats'][2])
+        last_durable = store.values[-1]
+        self.assertEqual(last_durable['pending'], 'join_seat_3')
+        self.assertNotIn('token', last_durable['seats'][2])
+        fixture.validate(last_durable)
+        self.assertEqual(f['failureReceipt'], 'WRITE_FAILED_LAST_VALID_INTENT_RETAINED')
+        self.assertEqual(f['failureExpiry'], 'OBSERVED_SESSIONS_EXPIRED_INFLIGHT_REQUEST_UNKNOWN')
+        self.assertEqual(output.getvalue(), '')
+        with self.assertRaisesRegex(fixture.FixtureError, 'NO_AUTOMATIC_REPLAY'):
+            fixture.provision(f, store, adapter)
+
+    def test_malformed_sql_bootstrap_receipt_still_executes_actual_nonce_fence(self):
+        for malformed in ('{"accountId":PRIVATE_SQL_ROW_SECRET', '{"accountId":"not-a-uuid"}'):
+            with self.subTest(receipt=malformed[:12]):
+                f, store = self.fresh(), MemoryStore()
+                adapter = fixture.HostAdapter.__new__(fixture.HostAdapter)
+                adapter.container, adapter.user, adapter.database = 'fake-id', 'qa_admin', 'qa_database'
+                output = io.StringIO()
+                with patch.object(fixture.subprocess, 'run', side_effect=[
+                    SimpleNamespace(returncode=0, stdout=malformed, stderr='PRIVATE_SQL_ROW_SECRET'),
+                    SimpleNamespace(returncode=0, stdout='{"bounded":true}', stderr='')
+                ]) as run, contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                    with self.assertRaisesRegex(fixture.FixtureError, '^PROVISION_PARTIAL_RETAINED$'):
+                        fixture.provision(f, store, adapter)
+                self.assertEqual(run.call_count, 2)
+                bootstrap, cleanup = [call.kwargs['input'] for call in run.call_args_list]
+                self.assertIn('public.auth_register_account(', bootstrap)
+                self.assertIn("SET state='revoked'", cleanup)
+                self.assertIn("member_role='owner'", cleanup)
+                self.assertIn(f['roles']['teacher']['email'], cleanup)
+                self.assertNotIn('accountId', f['roles']['teacher'])
+                self.assertEqual(f['pending'], 'bootstrap_teacher')
+                fixture.validate(f)
+                self.assertNotIn('PRIVATE_SQL_ROW_SECRET', json.dumps(store.values))
+                self.assertEqual(output.getvalue(), '')
 
     def test_expiry_requires_exact_nonce_and_settled_unknown_request(self):
         f, store = self.fresh(), MemoryStore()

@@ -5,6 +5,7 @@ No live code is imported until --apply. Never print adapter exceptions or state.
 """
 import argparse
 import contextlib
+import copy
 from datetime import datetime, timedelta, timezone
 import hashlib
 import importlib
@@ -107,9 +108,9 @@ def validate(f):
     need(isinstance(seats, list) and len(seats) <= 100, 'SEATS_INVALID')
     for row in seats:
         ident(row.get('seat'))
-        need(re.fullmatch(r'[A-Za-z0-9]{4,10}', str(row.get('studentCode', ''))), 'STUDENT_CODE_INVALID')
+        need(isinstance(row.get('studentCode'), str) and re.fullmatch(r'[A-Za-z0-9]{4,10}', row['studentCode']), 'STUDENT_CODE_INVALID')
         if 'token' in row:
-            need(TOKEN.fullmatch(str(row['token'])), 'TOKEN_INVALID')
+            need(isinstance(row['token'], str) and TOKEN.fullmatch(row['token']), 'TOKEN_INVALID')
     need(len({s['seat'] for s in seats}) == len(seats), 'SEAT_DUPLICATE')
     need(len({s['token'] for s in seats if 'token' in s}) == sum('token' in s for s in seats), 'TOKEN_DUPLICATE')
     need(f['roles']['teacher']['token'] != f['roles']['admin']['token'], 'TOKEN_DUPLICATE')
@@ -120,7 +121,7 @@ def validate(f):
     for value in f['resources'].values():
         ident(value)
     if 'joinCode' in f:
-        need(CLASS_CODE.fullmatch(f['joinCode'].replace(' ', '')), 'CLASS_CODE_INVALID')
+        need(isinstance(f['joinCode'], str) and CLASS_CODE.fullmatch(f['joinCode'].replace(' ', '')), 'CLASS_CODE_INVALID')
     return f
 
 
@@ -392,60 +393,96 @@ class HostAdapter:
 
 def provision(f, store, adapter):
     need(f['state'] == 'intent', 'NO_AUTOMATIC_REPLAY')
+    validate(f)
+    recovery = copy.deepcopy(f)
+
+    def persist(candidate):
+        # Only fully validated response candidates may become canonical state.
+        # Remember valid ownership BEFORE disk I/O: a failed save must never
+        # prevent fencing a just-created account/class/session from memory.
+        nonlocal recovery
+        validate(candidate)
+        recovery = copy.deepcopy(candidate)
+        f.clear()
+        f.update(candidate)
+        store.save(copy.deepcopy(candidate))
+
+    def pending(stage):
+        candidate = copy.deepcopy(f)
+        candidate['pending'] = stage
+        persist(candidate)
+
     try:
         for role in ('teacher', 'admin'):
             need(datetime.now(timezone.utc) < datetime.fromisoformat(f['expiresAt']), 'FIXTURE_DEADLINE_EXPIRED')
-            f['pending'] = 'bootstrap_' + role
-            store.save(f)  # Persist recovery intent BEFORE each external mutation.
-            f['roles'][role].update(adapter.account(f, role))
-            store.save(f)
+            pending('bootstrap_' + role)  # Durable intent before mutation.
+            result = adapter.account(copy.deepcopy(f), role)
+            need(isinstance(result, dict) and set(result) == {'accountId', 'principalId', 'workspaceId', 'tenantId'},
+                 'ACCOUNT_RECEIPT_INVALID')
+            result = {key: ident(value) for key, value in result.items()}
+            candidate = copy.deepcopy(f)
+            candidate['roles'][role].update(result)
+            persist(candidate)
         teacher = f['roles']['teacher']['token']
-        f['pending'] = 'create_class'
-        store.save(f)
+        pending('create_class')
         response, _ = adapter.api(teacher, '/api/classrooms', {
             'title': f['label'] + ' ' + f['nonce'], 'ageBand': 'mixed',
             'topicKeys': [], 'safeModeDefault': True}, key=str(uuid.uuid4()))
+        need(isinstance(response, dict) and isinstance(response.get('classroom'), dict), 'NEW_CLASS_OWNERSHIP_INVALID')
         c = response['classroom']
         need(c.get('teacherRole') == 'owner' and c.get('workspaceKind') == 'personal'
              and c.get('title') == f['label'] + ' ' + f['nonce'], 'NEW_CLASS_OWNERSHIP_INVALID')
-        f['resources']['classroomId'] = ident(c['id'])
-        f['joinCode'] = c['joinCode']
-        store.save(f)
+        candidate = copy.deepcopy(f)
+        candidate['resources']['classroomId'] = ident(c.get('id'))
+        candidate['joinCode'] = c.get('joinCode')
+        persist(candidate)
         for index in range(100):
             need(datetime.now(timezone.utc) < datetime.fromisoformat(f['expiresAt']), 'FIXTURE_DEADLINE_EXPIRED')
-            f['pending'] = 'create_seat_' + str(index + 1)
-            store.save(f)
+            pending('create_seat_' + str(index + 1))
             data, _ = adapter.api(teacher, '/api/classrooms/' + c['id'] + '/seats', {
                 'displayLabel': f['label'] + ' pupil ' + str(index + 1), 'safeMode': True})
+            need(isinstance(data, dict) and isinstance(data.get('student'), dict), 'SEAT_RECEIPT_INVALID')
             student = data['student']
-            row = {'seat': ident(student['id']), 'studentCode': student['studentCode']}
-            f['seats'].append(row)
-            f['pending'] = 'join_seat_' + str(index + 1)
-            store.save(f)
+            row = {'seat': ident(student.get('id')), 'studentCode': student.get('studentCode')}
+            candidate = copy.deepcopy(f)
+            candidate['seats'].append(row)
+            candidate['pending'] = 'join_seat_' + str(index + 1)
+            persist(candidate)
             joined, token = adapter.api(None, '/api/class-join/studentseat', {
                 'code': f['joinCode'], 'studentCode': row['studentCode']})
-            need(joined.get('authenticated') is True and joined.get('student', {}).get('seatId') == row['seat']
+            need(isinstance(joined, dict) and joined.get('authenticated') is True
+                 and isinstance(joined.get('student'), dict) and isinstance(joined.get('classroom'), dict)
+                 and joined['student'].get('seatId') == row['seat']
                  and joined.get('classroom', {}).get('id') == c['id']
                  and isinstance(token, str) and TOKEN.fullmatch(token), 'ACTUAL_SEAT_JOIN_FAILED')
-            row['token'] = token
-            store.save(f)
+            candidate = copy.deepcopy(f)
+            candidate['seats'][index]['token'] = token
+            persist(candidate)
             adapter.bound(f)  # Native login TTL is shortened to this fixed cohort deadline.
         adapter.bound(f)
         need(datetime.now(timezone.utc) < datetime.fromisoformat(f['expiresAt']), 'FIXTURE_DEADLINE_EXPIRED')
-        f.update(state='core_ready', pending=None)
-        store.save(f)
+        candidate = copy.deepcopy(f)
+        candidate.update(state='core_ready', pending=None)
+        persist(candidate)
     except BaseException:
-        f['state'] = 'partial_requires_expiry'
-        store.save(f)
-        # A lost API response may have committed. Fence all sessions of the
-        # nonce-owned class, not only cookies successfully returned to Python.
+        # Cleanup is independent of failure-receipt persistence. No API/SQL
+        # payload or disk failure may poison the last valid ownership fence.
+        # Include the nonce-owned class even for a lost/malformed API response.
         try:
-            adapter.bound(f, expire=True)
-            f['failureExpiry'] = ('OBSERVED_SESSIONS_EXPIRED_INFLIGHT_REQUEST_UNKNOWN'
-                                  if f['pending'] is not None else 'confirmed')
+            adapter.bound(recovery, expire=True)
+            expiry = ('OBSERVED_SESSIONS_EXPIRED_INFLIGHT_REQUEST_UNKNOWN'
+                      if recovery['pending'] is not None else 'confirmed')
         except BaseException:
-            f['failureExpiry'] = 'UNKNOWN_OPERATOR_MUST_EXPIRE'
-        store.save(f)
+            expiry = 'UNKNOWN_OPERATOR_MUST_EXPIRE'
+        failure = copy.deepcopy(recovery)
+        failure.update(state='partial_requires_expiry', failureExpiry=expiry)
+        f.clear()
+        f.update(failure)
+        try:
+            store.save(copy.deepcopy(failure))
+        except BaseException:
+            f['failureReceipt'] = 'WRITE_FAILED_LAST_VALID_INTENT_RETAINED'
+            raise FixtureError('PROVISION_PARTIAL_RECEIPT_FAILED') from None
         raise FixtureError('PROVISION_PARTIAL_RETAINED') from None
 
 
