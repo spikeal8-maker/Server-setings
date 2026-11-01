@@ -20,6 +20,20 @@ class TailnetFirewallTests(unittest.TestCase):
         self.assertNotIn("39443",mod.RULE)
         self.assertNotIn("0.0.0.0/0",mod.RULE)
 
+    def test_verified_peer_accepts_case_but_rejects_other_tailnet(self):
+        correct={"HostName":"D2-R2","DNSName":"d2-r2.tail605710.ts.net.",
+                 "TailscaleIPs":["100.96.255.113"],"Online":True}
+        self.assertTrue(mod.d2_peer_verified(correct))
+        for change in (
+            {"HostName":"unrelated"},
+            {"DNSName":"d2-r2.other.ts.net."},
+            {"TailscaleIPs":["100.96.255.114"]},
+            {"Online":False},
+        ):
+            with self.subTest(change=change):
+                candidate={**correct,**change}
+                self.assertFalse(mod.d2_peer_verified(candidate))
+
     def test_rule_detected_only_with_full_identity(self):
         good="-A ufw-user-input -i tailscale0 -p tcp -s 100.96.255.113/32 -m tcp --dport 22 -j ACCEPT\n"
         with patch.object(mod,"command",return_value=good):
