@@ -106,6 +106,29 @@ def school_nightly_timer_enabled():
             active.returncode == 0 and active.stdout.strip() == 'active')
 
 
+def last_verified_school_backup():
+    if socket.gethostname() != 'asa-school-01':
+        return None
+    receipt=Path('/var/backups/asa-school-nightly/latest-success.json')
+    try:
+        if receipt.is_symlink() or not receipt.is_file():
+            return None
+        info=receipt.stat()
+        if info.st_uid!=0 or info.st_mode & 0o777 != 0o600:
+            return None
+        value=json.loads(receipt.read_text(encoding='utf-8'))
+        if (value.get('status')!='verified_cloud_sha256' or
+            value.get('project')!='asa-lab-school' or
+            value.get('remote')!='app:/School-VM100/Database-Backups'):
+            return None
+        if not isinstance(value.get('archive'),str):
+            return None
+        return {'createdAt':value.get('createdAt'),'archive':value['archive'],
+                'bytes':value.get('size')}
+    except (OSError,ValueError,KeyError):
+        return None
+
+
 def status():
     scheduled=school_nightly_timer_enabled()
     value={'installed':ROOT.exists(),'token_configured':connected(),'connected':False,
@@ -113,7 +136,11 @@ def status():
     if scheduled:
         value['backup_schedule']='daily 03:20 Europe/Moscow'
         value['backup_scope']='ASA School PostgreSQL+MinIO (encrypted Yandex app folder)'
-        value['backup_first_run_verified']=False
+        receipt=last_verified_school_backup()
+        value['backup_first_run_verified']=receipt is not None
+        if receipt:
+            value['backup_last_verified_at']=receipt['createdAt']
+            value['backup_last_verified_archive']=receipt['archive']
     if value['token_configured']:
         try:
             # Disk quota alone can succeed while Yandex rejects all file requests.
