@@ -322,7 +322,10 @@ def extract_verified(cipher:Path,identity:str,pass_fds:tuple[int,...]=())->Path:
     except BaseException:
         if age.poll() is None:age.kill()
         age.wait()
-        # Leave failed staging private for inspection; no live state is touched.
+        # A wrong offline key/invalid archive must not leave partially
+        # decrypted private configuration on the VM100 disk.
+        if created and dest.parent==UNPACKED and dest.exists() and not dest.is_symlink():
+            shutil.rmtree(dest)
         raise
     finally:
         if age.stdout:age.stdout.close()
