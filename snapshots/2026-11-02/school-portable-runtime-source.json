@@ -1,0 +1,10 @@
+{
+  "format": "asa-school-portable-runtime-source-v1",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "status": "source_documented_not_fresh_host_accepted",
+  "observedSchoolRuntime": {"revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b", "schema": 286},
+  "observed": {"relayActive": true, "nightlyBackupTimerActive": true, "ollamaHealthReachable": true, "comfyuiHealthReachable": true},
+  "templates": {"origin": "read_only_existing_authorized_VM_and_GPU_OpenSSH_configuration", "addressesParameterized": true, "appliedByThisSlice": false},
+  "notProven": ["new_physical_host_install", "new_Windows_gpu_autostart", "new_template_install", "current_candidate_deployment", "permanent_new_collector", "complete_100_student_acceptance"],
+  "secretsIncluded": false
+}

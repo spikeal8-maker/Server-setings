@@ -1,0 +1,17 @@
+# Template only; preserve unrelated SSH configuration and administrator access.
+# Provision the dedicated user, public key ACL and exact private peer firewall first.
+Match User asa-gpu-direct
+    AuthorizedKeysFile C:/ProgramData/ASA-Lab/SchoolDirectInferenceServer/authorized_keys
+    AuthenticationMethods publickey
+    PasswordAuthentication no
+    AllowTcpForwarding local
+    AllowStreamLocalForwarding no
+    PermitOpen 127.0.0.1:8188 127.0.0.1:11434
+    PermitListen none
+    GatewayPorts no
+    PermitTTY no
+    AllowAgentForwarding no
+    X11Forwarding no
+    ForceCommand cmd.exe /d /c exit /b 1
+    ClientAliveInterval 20
+    ClientAliveCountMax 3
