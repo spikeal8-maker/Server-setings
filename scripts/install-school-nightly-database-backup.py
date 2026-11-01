@@ -98,8 +98,12 @@ def make_unit(path, text):
             raise InstallError("EXISTING_SYSTEMD_UNIT_DIFFERENT")
         return False
     descriptor=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644)
-    with os.fdopen(descriptor,"w",encoding="utf-8") as target:
-        target.write(text);target.flush();os.fsync(target.fileno())
+    try:
+        with os.fdopen(descriptor,"w",encoding="utf-8") as target:
+            target.write(text);target.flush();os.fsync(target.fileno())
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
     return True
 
 
@@ -113,16 +117,58 @@ def preflight():
     return output
 
 
+def timer_state():
+    output=run(["systemctl","show",TIMER.name,
+                "--property=LoadState,UnitFileState,ActiveState"],timeout=10)
+    values=dict(line.split("=",1) for line in output.splitlines() if "=" in line)
+    if (values.get("LoadState")=="not-found" and
+        values.get("ActiveState")=="inactive" and not values.get("UnitFileState")):
+        return None
+    if (values.get("LoadState")!="loaded" or
+        values.get("UnitFileState") not in ("enabled","enabled-runtime","disabled") or
+        values.get("ActiveState") not in ("active","inactive")):
+        raise InstallError("EXISTING_NIGHT_TIMER_STATE_UNSUPPORTED")
+    if not TIMER.is_file() or TIMER.is_symlink():
+        raise InstallError("EXISTING_NIGHT_TIMER_OUTSIDE_MANAGED_PATH")
+    return values["UnitFileState"],values["ActiveState"]
+
+
+def restore_timer(previous):
+    commands=[]
+    if previous is None:
+        commands.append(["systemctl","disable","--now",TIMER.name])
+    else:
+        enabled,active=previous
+        if enabled=="enabled-runtime":
+            commands.extend([["systemctl","disable",TIMER.name],
+                             ["systemctl","enable","--runtime",TIMER.name]])
+        else:
+            commands.append(["systemctl","enable" if enabled=="enabled" else "disable",TIMER.name])
+        commands.append(["systemctl","start" if active=="active" else "stop",TIMER.name])
+    failed=False
+    for command in commands:
+        try:run(command,timeout=15)
+        except (InstallError,OSError,subprocess.SubprocessError):failed=True
+    if previous is not None:
+        try:failed=timer_state()!=previous or failed
+        except (InstallError,OSError,subprocess.SubprocessError):failed=True
+    if failed:raise InstallError("NIGHT_TIMER_STATE_RESTORE_FAILED")
+
+
 def install():
     checked_host()
     for folder in (ROOT,RUN,ARCHIVES):make_directory(folder)
     preflight()
+    previous=timer_state()
     changed=[]
+    activation_attempted=False
     try:
         if make_unit(SERVICE,SERVICE_BODY):changed.append(SERVICE)
         if make_unit(TIMER,TIMER_BODY):changed.append(TIMER)
         run(["systemctl","daemon-reload"],timeout=12)
-        run(["systemctl","enable","--now",TIMER.name],timeout=18)
+        if previous!=("enabled","active"):
+            activation_attempted=True
+            run(["systemctl","enable","--now",TIMER.name],timeout=18)
         enabled=run(["systemctl","is-enabled",TIMER.name]).strip()
         active=run(["systemctl","is-active",TIMER.name]).strip()
         if enabled!="enabled" or active!="active":
@@ -132,11 +178,17 @@ def install():
         if TIMER.name not in next_runs:
             raise InstallError("NIGHT_TIMER_NOT_LISTED")
     except BaseException:
-        subprocess.run(["systemctl","disable","--now",TIMER.name],
-                       capture_output=True,timeout=15,check=False)
+        rollback_failed=False
+        if activation_attempted:
+            try:restore_timer(previous)
+            except (InstallError,OSError,subprocess.SubprocessError):rollback_failed=True
         for path in changed:
-            path.unlink(missing_ok=True)
-        subprocess.run(["systemctl","daemon-reload"],capture_output=True,timeout=10,check=False)
+            try:path.unlink(missing_ok=True)
+            except OSError:rollback_failed=True
+        if changed:
+            try:run(["systemctl","daemon-reload"],timeout=10)
+            except (InstallError,OSError,subprocess.SubprocessError):rollback_failed=True
+        if rollback_failed:print("NIGHT_TIMER_ROLLBACK_INCOMPLETE=YES",file=sys.stderr)
         raise
     print("NIGHTLY_ASA_POSTGRES_MINIO_TIMER_ENABLED=YES")
     print("NIGHTLY_ASA_SCHEDULE=03:20_EUROPE_MOSCOW_DAILY")
