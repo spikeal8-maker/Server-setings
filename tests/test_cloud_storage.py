@@ -38,6 +38,29 @@ class CloudStorageTests(unittest.TestCase):
             self.assertFalse(result['connected'])
             self.assertEqual(result['provider_error'],'CLOUD_PROVIDER_GONE')
 
+    def test_school_timer_status_is_live_not_hardcoded_false(self):
+        from subprocess import CompletedProcess
+        enabled = CompletedProcess(['systemctl','is-enabled'],0,'enabled\n','')
+        active = CompletedProcess(['systemctl','is-active'],0,'active\n','')
+        with patch.object(cloud.socket,'gethostname',return_value='asa-school-01'), \
+             patch.object(cloud.subprocess,'run',side_effect=[enabled,active]), \
+             patch.object(cloud,'connected',return_value=False), \
+             patch.object(cloud,'last_verified_school_backup',return_value=None):
+            result=cloud.status()
+            self.assertTrue(result['backup_schedule_enabled'])
+            self.assertFalse(result['backup_first_run_verified'])
+            self.assertIn('03:20 Europe/Moscow',result['backup_schedule'])
+
+    def test_school_schedule_is_disabled_when_timer_is_not_active(self):
+        from subprocess import CompletedProcess
+        enabled = CompletedProcess(['systemctl','is-enabled'],0,'enabled\n','')
+        inactive = CompletedProcess(['systemctl','is-active'],3,'inactive\n','')
+        with patch.object(cloud.socket,'gethostname',return_value='asa-school-01'), \
+             patch.object(cloud.subprocess,'run',side_effect=[enabled,inactive]), \
+             patch.object(cloud,'connected',return_value=False):
+            result=cloud.status()
+            self.assertFalse(result['backup_schedule_enabled'])
+
     def test_download_refuses_existing_file_and_plaintext_upload_rejected(self):
         with tempfile.TemporaryDirectory() as t:
             root=Path(t);base=root/'data/asa-lab'

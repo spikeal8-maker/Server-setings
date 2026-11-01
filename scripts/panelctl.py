@@ -143,6 +143,7 @@ def openresty_install(api: PanelAPI, apply: bool, desired: str):
         if re.search(r"(?m):(?:80|443)\s", res.stdout):
             raise PanelError("Порт 80 либо 443 уже занят. Остановлено, существующий сайт не трогаем")
     payload = {"appDetailId": int(details["id"]), "name": "openresty", "params": {
+        "WEBSITE_DIR": "/opt/1panel/www",
         "PANEL_APP_PORT_HTTP": 80, "PANEL_APP_PORT_HTTPS": 443}}
     api.request("POST", "/apps/install", payload)
     print("Команда установки OpenResty принята 1Panel. Проверьте контейнер и приложение в панели")

@@ -1,0 +1,26 @@
+{
+  "status": "SOURCE_AND_SYNTHETIC_TESTS_ONLY",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "infrastructure_base": "8ae8d4bcd578bb05598ecb487b242772383d0ab3",
+  "application_base": "e9bd584844ba2fb8b584b51d472549d76dc631b5",
+  "runtime_inspected": false,
+  "runtime_changed": false,
+  "timer_commands_executed": false,
+  "docker_used": false,
+  "working_data_changed": false,
+  "tests": {
+    "timer_fault_injection": "LOCAL_PASS",
+    "receipt_source_pin": "LOCAL_PASS",
+    "application_receipt_normalization": "LOCAL_PASS",
+    "linux_actual_producer_writer": "CI_REQUIRED_NOT_RUN_LOCALLY",
+    "real_cloud_backup_or_restore": "NOT_RUN"
+  },
+  "constraints": {
+    "hostname": "asa-school-01",
+    "required_operator": "root",
+    "fixed_repository": "/srv/Server-setings",
+    "fixed_application": "/srv/asa-lab",
+    "fixed_backup_root": "/var/backups/asa-school-nightly",
+    "general_clean_install_accepted": false
+  }
+}
