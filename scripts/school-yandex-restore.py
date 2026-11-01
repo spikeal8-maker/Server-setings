@@ -355,9 +355,11 @@ def main():
         if opts.action=="download":
             print("Проверка/восстановление требует личный age-ключ из офлайн-носителя.")
             return 0
-        key=opts.identity or input("Путь к ключу age на временно подключённом офлайн-носителе: ").strip()
-        backup=latest_staged_backup(cipher) if opts.action=="restore-test" else extract_verified(
-            cipher,trusted_age_identity(key))
+        if opts.action=="restore-test":
+            backup=latest_staged_backup(cipher)
+        else:
+            key=opts.identity or input("Путь к ключу age на временно подключённом офлайн-носителе: ").strip()
+            backup=extract_verified(cipher,trusted_age_identity(key))
         if opts.action=="restore-test":
             # Always verify manifest once more immediately before DB work.
             verify=subprocess.run(["/usr/bin/python3",str(MANAGER),"verify-backup",
