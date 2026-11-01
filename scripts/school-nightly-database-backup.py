@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Night-only ASA School VM100 PostgreSQL + MinIO encrypted backup.
+"""ASA School VM100 PostgreSQL + MinIO encrypted backup (scheduled or manual).
 
-Uses the installed ASA Lab backup exporter: it briefly stops writers for a
+Scheduled backups are restricted to 03:00-05:00 Europe/Moscow. Explicit
+operator-initiated manual backups are allowed at any local time through
+a separate command. Uses the installed ASA Lab exporter, briefly stopping
+writers for a
 consistent DB/object snapshot, then restarts them. Immediately encrypts all
 private export files with an owner-held age PUBLIC recipient. Uploads only
 ciphertext into the dedicated Yandex OAuth application folder and downloads
@@ -147,7 +150,9 @@ def encrypt_age(stage,saved,final):
         if pending.exists():pending.unlink()
 
 
-def write_verified_receipt(result):
+def write_verified_receipt(result, *, trigger="scheduled"):
+    if trigger not in ("scheduled", "manual"):
+        raise NightlyError("BACKUP_TRIGGER_INVALID")
     """Record only an actual cloud upload/download SHA256 success."""
     receipt = ROOT / "latest-success.json"
     if receipt.is_symlink():
@@ -158,6 +163,7 @@ def write_verified_receipt(result):
             raise NightlyError("LAST_SUCCESS_RECEIPT_UNTRUSTED")
     value = {
         "status": "verified_cloud_sha256",
+        "trigger": trigger,
         "project": "asa-lab-school",
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "archive": result["name"],
@@ -180,14 +186,18 @@ def write_verified_receipt(result):
             os.unlink(tmp)
 
 
-def execute():
-    if not is_night():
-        raise NightlyError("ONLY_0300_TO_0500_MOSCOW")
+def execute(*, manual=False):
+    if not manual and not is_night():
+        raise NightlyError("ONLY_SCHEDULED_0300_TO_0500_MOSCOW")
     provider=preflight()
     fd=os.open(LOCK,os.O_WRONLY|os.O_CREAT|os.O_CLOEXEC|os.O_NOFOLLOW,0o600)
     try:
         fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        if not is_night():raise NightlyError("NIGHT_WINDOW_EXPIRED")
+        if not manual and not is_night():
+            raise NightlyError("NIGHT_WINDOW_EXPIRED")
+        trigger="manual" if manual else "scheduled"
+        print("BACKUP_TRIGGER="+trigger,flush=True)
+        print("ASA_EXPORT_BRIEFLY_STOPS_WEB_API_SCRATCH_MINIO_WRITERS=YES",flush=True)
         stage=Path(tempfile.mkdtemp(prefix=".export-",dir=STAGING))
         try:
             exported=export_asa(stage)
@@ -204,7 +214,7 @@ def execute():
             result=provider.upload_and_verify(encrypted)
         except yandex.BackupTransportError as error:
             raise NightlyError("LOCAL_AGE_BACKUP_SAVED_BUT_CLOUD_"+str(error)) from None
-        write_verified_receipt(result)
+        write_verified_receipt(result, trigger=trigger)
         print("NIGHTLY_DATABASE_YANDEX_CIPHERTEXT_DOWNLOAD_SHA256=PASS",flush=True)
         print("NIGHTLY_DATABASE_REMOTE=app:/School-VM100/Database-Backups",flush=True)
         print("NIGHTLY_DATABASE_BYTES="+str(result["size"]),flush=True)
@@ -219,18 +229,23 @@ def main():
     group=parser.add_mutually_exclusive_group()
     group.add_argument("--preflight",action="store_true")
     group.add_argument("--apply",action="store_true")
+    parser.add_argument("--manual",action="store_true",
+                        help="explicit operator-triggered backup at any hour; requires --apply")
     args=parser.parse_args()
     try:
+        if args.manual and not args.apply:
+            raise NightlyError("MANUAL_REQUIRES_EXPLICIT_APPLY")
         if args.preflight:
             preflight()
             print("SCHOOL_NIGHTLY_YANDEX_APP_FOLDER_WRITE_PREFLIGHT=PASS")
             print("DATABASE_WRITERS_STOPPED=NO")
         elif args.apply:
-            execute()
+            execute(manual=args.manual)
         else:
             check_host()
-            print("PLAN: 03:20 MSK nightly ASA PostgreSQL+MinIO export, age encryption, private Yandex upload+SHA256 download.")
-            print("No backup service or database is modified without --apply during 03:00-05:00 MSK.")
+            print("PLAN: scheduled at 03:20 Europe/Moscow; manual any time via sudo asa-school-backup-now.")
+            print("Both modes: consistent PostgreSQL+MinIO, age encrypt, immutable Yandex upload+SHA256 download.")
+            print("Backup services may pause briefly only after a verified Yandex write preflight.")
         return 0
     except (NightlyError,yandex.BackupTransportError,OSError,ValueError,
             subprocess.SubprocessError,BlockingIOError) as err:
