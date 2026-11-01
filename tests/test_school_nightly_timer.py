@@ -27,6 +27,23 @@ class NightlyTimerTests(unittest.TestCase):
         self.assertNotIn("docker compose down -v",module.SERVICE_BODY)
         self.assertEqual(module.ROOT,Path("/var/backups/asa-school-nightly"))
 
+    def test_manual_shortcut_is_one_command_without_night_guard(self):
+        manual=ROOT/"scripts/asa-school-backup-now.sh"
+        script=manual.read_text(encoding="utf-8")
+        self.assertIn("ACTION=--run",script)
+        self.assertIn('exec /usr/bin/python3 "$BACKUP" --apply --manual',script)
+        self.assertIn('exec /usr/bin/python3 "$BACKUP" --preflight',script)
+        self.assertIn('exec /usr/bin/python3 "$CLOUD" status',script)
+        self.assertNotIn("03:00-05:00",script)
+
+    def test_manual_install_does_not_restart_or_modify_timer(self):
+        installer=(ROOT/"scripts/install-school-manual-backup.py").read_text(encoding="utf-8")
+        self.assertIn("NIGHT_TIMER_UNMODIFIED=YES",installer)
+        self.assertIn("LIVE_DATABASE_BACKUP_NOT_TRIGGERED_DURING_INSTALL=YES",installer)
+        self.assertIn("O_EXCL",installer)
+        self.assertNotIn('systemctl", "restart"',installer)
+        self.assertNotIn('systemctl", "start"',installer)
+
     def test_timers_not_run_from_preflight_or_dryrun(self):
         text=P.read_text(encoding="utf-8")
         self.assertIn("if args.apply:",text)
