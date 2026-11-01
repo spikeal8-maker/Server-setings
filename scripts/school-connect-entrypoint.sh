@@ -13,6 +13,9 @@ case "$ACTION" in
   yandex)
     exec /usr/bin/python3 "$SOURCE/school-yandex-connect.py" connect --expected-host asa-school-01
     ;;
+  yandex-reauthorize)
+    exec /usr/bin/python3 "$SOURCE/school-yandex-connect.py" reauthorize --expected-host asa-school-01
+    ;;
   tailscale)
     exec /usr/bin/python3 "$SOURCE/school-tailscale-connect.py" connect --expected-host asa-school-01
     ;;
@@ -30,7 +33,8 @@ case "$ACTION" in
   help|--help|-h)
     printf '%s\n' \
       'ASA Lab School — самостоятельные подключения VM100.' \
-      '  sudo asa-school-connect yandex     — войти в Яндекс.Диск на VM100' \
+      '  sudo asa-school-connect yandex     — первый вход в Яндекс.Диск на VM100' \
+      '  sudo asa-school-connect yandex-reauthorize — повторный вход без смены OAuth-приложения' \
       '  sudo asa-school-connect tailscale — присоединить VM100 к Tailnet' \
       '  sudo asa-school-connect status    — показать состояния, без секретов' \
       'Логин и ключи вводятся скрыто НА VM100. D2-R2 не требуется для работы служб.'
