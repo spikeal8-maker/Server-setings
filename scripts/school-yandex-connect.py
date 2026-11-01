@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import configparser
 from datetime import datetime, timedelta, timezone
 import fcntl
 import getpass
@@ -153,7 +154,26 @@ def exchange_code(client_id: str, client_secret: str, code: str, verifier: str) 
     return safe_token_response(decoded)
 
 
-def apply_verified_oauth(token: dict, client_id: str, client_secret: str) -> None:
+def read_existing_custom_app() -> tuple[str, str]:
+    """Read app registration on VM100, not from the test server or D2-R2."""
+    config = configparser.ConfigParser(interpolation=None)
+    try:
+        with CLOUD_CONFIG.open("r", encoding="utf-8") as source:
+            config.read_file(source)
+        if config.get("yandex", "type") != "yandex":
+            raise EnrollmentError("YANDEX_CONFIG_TYPE_INVALID")
+        client_id = config.get("yandex", "client_id")
+        client_secret = config.get("yandex", "client_secret")
+        token = config.get("yandex", "token")
+        if not token or not client_id or not client_secret:
+            raise EnrollmentError("EXISTING_CUSTOM_APP_MISSING")
+        return client_id, client_secret
+    except (OSError, configparser.Error, KeyError, ValueError):
+        raise EnrollmentError("EXISTING_CUSTOM_APP_NOT_READABLE") from None
+
+
+def apply_verified_oauth(token: dict, client_id: str, client_secret: str,
+                         *, allow_custom_reauthorization: bool = False) -> None:
     repair = load_peer("repair-school-yandex-oauth.py", "asa_yandex_repair")
     repair.check_identity()
     new_bytes = repair.build_config(token, client_id, client_secret)
@@ -161,9 +181,14 @@ def apply_verified_oauth(token: dict, client_id: str, client_secret: str) -> Non
     with os.fdopen(os.open(CLOUD_CONFIG, flags), "r+b", buffering=0) as destination:
         fcntl.flock(destination.fileno(), fcntl.LOCK_EX)
         old_bytes = destination.read()
-        if old_bytes and not repair.is_failed_standard_config(old_bytes):
-            raise EnrollmentError("EXISTING_CUSTOM_YANDEX_CONFIG_REQUIRES_REVIEW")
-        if old_bytes:
+        is_broken_standard = bool(old_bytes) and repair.is_failed_standard_config(old_bytes)
+        if old_bytes and not is_broken_standard:
+            if not allow_custom_reauthorization:
+                raise EnrollmentError("EXISTING_CUSTOM_YANDEX_CONFIG_REQUIRES_REVIEW")
+            current_id, current_secret = read_existing_custom_app()
+            if client_id != current_id or client_secret != current_secret:
+                raise EnrollmentError("EXISTING_APP_CREDENTIALS_MISMATCH")
+        if is_broken_standard:
             was_ok, was_410 = repair.remote_probe()
             if was_ok or not was_410:
                 raise EnrollmentError("OLD_OAUTH_NOT_CONFIRMED_BROKEN_410")
@@ -182,16 +207,20 @@ def check_status() -> dict:
     return cloud.status()
 
 
-def run_connect(expected_host: str) -> int:
+def run_connect(expected_host: str, *, reauthorize: bool = False) -> int:
     verify_host(expected_host)
     before = check_status()
-    if before.get("connected"):
-        print("Уже подключено: Яндекс.Диск работает на VM 100.")
-        return 0
     if not before.get("installed"):
         raise EnrollmentError("CLOUD_STORAGE_NOT_INSTALLED")
-    if before.get("token_configured") and before.get("provider_error") != "CLOUD_PROVIDER_GONE":
-        raise EnrollmentError("EXISTING_OAUTH_DIFFERENT_ERROR_REQUIRES_REVIEW")
+    if reauthorize:
+        if not before.get("token_configured"):
+            raise EnrollmentError("NO_EXISTING_OAUTH_USE_CONNECT")
+    else:
+        if before.get("connected"):
+            print("Уже подключено: Яндекс.Диск работает на VM 100.")
+            return 0
+        if before.get("token_configured") and before.get("provider_error") != "CLOUD_PROVIDER_GONE":
+            raise EnrollmentError("EXISTING_OAUTH_DIFFERENT_ERROR_REQUIRES_REVIEW")
 
     print("АСА LAB / ЯНДЕКС ДИСК / ШКОЛЬНАЯ VM100")
     print("Это самостоятельная авторизация сервера, без D2-R2 или тестового стенда.")
@@ -201,8 +230,12 @@ def run_connect(expected_host: str) -> int:
     print("   Права: cloud_api:disk.read, cloud_api:disk.write, cloud_api:disk.info")
     print("   Redirect URI:", REDIRECT_URI)
     print("2. В свойствах созданного приложения найдите Client ID и Client Secret.")
-    client_id = getpass.getpass("Client ID (ввод скрыт): ").strip()
-    client_secret = getpass.getpass("Client Secret (ввод скрыт): ").strip()
+    if reauthorize:
+        client_id, client_secret = read_existing_custom_app()
+        print("Использую собственное OAuth-приложение, уже сохранённое на VM100.")
+    else:
+        client_id = getpass.getpass("Client ID (ввод скрыт): ").strip()
+        client_secret = getpass.getpass("Client Secret (ввод скрыт): ").strip()
     # Use the same validation contract as the existing Server-setings repair tool.
     repair = load_peer("repair-school-yandex-oauth.py", "asa_yandex_repair_validator")
     repair.parse_payload(json.dumps({
@@ -220,7 +253,8 @@ def run_connect(expected_host: str) -> int:
     code = getpass.getpass("Код подтверждения Яндекса (ввод скрыт): ")
     oauth = exchange_code(client_id, client_secret, code, verifier)
     print("Яндекс выдал access+refresh token. Проверяю реальный доступ к ASA-Backups…")
-    apply_verified_oauth(oauth, client_id, client_secret)
+    apply_verified_oauth(oauth, client_id, client_secret,
+                         allow_custom_reauthorization=reauthorize)
     after = check_status()
     if not after.get("connected"):
         # This should not happen if the normal rclone listing succeeded.
@@ -234,7 +268,7 @@ def run_connect(expected_host: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["status", "connect"])
+    parser.add_argument("action", choices=["status", "connect", "reauthorize"])
     parser.add_argument("--expected-host", default="")
     args = parser.parse_args(argv)
     try:
@@ -250,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
                 "provider_error": s.get("provider_error"),
             }, ensure_ascii=False))
             return 0 if s.get("connected") else 2
-        return run_connect(args.expected_host)
+        return run_connect(args.expected_host, reauthorize=(args.action == "reauthorize"))
     except EnrollmentError as exc:
         print("YANDEX_SETUP_BLOCKED=" + exc.code, file=sys.stderr)
     except KeyboardInterrupt:
