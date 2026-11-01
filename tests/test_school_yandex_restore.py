@@ -68,6 +68,27 @@ class SchoolYandexRestoreTests(unittest.TestCase):
             with self.assertRaises(subject.RestoreError):
                 subject.trusted_age_identity(str(test))
 
+    def test_hidden_one_shot_identity_is_not_written_to_disk(self):
+        import os
+        private="AGE-SECRET-KEY-1"+"A"*58
+        with patch("builtins.input",return_value=""), \
+             patch.object(subject.getpass,"getpass",return_value=private):
+            with subject.offline_identity(None) as (name,fds):
+                self.assertEqual(len(fds),1)
+                self.assertEqual(name,"/proc/self/fd/"+str(fds[0]))
+                os.lseek(fds[0],0,os.SEEK_SET)
+                self.assertEqual(os.read(fds[0],200),private.encode()+b"\n")
+                self.assertFalse(Path(name).is_file() and "/var/backups/" in name)
+            with self.assertRaises(OSError):
+                os.fstat(fds[0])
+
+    def test_invalid_hidden_key_never_opens_usable_identity(self):
+        with patch("builtins.input",return_value=""), \
+             patch.object(subject.getpass,"getpass",return_value="not-a-key"):
+            with self.assertRaisesRegex(subject.RestoreError,"AGE_PRIVATE_KEY_FORMAT_INVALID"):
+                with subject.offline_identity(None):
+                    pass
+
     def test_rehearsal_command_is_only_nonlive_restore_check(self):
         import inspect
         script=inspect.getsource(subject.rehearsed_restore)
