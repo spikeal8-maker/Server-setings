@@ -126,8 +126,8 @@ def apply():
     command([*UFW,*RULE],timeout=25)
     if not rule_installed():
         # Explicit deletion via UFW, not iptables.
-        subprocess.run([*UFW,"--force","delete",*RULE],
-                       capture_output=True,timeout=20,check=False)
+        subprocess.run([*UFW,"delete",*RULE],
+                       input="y\n",capture_output=True,text=True,timeout=20,check=False)
         raise SafeStop("TAILNET_SSH_RULE_NOT_VERIFIED_ROLLBACK_ATTEMPTED")
     print("VM100_UFW_ONLY_D2_R2_SSH22_TAILSCALE0=PASS")
     print("VM100_PUBLIC_ADMIN_PORTS_UNCHANGED=YES")
