@@ -147,6 +147,39 @@ def encrypt_age(stage,saved,final):
         if pending.exists():pending.unlink()
 
 
+def write_verified_receipt(result):
+    """Record only an actual cloud upload/download SHA256 success."""
+    receipt = ROOT / "latest-success.json"
+    if receipt.is_symlink():
+        raise NightlyError("LAST_SUCCESS_RECEIPT_IS_SYMLINK")
+    if receipt.exists():
+        meta = receipt.stat()
+        if meta.st_uid != 0 or stat.S_IMODE(meta.st_mode) != 0o600:
+            raise NightlyError("LAST_SUCCESS_RECEIPT_UNTRUSTED")
+    value = {
+        "status": "verified_cloud_sha256",
+        "project": "asa-lab-school",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "archive": result["name"],
+        "size": result["size"],
+        "sha256": result["sha256"],
+        "remote": "app:/School-VM100/Database-Backups",
+        "restore_rehearsal": False,
+    }
+    fd, tmp = tempfile.mkstemp(prefix=".last-success-", dir=ROOT)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            os.fchmod(output.fileno(), 0o600)
+            json.dump(value, output, ensure_ascii=False, sort_keys=True)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(tmp, receipt)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
 def execute():
     if not is_night():
         raise NightlyError("ONLY_0300_TO_0500_MOSCOW")
@@ -171,6 +204,7 @@ def execute():
             result=provider.upload_and_verify(encrypted)
         except yandex.BackupTransportError as error:
             raise NightlyError("LOCAL_AGE_BACKUP_SAVED_BUT_CLOUD_"+str(error)) from None
+        write_verified_receipt(result)
         print("NIGHTLY_DATABASE_YANDEX_CIPHERTEXT_DOWNLOAD_SHA256=PASS",flush=True)
         print("NIGHTLY_DATABASE_REMOTE=app:/School-VM100/Database-Backups",flush=True)
         print("NIGHTLY_DATABASE_BYTES="+str(result["size"]),flush=True)
