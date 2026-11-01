@@ -34,7 +34,7 @@ class SchoolNightlyDatabaseTests(unittest.TestCase):
             2026, 11, 2, 4, 59, tzinfo=nightly.MOSCOW
         )))
 
-    def test_manual_daytime_run_never_stops_database(self):
+    def test_scheduled_daytime_run_remains_blocked(self):
         with patch.object(nightly, "is_night", return_value=False), \
              patch.object(nightly, "preflight") as cloud, \
              patch.object(nightly, "export_asa") as exporter:
@@ -42,6 +42,35 @@ class SchoolNightlyDatabaseTests(unittest.TestCase):
                 nightly.execute()
         cloud.assert_not_called()
         exporter.assert_not_called()
+
+    def test_explicit_manual_daytime_run_reaches_preflight_without_export_until_ready(self):
+        class PreflightStop(Exception):
+            pass
+        with patch.object(nightly, "is_night", return_value=False), \
+             patch.object(nightly, "preflight", side_effect=PreflightStop) as cloud, \
+             patch.object(nightly, "export_asa") as exporter:
+            with self.assertRaises(PreflightStop):
+                nightly.execute(manual=True)
+        cloud.assert_called_once_with()
+        exporter.assert_not_called()
+
+    def test_manual_apply_runs_without_time_gate(self):
+        with patch.object(nightly, "execute") as execute, \
+             patch.object(sys, "argv", ["asa-school-backup-now", "--apply", "--manual"]):
+            self.assertEqual(nightly.main(), 0)
+        execute.assert_called_once_with(manual=True)
+
+    def test_manual_without_apply_refused(self):
+        with patch.object(nightly, "execute") as execute, \
+             patch.object(sys, "argv", ["school-nightly-database-backup.py", "--manual"]):
+            self.assertEqual(nightly.main(), 2)
+        execute.assert_not_called()
+
+    def test_scheduled_apply_does_not_escape_night(self):
+        with patch.object(nightly, "execute") as execute, \
+             patch.object(sys, "argv", ["school-nightly-database-backup.py", "--apply"]):
+            self.assertEqual(nightly.main(), 0)
+        execute.assert_called_once_with(manual=False)
 
     def test_cloud_path_is_separate_app_folder(self):
         self.assertEqual(
