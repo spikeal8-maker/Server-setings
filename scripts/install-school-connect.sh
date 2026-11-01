@@ -20,10 +20,22 @@ fi
 bash -n "$SRC/school-connect-entrypoint.sh"
 python3 -m py_compile "$SRC/school-yandex-connect.py" "$SRC/school-tailscale-connect.py"
 if [[ -e "$TARGET" ]]; then
-  cmp -s "$SRC/school-connect-entrypoint.sh" "$TARGET" || {
-    echo 'BLOCKED: existing local entrypoint differs; will not overwrite' >&2; exit 2;
-  }
-  echo 'Owner entrypoint is already installed and matches repository.'
+  if cmp -s "$SRC/school-connect-entrypoint.sh" "$TARGET"; then
+    echo 'Owner entrypoint is already installed and matches repository.'
+  else
+    # Only upgrade the exact first school CLI deployed in October. Unknown
+    # local scripts are never overwritten, even when launched as root.
+    INITIAL_COMMIT=9105f9b4ac636cac1c4880a0078dafe197eae0a1
+    [[ ! -L "$TARGET" && -f "$TARGET" &&
+       "$(stat -c '%U:%G:%a' "$TARGET")" == "root:root:755" ]] || {
+      echo 'BLOCKED: existing CLI identity differs; refusing upgrade' >&2; exit 2;
+    }
+    cmp -s "$TARGET" <(git -C "$SRC/.." show "$INITIAL_COMMIT":scripts/school-connect-entrypoint.sh) || {
+      echo 'BLOCKED: existing CLI content not trusted; refusing upgrade' >&2; exit 2;
+    }
+    install -o root -g root -m 0755 "$SRC/school-connect-entrypoint.sh" "$TARGET"
+    echo 'Upgraded verified owner CLI with reauthorization support.'
+  fi
 else
   install -o root -g root -m 0755 "$SRC/school-connect-entrypoint.sh" "$TARGET"
   echo 'Installed self-contained owner enrollment entrypoint.'
