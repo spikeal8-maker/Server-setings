@@ -122,7 +122,8 @@ def apply():
         return
     command([*UFW,"--dry-run",*RULE],timeout=12)
     backup_ufw_rules()
-    command([*UFW,"--force",*RULE],timeout=25)
+    # Ubuntu UFW on VM100 rejects --force with allow; add is non-interactive.
+    command([*UFW,*RULE],timeout=25)
     if not rule_installed():
         # Explicit deletion via UFW, not iptables.
         subprocess.run([*UFW,"--force","delete",*RULE],
