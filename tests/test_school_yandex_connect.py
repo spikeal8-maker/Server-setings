@@ -111,6 +111,83 @@ class SchoolYandexConnectTests(unittest.TestCase):
             self.assertEqual(config.read_bytes(), b"OLD_BROKEN_410")
             self.assertEqual(SimulatedRepair.results, [])
 
+    def test_custom_reauthorization_rolls_back_on_provider_failure(self):
+        class SimulatedRepair:
+            @staticmethod
+            def check_identity(): return
+            @staticmethod
+            def build_config(*args): return b"NEW_OAUTH_CONFIG"
+            @staticmethod
+            def is_failed_standard_config(contents): return False
+            @staticmethod
+            def remote_probe(): return False, False
+            @staticmethod
+            def write_locked(stream, contents):
+                stream.seek(0)
+                stream.truncate(0)
+                stream.write(contents)
+                stream.flush()
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "rclone.conf"
+            config.write_bytes(b"OLD_WORKING_CUSTOM")
+            with patch.object(subject, "load_peer", return_value=SimulatedRepair), \
+                 patch.object(subject, "read_existing_custom_app", return_value=("client-app-id", "client-secret")), \
+                 patch.object(subject, "CLOUD_CONFIG", config):
+                with self.assertRaises(subject.EnrollmentError) as raised:
+                    subject.apply_verified_oauth(
+                        {"access_token": "A" * 40}, "client-app-id", "client-secret",
+                        allow_custom_reauthorization=True)
+                self.assertEqual(raised.exception.code, "NEW_OAUTH_FILE_ACCESS_FAILED")
+            self.assertEqual(config.read_bytes(), b"OLD_WORKING_CUSTOM")
+
+    def test_custom_reauthorization_keeps_app_identity(self):
+        class SimulatedRepair:
+            @staticmethod
+            def check_identity(): return
+            @staticmethod
+            def build_config(*args): return b"NEW_OAUTH_CONFIG"
+            @staticmethod
+            def is_failed_standard_config(contents): return False
+            @staticmethod
+            def remote_probe(): return True, False
+            @staticmethod
+            def write_locked(stream, contents):
+                stream.seek(0)
+                stream.truncate(0)
+                stream.write(contents)
+                stream.flush()
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "rclone.conf"
+            config.write_bytes(b"OLD_WORKING_CUSTOM")
+            with patch.object(subject, "load_peer", return_value=SimulatedRepair), \
+                 patch.object(subject, "read_existing_custom_app", return_value=("client-app-id", "client-secret")), \
+                 patch.object(subject, "CLOUD_CONFIG", config):
+                subject.apply_verified_oauth(
+                    {"access_token": "A" * 40}, "client-app-id", "client-secret",
+                    allow_custom_reauthorization=True)
+            self.assertEqual(config.read_bytes(), b"NEW_OAUTH_CONFIG")
+
+    def test_custom_reauthorization_refuses_other_client(self):
+        class SimulatedRepair:
+            @staticmethod
+            def check_identity(): return
+            @staticmethod
+            def build_config(*args): return b"NEW_OAUTH_CONFIG"
+            @staticmethod
+            def is_failed_standard_config(contents): return False
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "rclone.conf"
+            config.write_bytes(b"OLD_WORKING_CUSTOM")
+            with patch.object(subject, "load_peer", return_value=SimulatedRepair), \
+                 patch.object(subject, "read_existing_custom_app", return_value=("client-app-id", "client-secret")), \
+                 patch.object(subject, "CLOUD_CONFIG", config):
+                with self.assertRaises(subject.EnrollmentError) as raised:
+                    subject.apply_verified_oauth(
+                        {"access_token": "A" * 40}, "unexpected-client-id", "client-secret",
+                        allow_custom_reauthorization=True)
+                self.assertEqual(raised.exception.code, "EXISTING_APP_CREDENTIALS_MISMATCH")
+            self.assertEqual(config.read_bytes(), b"OLD_WORKING_CUSTOM")
+
     def test_existing_custom_config_not_overwritten(self):
         class SimulatedRepair:
             @staticmethod
