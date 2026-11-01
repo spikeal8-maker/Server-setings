@@ -365,8 +365,17 @@ class HostAdapter:
     def bound(self, f, expire=False):
         need(self.sql(fence_sql(f, expire)) == {'bounded': True}, 'SESSION_BOUND_NOT_VERIFIED')
 
-    def api(self, token, path, body=None, cookie='asa_session', key=None):
+    def api(self, token, path, body=None, cookie='asa_session', key=None, method=None, revision_id=None):
         need(path.startswith('/') and not path.startswith('//') and '?' not in path, 'API_PATH_INVALID')
+        need(method in (None, 'GET', 'POST', 'PUT'), 'API_METHOD_INVALID')
+        if method == 'PUT':
+            need(re.fullmatch(r'/api/sharing/course/' + UUID.pattern[:-2] + r'/visibility', path)
+                 and body in ({'visibility': 'private'}, {'visibility': 'public'}), 'API_METHOD_INVALID')
+        suffix = ''
+        if revision_id is not None:
+            need(re.fullmatch(r'/api/public-projects/' + UUID.pattern[:-2] + r'/artifact', path)
+                 and body is None and token is None and method in (None, 'GET'), 'API_QUERY_INVALID')
+            suffix = '?revisionId=' + ident(revision_id)
         headers = {'Origin': self.url, 'User-Agent': 'ASA-Synthetic-Fixture/1'}
         if token:
             need(TOKEN.fullmatch(token), 'TOKEN_INVALID')
@@ -377,9 +386,9 @@ class HostAdapter:
         if body is not None:
             headers['Content-Type'] = 'application/json'
             data = json.dumps(body).encode()
-        request = urllib.request.Request(self.url + path, data=data, headers=headers)
+        request = urllib.request.Request(self.url + path + suffix, data=data, headers=headers, method=method)
         with self.opener.open(request, timeout=10) as response:
-            need(response.status in (200, 201) and response.geturl() == self.url + path, 'API_STATUS_INVALID')
+            need(response.status in (200, 201) and response.geturl() == self.url + path + suffix, 'API_STATUS_INVALID')
             raw = response.read(256 * 1024 + 1)
             need(len(raw) <= 256 * 1024, 'API_BODY_TOO_LARGE')
             session = None

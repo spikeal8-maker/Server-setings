@@ -131,6 +131,11 @@ expiry: дрейф SHA/schema/source identity блокирует команду 
 
 ## Оставшийся mixed resource plan — не исполняется этим инструментом
 
+Отдельный API-only builder и проверенная последовательность теперь описаны в
+[документе40](40-SYNTHETIC-MIXED-RESOURCES.md). Core provisioner public content
+не создаёт. Для полного fixture `lessonId` берётся из materialized run projection,
+а UUID ответа author lessons сохраняется отдельно как sourceLessonId.
+
 Все шаги ниже выполняются только отдельной проверенной API-последовательностью
 с teacher fixture и новым QA title, после проверки актуальных shapes. Ни один
 не применяется этой командой. Существующий школьный курс/публикация не меняются.

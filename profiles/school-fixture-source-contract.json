@@ -10,7 +10,7 @@
     "apps/api/src/classrooms.controller.ts": "827698a60257f239e3b88c2d0bc036245c29bc92f8e68b5f0c60d4a170b14c4b",
     "apps/api/src/classroom-join.controller.ts": "21119c0bf1d7dcb6376efe5907a91b6d973b16bd2ec585cfbccce6887defa874",
     "apps/api/src/courses.controller.ts": "dc04e7ce037569b3a1e9507be057ce6e2c436370bdc0a1181321ce6b29aa52ce",
-    "apps/api/src/public-projects.controller.ts": "ca9ba9b91d1443f15bb63ac7f443cd060cb435953de2261b5a372ffb1a4fd837",
+    "apps/api/src/public-projects.controller.ts": "b51de767636a771d89fc145c12b65805b4a0f23123bf902afa3c031e9b552d78",
     "apps/api/src/projects.controller.ts": "3e96756e218888373849a606301f14a239b2fbe9314606c6bc74af817850c15c",
     "apps/api/src/gallery.controller.ts": "a8ddc2966234ff46d76953cfa9ac6b7ae00925c04731769a350c3f635082d048"
   }
