@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import subprocess
 import uuid
 
@@ -90,9 +91,29 @@ def rclone(*args, timeout_seconds=6800):
     return p.stdout
 
 
+def school_nightly_timer_enabled():
+    if socket.gethostname() != 'asa-school-01':
+        return False
+    name = 'asa-school-nightly-database-backup.timer'
+    try:
+        enabled = subprocess.run(['systemctl','is-enabled',name],capture_output=True,
+                                 text=True,timeout=6,check=False)
+        active = subprocess.run(['systemctl','is-active',name],capture_output=True,
+                                text=True,timeout=6,check=False)
+    except (OSError,subprocess.TimeoutExpired):
+        return False
+    return (enabled.returncode == 0 and enabled.stdout.strip() == 'enabled' and
+            active.returncode == 0 and active.stdout.strip() == 'active')
+
+
 def status():
+    scheduled=school_nightly_timer_enabled()
     value={'installed':ROOT.exists(),'token_configured':connected(),'connected':False,
-           'project':PROJECT,'backup_schedule_enabled':False}
+           'project':PROJECT,'backup_schedule_enabled':scheduled}
+    if scheduled:
+        value['backup_schedule']='daily 03:20 Europe/Moscow'
+        value['backup_scope']='ASA School PostgreSQL+MinIO (encrypted Yandex app folder)'
+        value['backup_first_run_verified']=False
     if value['token_configured']:
         try:
             # Disk quota alone can succeed while Yandex rejects all file requests.
