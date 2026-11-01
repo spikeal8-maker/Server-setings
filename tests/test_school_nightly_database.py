@@ -107,17 +107,39 @@ class SchoolNightlyDatabaseTests(unittest.TestCase):
                     transport.validate_signed_link(url)
 
     def test_cipher_requires_root_mode_and_age_header(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            file = Path(tmp) / "cipher.age"
-            file.write_bytes(b"age-encryption.org/v1\n" + b"c" * 2048)
-            file.chmod(0o600)
-            with patch.object(transport.os, "geteuid", return_value=0):
-                size, hash_value = transport.private_cipher(file)
-            self.assertEqual(size, file.stat().st_size)
-            self.assertEqual(hash_value, hashlib.sha256(file.read_bytes()).hexdigest())
-            file.write_bytes(b"NOT_AGE_HEADER" + b"d" * 2048)
-            with self.assertRaises(transport.BackupTransportError):
-                transport.private_cipher(file)
+        # The CI runner is intentionally non-root. Simulate root-owned file
+        # metadata rather than weakening the real transport's owner check.
+        import io
+        import stat
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        contents=b"age-encryption.org/v1\n" + b"c" * 2048
+        file=MagicMock(spec=Path)
+        file.is_symlink.return_value=False
+        file.is_file.return_value=True
+        file.stat.return_value=SimpleNamespace(
+            st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=len(contents))
+        file.open.side_effect=lambda *args, **kwargs: io.BytesIO(contents)
+        size, hash_value=transport.private_cipher(file)
+        self.assertEqual(size,len(contents))
+        self.assertEqual(hash_value,hashlib.sha256(contents).hexdigest())
+        file.stat.return_value=SimpleNamespace(
+            st_uid=1000, st_mode=stat.S_IFREG | 0o600, st_size=len(contents))
+        with self.assertRaisesRegex(transport.BackupTransportError,
+                                    "CIPHER_OWNER_MODE_UNTRUSTED"):
+            transport.private_cipher(file)
+        file.stat.return_value=SimpleNamespace(
+            st_uid=0, st_mode=stat.S_IFREG | 0o644, st_size=len(contents))
+        with self.assertRaisesRegex(transport.BackupTransportError,
+                                    "CIPHER_OWNER_MODE_UNTRUSTED"):
+            transport.private_cipher(file)
+        file.stat.return_value=SimpleNamespace(
+            st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=len(contents))
+        file.open.side_effect=lambda *args, **kwargs: io.BytesIO(
+            b"NOT_AGE_HEADER" + b"d" * 2048)
+        with self.assertRaisesRegex(transport.BackupTransportError,
+                                    "NOT_AGE_CIPHERTEXT"):
+            transport.private_cipher(file)
 
     def test_upload_uses_only_immutable_not_overwrite(self):
         seen = []
