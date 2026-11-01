@@ -1,4 +1,8 @@
 import importlib.util
+import os
+import re
+import shutil
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -88,6 +92,33 @@ class SchoolYandexRestoreTests(unittest.TestCase):
             with self.assertRaisesRegex(subject.RestoreError,"AGE_PRIVATE_KEY_FORMAT_INVALID"):
                 with subject.offline_identity(None):
                     pass
+
+    @unittest.skipUnless(
+        shutil.which("age") and shutil.which("age-keygen")
+        and hasattr(os,"memfd_create"),
+        "Actual age binaries and anonymous Linux memfd are required",
+    )
+    def test_real_hidden_age_key_decrypts_without_disk_file(self):
+        # A throwaway key is generated only for this test. No customer key
+        # is read from D2-R2, VM100, or any persistent location.
+        made=subprocess.run(
+            ["age-keygen"],capture_output=True,text=True,check=True,timeout=15)
+        material=made.stdout+"\n"+made.stderr
+        secret=re.search(r"AGE-SECRET-KEY-1[A-Z0-9]+",material)
+        public=re.search(r"age1[a-z0-9]+",material)
+        self.assertIsNotNone(secret)
+        self.assertIsNotNone(public)
+        cipher=subprocess.run(
+            ["age","-r",public.group()],input=b"asa-backup-restore-memfd-regression",
+            capture_output=True,check=True,timeout=15)
+        with patch("builtins.input",return_value=""), \
+             patch.object(subject.getpass,"getpass",return_value=secret.group()):
+            with subject.offline_identity(None) as (keyfile,fds):
+                decrypted=subprocess.run(
+                    ["age","-d","-i",keyfile],input=cipher.stdout,
+                    capture_output=True,pass_fds=fds,timeout=15)
+        self.assertEqual(decrypted.returncode,0)
+        self.assertEqual(decrypted.stdout,b"asa-backup-restore-memfd-regression")
 
     def test_rehearsal_command_is_only_nonlive_restore_check(self):
         import inspect
