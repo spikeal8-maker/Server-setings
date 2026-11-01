@@ -1,0 +1,934 @@
+{
+  "format": "asa-portal-route-inventory-v1",
+  "sourceRevision": "14ca13ed3a5939d7fea46710d806c07d522cc111",
+  "sourceFiles": {
+    "apps/web/src/App.tsx": "d05b8afe3de64d7959e27540b725aa69f16e35a1eca0708ed7adb990cf777bf0",
+    "apps/web/src/creator-portal/navigation.ts": "1b956c31799a4836db945d7d38ebd2831330489810c3b982e28aea1b5283e09c",
+    "apps/web/src/admin/admin-navigation.ts": "1c15fd955bf7adcec987f7cf0cce95b4c368991efbfbf69583b0a14e773d7f24",
+    "apps/web/src/admin/ai-admin-navigation.ts": "fcb540a49f1e9063936e8f82b4792e78c846c0e8feabdc595e2b88b1e4320f06",
+    "apps/web/src/api.ts": "6552de8d6871294120306103f08004d62b9505bf8f098b75c792535477a57f29",
+    "apps/web/src/admin/admin-api.ts": "e22f672b26c3002c3f38f41a7ab93c747f3839a8478b0c88b8541b5f30b07997",
+    "apps/api/src/health.controller.ts": "2cfbac4dc32fc701235336d24516bc5f60afae5279ae075c0bef615a3bb7ac29",
+    "apps/api/src/projects.controller.ts": "3e96756e218888373849a606301f14a239b2fbe9314606c6bc74af817850c15c",
+    "apps/api/src/blocks-runtime.controller.ts": "8f40a512601019128225be72551558dd86962c942a156b860a92ca59a2b36ff8",
+    "apps/api/src/blocks-runtime-session.controller.ts": "870423337922fadbf2deb0e8153fc01251e971ba3d65e8a527165f5ed3b80c66",
+    "apps/api/src/classroom-join.controller.ts": "21119c0bf1d7dcb6376efe5907a91b6d973b16bd2ec585cfbccce6887defa874",
+    "apps/api/src/classrooms.controller.ts": "827698a60257f239e3b88c2d0bc036245c29bc92f8e68b5f0c60d4a170b14c4b",
+    "apps/api/src/public-projects.controller.ts": "ca9ba9b91d1443f15bb63ac7f443cd060cb435953de2261b5a372ffb1a4fd837",
+    "apps/api/src/gallery.controller.ts": "a8ddc2966234ff46d76953cfa9ac6b7ae00925c04731769a350c3f635082d048",
+    "apps/api/src/collections.controller.ts": "71330fcb3310a3f447146a6424363e822f467d566787c96182e920401025376b",
+    "apps/api/src/games-access.controller.ts": "0d0fa3816f540777f534a042c254b1c46847f58db96e344db804dc343b34db9a",
+    "apps/api/src/account-c1.controller.ts": "a57a7cbf4f78c293db389fd0c50cf0229ec0016bd6ca7d11f0967c93c50fc282",
+    "apps/api/src/admin.controller.ts": "a62fe4d1d7a2083636590852fd621887e76c8ae51973abf782a039564f751b4b",
+    "apps/api/src/ai-admin.controller.ts": "49c764c5e2f81b41984dc48fc19035ac6924136eb32b608eef1828e23e7f2f82",
+    "apps/api/src/ai-chat.controller.ts": "e9823158195c6013817554fe70d9edfffa54cf4f44eeeab925031386bbd69630",
+    "apps/api/src/ai-image.controller.ts": "8392d0cb942c19ff58fa34e6cbbbe3e46e18a1437dca127a844510e2b0cc0d3d",
+    "packages/contracts/src/ai-image-generation.ts": "9b8a5206cf02840090f46ed512561c30f277f1ee1717781e5528a1d73595b3e8",
+    "apps/api/src/course-preview.ts": "9924513948e4fdedff13346d2d3001ae276a52a5929c87f3f1b561d0b6ebd492",
+    "apps/api/src/admin-logs.service.ts": "51b33e1f04831a6f7790b1a01c299b5838f416b9e7457f59e3625d8e4a2e2543",
+    "apps/api/src/admin-control-plane.service.ts": "d45defc82ca8ffab4fa1b6276739085080c68881e9b5a37761b95cbe8419d8c5",
+    "packages/observability/src/runtime-metrics.ts": "517d6e13765215674b9f2febf4f6bbc224d5d8787923030e0df331b46a1e2023",
+    "apps/api/src/ai-chat.service.ts": "336b4b103a3d0999c12bad4587862dcc81c7f547d42f3f9352b2fbdfc191d700",
+    "apps/api/src/ai-image.service.ts": "85dd4d0ad630e227758b56a1c05ad8d828fe9ec2c0773dfd332bac13218a0d27",
+    "packages/contracts/src/public-project-display-artifact.ts": "c6ff4bab39e296ac85a0d09977b5235c6fe20a3581ba47f8ab7b65d356fb08bd",
+    "apps/api/src/ai-ollama.ts": "939ad5bad1a640e4a825b03c6b4037295b88c3440788447253a49f168dc56f43",
+    "apps/api/src/ai-image-comfyui.ts": "a2fb1396e2fc292d43207e8dc24d3a8d2bfb309c03408b179fd64ca576ebb8af"
+  },
+  "routes": [
+    {
+      "id": "entry",
+      "route": "/",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "providers"
+      ],
+      "notRunReason": "Public landing rendering is browser-only; providers API validates entry configuration only"
+    },
+    {
+      "id": "sign-in",
+      "route": "/#/sign-in",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "providers"
+      ],
+      "notRunReason": "Form submission, external verification, credentials and logout are not exercised by read-only portal probes"
+    },
+    {
+      "id": "sign-up",
+      "route": "/#/sign-up",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "providers"
+      ],
+      "notRunReason": "Form submission, external verification, credentials and logout are not exercised by read-only portal probes"
+    },
+    {
+      "id": "organization-sign-in",
+      "route": "/#/organization-sign-in",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "providers"
+      ],
+      "notRunReason": "Form submission, external verification, credentials and logout are not exercised by read-only portal probes"
+    },
+    {
+      "id": "join-class",
+      "route": "/#/join-class",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "notRunReason": "Joining consumes credentials/admission; fixture sessions are supplied, not provisioned or logged in by this runner"
+    },
+    {
+      "id": "home",
+      "route": "/#/home",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "modules",
+        "project-three-d",
+        "project-electronics",
+        "project-blocks"
+      ]
+    },
+    {
+      "id": "projects",
+      "route": "/#/projects",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "project-three-d",
+        "project-electronics",
+        "project-blocks"
+      ]
+    },
+    {
+      "id": "games",
+      "route": "/#/games",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ]
+    },
+    {
+      "id": "ai",
+      "route": "/#/ai",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "ai-status"
+      ]
+    },
+    {
+      "id": "learning",
+      "route": "/#/learning",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "learning",
+        "assignments",
+        "results"
+      ]
+    },
+    {
+      "id": "knowledge",
+      "route": "/#/knowledge",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "knowledge"
+      ]
+    },
+    {
+      "id": "collections",
+      "route": "/#/collections",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "collections"
+      ]
+    },
+    {
+      "id": "explore",
+      "route": "/#/explore",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "public-list",
+        "publication"
+      ]
+    },
+    {
+      "id": "gallery-alias",
+      "route": "/#/gallery",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "public-list"
+      ]
+    },
+    {
+      "id": "attending",
+      "route": "/#/attending",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "attending"
+      ]
+    },
+    {
+      "id": "challenges",
+      "route": "/#/challenges",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "courses",
+        "activities"
+      ]
+    },
+    {
+      "id": "classrooms",
+      "route": "/#/classrooms",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "classrooms",
+        "classroom",
+        "roster"
+      ]
+    },
+    {
+      "id": "account",
+      "route": "/#/account",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "account",
+        "seat-identity"
+      ]
+    },
+    {
+      "id": "help",
+      "route": "/#/help",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "notRunReason": "Static help UI has no standalone data API; browser evidence required"
+    },
+    {
+      "id": "editor-19",
+      "route": "/#/3d/:projectId",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "project-three-d"
+      ]
+    },
+    {
+      "id": "editor-20",
+      "route": "/#/(home|projects)/:projectId?module=three-d",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "project-three-d"
+      ]
+    },
+    {
+      "id": "editor-21",
+      "route": "/#/(home|projects)/:projectId?module=blocks",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "project-blocks"
+      ]
+    },
+    {
+      "id": "editor-22",
+      "route": "/projects/:projectId/electronics/edit",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "project-electronics"
+      ]
+    },
+    {
+      "id": "class",
+      "route": "/#/classrooms/:classroomId",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "classroom",
+        "roster"
+      ]
+    },
+    {
+      "id": "class-projects",
+      "route": "/#/classrooms/:classroomId/projects",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "classroom",
+        "class-project-list"
+      ],
+      "notRunReason": "Classroom project list needs a dedicated teacher fixture; personal project list is not substituted"
+    },
+    {
+      "id": "class-editor",
+      "route": "/#/classrooms/:classroomId/projects/:projectId",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "classroom",
+        "class-editor-specific"
+      ],
+      "notRunReason": "Class-specific project admission is not proved by personal-project persistence; dedicated synthetic classroom/browser evidence required"
+    },
+    {
+      "id": "knowledge-course",
+      "route": "/#/knowledge/:courseId",
+      "roles": [
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "knowledge-course"
+      ]
+    },
+    {
+      "id": "publication",
+      "route": "/#/public-projects/:publicationId",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "publication"
+      ]
+    },
+    {
+      "id": "legacy-gallery-work",
+      "route": "/#/gallery/:projectId",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "notRunReason": "Legacy unavailable route by design; not a publication/editor identity"
+    },
+    {
+      "id": "teacher-invite",
+      "route": "/#/teacher-invite/:token",
+      "roles": [
+        "Guest",
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "notRunReason": "Invitation token flows are sensitive and not consumed; separate synthetic browser acceptance required"
+    },
+    {
+      "id": "account-subpath",
+      "route": "/#/account/*",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "account",
+        "seat-identity"
+      ],
+      "notRunReason": "Account subpages/password/verification require dedicated role-specific browser journeys, not a generic shell 200"
+    },
+    {
+      "id": "game-chess",
+      "route": "/#/games/chess/:projectId",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Admission and module catalog only; gameplay state and rules are browser/numerical evidence, NOT_RUN"
+    },
+    {
+      "id": "game-checkers",
+      "route": "/#/games/checkers/:projectId",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Admission and module catalog only; gameplay state and rules are browser/numerical evidence, NOT_RUN"
+    },
+    {
+      "id": "chess",
+      "route": "/#/chess/:projectId",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-home",
+      "route": "/#/chess/:projectId/home",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-play",
+      "route": "/#/chess/:projectId/play",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-play-game",
+      "route": "/#/chess/:projectId/play/game",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-play-analysis",
+      "route": "/#/chess/:projectId/play/analysis",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-play-versions",
+      "route": "/#/chess/:projectId/play/versions",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-online",
+      "route": "/#/chess/:projectId/online",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-puzzles",
+      "route": "/#/chess/:projectId/puzzles",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-learning",
+      "route": "/#/chess/:projectId/learning",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-bots",
+      "route": "/#/chess/:projectId/bots",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-review",
+      "route": "/#/chess/:projectId/review",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "games",
+        "modules"
+      ],
+      "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "admin-overview",
+      "route": "/#/admin",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-overview"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-ai",
+      "route": "/#/admin/ai",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-publications",
+      "route": "/#/admin/publications",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-publications"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-accounts",
+      "route": "/#/admin/users",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-users"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-organizations",
+      "route": "/#/admin/organizations",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-organizations"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-security",
+      "route": "/#/admin/security",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-security"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-confirmations",
+      "route": "/#/admin/confirmations",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-confirmations"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-operations",
+      "route": "/#/admin/system",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-operations"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-logs",
+      "route": "/#/admin/logs",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-logs"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-audit",
+      "route": "/#/admin/history",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-history"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-integrations-alias",
+      "route": "/#/admin/integrations",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-confirmations"
+      ],
+      "notRunReason": "Administrator is a separate platform-admin fixture, never an elevated pupil; probes are read-only"
+    },
+    {
+      "id": "admin-ai-overview",
+      "route": "/#/admin/ai?section=overview",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-settings",
+      "route": "/#/admin/ai?section=settings",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-connections",
+      "route": "/#/admin/ai?section=connections",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-prompt",
+      "route": "/#/admin/ai?section=prompt",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-internet",
+      "route": "/#/admin/ai?section=internet",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-comfyui",
+      "route": "/#/admin/ai?section=comfyui",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-video",
+      "route": "/#/admin/ai?section=video",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "admin-ai-transcription",
+      "route": "/#/admin/ai?section=transcription",
+      "roles": [
+        "Admin"
+      ],
+      "source": "App.tsx / creator-portal/navigation.ts / admin-navigation.ts",
+      "checks": [
+        "admin-me",
+        "admin-ai"
+      ],
+      "notRunReason": "Section-specific rendering, provider configuration edits, video/transcription and paid calls are NOT_RUN"
+    },
+    {
+      "id": "personal-editor-generic",
+      "route": "/#/(home|projects)/:projectId[?module=:module]",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "checks": [
+        "project-three-d",
+        "project-electronics",
+        "project-blocks"
+      ],
+      "source": "creator-portal/navigation.ts",
+      "notRunReason": "Stored module documents are verified; browser editor boot/render remains NOT_RUN"
+    }
+  ],
+  "roleNotes": {
+    "Guest": "No cookies; public list/detail/config probes only",
+    "Seat": "Actual StudentSeat; class-only navigation and owner-bound personal projects",
+    "Teacher": "Actual Account + educator capability; exact test class membership must be proven by roster",
+    "Admin": "Actual Account + platform_admin scope; does not stand in for a pupil"
+  },
+  "notRunLayers": [
+    "browser-rendering",
+    "50-or-100-real-browsers",
+    "WebGL",
+    "numerical-simulation",
+    "external-login-confirmation",
+    "live-update",
+    "backup-restore",
+    "publisher-hook"
+  ]
+}
