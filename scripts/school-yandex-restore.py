@@ -17,6 +17,8 @@ Restore safety contract:
 """
 from __future__ import annotations
 import argparse
+from contextlib import contextmanager
+import getpass
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -229,7 +231,39 @@ def trusted_age_identity(user_path:str)->Path:
     return path
 
 
-def extract_verified(cipher:Path,identity:Path)->Path:
+@contextmanager
+def offline_identity(identity_file: str | None):
+    """Use a mounted root0600 file or a one-shot hidden terminal paste.
+
+    The pasted private key lives only in an anonymous kernel memfd, never
+    appears in argv, a named disk file, GitHub, logs, or 1Panel shortcuts.
+    """
+    if identity_file:
+        yield str(trusted_age_identity(identity_file)),()
+        return
+    supplied=input(
+        "Путь к временному USB age identity (Enter — скрыто вставить сам ключ): "
+    ).strip()
+    if supplied:
+        yield str(trusted_age_identity(supplied)),()
+        return
+    secret=getpass.getpass("Вставьте приватный AGE-SECRET-KEY (скрытый ввод): ").strip()
+    if re.fullmatch(r"AGE-SECRET-KEY-1[A-Z0-9]{50,110}",secret) is None:
+        raise RestoreError("AGE_PRIVATE_KEY_FORMAT_INVALID")
+    if not hasattr(os,"memfd_create"):
+        raise RestoreError("AGE_SECURE_MEMORY_FD_UNAVAILABLE")
+    descriptor=os.memfd_create("asa-temporary-recovery-age-key",0)
+    try:
+        os.fchmod(descriptor,0o600)
+        os.write(descriptor,secret.encode("ascii")+b"\n")
+        os.lseek(descriptor,0,os.SEEK_SET)
+        secret=None
+        yield "/proc/self/fd/"+str(descriptor),(descriptor,)
+    finally:
+        os.close(descriptor)
+
+
+def extract_verified(cipher:Path,identity:str,pass_fds:tuple[int,...]=())->Path:
     ensure_recovery()
     dest=UNPACKED/cipher.name.removesuffix(".tar.age")
     if dest.exists() or dest.is_symlink():
@@ -237,7 +271,8 @@ def extract_verified(cipher:Path,identity:Path)->Path:
     dest.mkdir(mode=0o700)
     created=True
     age=subprocess.Popen(["/usr/bin/age","--decrypt","-i",str(identity),str(cipher)],
-                         stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+                         stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL,pass_fds=pass_fds)
     members=0;total=0;first=None
     try:
         with tarfile.open(fileobj=age.stdout,mode="r|") as contents:
@@ -358,8 +393,8 @@ def main():
         if opts.action=="restore-test":
             backup=latest_staged_backup(cipher)
         else:
-            key=opts.identity or input("Путь к ключу age на временно подключённом офлайн-носителе: ").strip()
-            backup=extract_verified(cipher,trusted_age_identity(key))
+            with offline_identity(opts.identity) as (key,pass_fds):
+                backup=extract_verified(cipher,key,pass_fds)
         if opts.action=="restore-test":
             # Always verify manifest once more immediately before DB work.
             verify=subprocess.run(["/usr/bin/python3",str(MANAGER),"verify-backup",
