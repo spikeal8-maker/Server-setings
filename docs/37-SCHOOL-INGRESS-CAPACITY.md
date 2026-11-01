@@ -18,7 +18,7 @@
 
 Общий предшественник не меняется: test2 и другие роутеры сохраняют свои бюджеты. Сервисы, TLS, HTTP→HTTPS, остальные middleware и маршруты сохраняются семантически. Файл сериализуется как JSON-совместимый YAML, комментарии не сохраняются. Неизвестные auth/header цепочки вместо ожидаемого limiter, нестрогий Host, YAML aliases/duplicate keys и drift блокируют запись.
 
-Зависимость указана явно: `scripts/requirements-ingress.txt` (PyYAML6.0.3, safe loader). Устанавливать в отдельный virtualenv из доверенного registry; отсутствие зависимости блокирует команду без изменения файла. CI использует тот же pinned requirements. На новом узле сначала штатно создаётся точный HTTPS route собственной установки; host и router передаются параметрами, домен/машинный IP в код не прошиты.
+Зависимость указана явно: `scripts/requirements-ingress.txt` (PyYAML6.0.3, safe loader с отдельным YAML1.2 boolean resolver). Строки `off/on/yes/no` соседних конфигураций сохраняются строками; только `true/false` распознаются как boolean. Устанавливать в отдельный virtualenv из доверенного registry; отсутствие зависимости блокирует команду без изменения файла. CI использует тот же pinned requirements. На новом узле сначала штатно создаётся точный HTTPS route собственной установки; host и router передаются параметрами, домен/машинный IP в код не прошиты.
 
 ## План, применение, откат
 
@@ -32,7 +32,9 @@ python3 -m venv /opt/asa-ingress-venv
   --host x.asa-lab.ru --router asa-stage-x-https
 ```
 
-После независимого review плана добавить `--apply --expected-sha256 FRESH_SOURCE_SHA --backup-directory /PRIVATE/ingress-backups`. Перед заменой исходный SHA проверяется снова; exact bytes и квитанция сохраняются mode0600 вне каталога наблюдения, затем выполняется атомарная замена с сохранением uid/gid/mode. Симлинки, hardlinks и большой ввод не принимаются. Вывод не содержит всего исходного файла или секретов соседних конфигураций.
+После независимого review плана добавить `--apply --expected-sha256 FRESH_SOURCE_SHA --backup-directory /PRIVATE/ingress-backups`. Перед заменой исходный SHA проверяется снова; exact bytes и квитанция сохраняются mode0600 вне каталога наблюдения, затем выполняется атомарная замена с сохранением uid/gid/mode. На POSIX fsync выполняется для файлов, каталога операции и цепочки вновь созданных каталогов до замены target. Симлинки, Windows reparse points, hardlinks и большой ввод не принимаются. Проверка отсутствия ссылок предшествует канонизации `..`; placement backup сравнивается по каноническим путям.
+
+Публичный план содержит только проверенные числовые budgets, допустимую duration и признаки `hasRedis/hasSourceCriterion`. Redis credentials, endpoints и содержимое sourceCriterion сохраняются в настоящем YAML, но не выводятся. Ошибка YAML содержит только класс и line/column без исходной строки или exception context.
 
 Применение не означает успешную runtime-приёмку (`liveVerification=NOT_RUN`). После него проверить TLS/public health, соседние x/test2/production hosts, появление нужного middleware в runtime, контролируемый burst100 учеников за одним NAT и сохранение authentication/admission ограничений. Для доказательства сохранения perimeter limiter допустим отдельный ограниченный synthetic limiter test; не выдавать отсутствие429 в малом тесте за отключение защиты.
 
@@ -40,4 +42,4 @@ python3 -m venv /opt/asa-ingress-venv
 
 ## Статус доказательств
 
-Read-only диагностика выполнена на действующих VM100 и Leticia. Unit-тесты проверяют scope, сохранение test2/auth/sourceCriterion, idempotence, отрицательные YAML-входы, exact-SHA apply, backup placement и побайтовый rollback. До отдельного опубликованного/reviewed SHA и фактического применения статус этого исправления — candidate, deployment NOT_RUN, capacity100 NOT_RUN.
+Read-only диагностика выполнена на действующих VM100 и Leticia. Unit-тесты проверяют scope, сохранение test2/auth/sourceCriterion/Redis, idempotence, отрицательные YAML-входы и отсутствие секретов в реальном CLI, YAML1.2 boolean semantics, exact-SHA apply, канонический backup placement, порядок durable backup и побайтовый rollback. До отдельного опубликованного/reviewed SHA и фактического применения статус этого исправления — candidate, deployment NOT_RUN, capacity100 NOT_RUN.

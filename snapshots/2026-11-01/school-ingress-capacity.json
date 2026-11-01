@@ -16,6 +16,7 @@
   "candidateAveragePerMinute": 6000,
   "candidateBurst": 2000,
   "candidateScope": "only selected exact TLS Host router; shared predecessor unchanged",
+  "reviewCorrections": ["redacted budget-only plan including Redis presence only", "YAML1.2 bool resolver", "canonical paths after symlink/reparse rejection", "fsync backup directory chain before replacement"],
   "schoolWafMasterEnabled": false,
   "frpsDefaultResponseHeaderTimeoutSeconds": 60,
   "sseFlushAndHeartbeatPresentInObservedSchoolController": false,
