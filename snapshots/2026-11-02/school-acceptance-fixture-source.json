@@ -1,0 +1,35 @@
+{
+  "format": "asa-synthetic-fixture-author-evidence-v1",
+  "date": "2026-11-02",
+  "state": "AUTHOR_PREPARED",
+  "productionChanges": false,
+  "liveProvisioning": "NOT_RUN",
+  "releaseAccepted": false,
+  "newSyntheticAccounts": 2,
+  "newOwnPrivateClassrooms": 1,
+  "syntheticSeats": 100,
+  "sessionMaxSecondsOnSuccessfulProvisioning": 7200,
+  "adminGrantExpiry": "EXPLICIT_OWN_EXPIRY_COMMAND_NO_AUTONOMOUS_GRANT_TTL",
+  "publicContentCreated": false,
+  "coreCompatibility": "OFFLINE_FAKE_ADAPTER_PROOF",
+  "mixedResourceCreation": "NOT_IMPLEMENTED_SEPARATE_REVIEWED_API_PLAN",
+  "resourceAttachment": "CLOSED_UUID_FIELDS_OPERATOR_ATTESTATION_ONLY",
+  "sourceContract": {
+    "gitBlobHashes": 11,
+    "observedAsaSource": "413590622e6c8638e06eb629b8bd8dd87558bcc2"
+  },
+  "localFocusedTests": {
+    "run": 19,
+    "passed": 18,
+    "skipped": 1,
+    "skipReason": "POSIX safety runs on Linux CI"
+  },
+  "networkDockerDatabaseCallsDuringAuthorTests": false,
+  "independentReview": "REQUIRED_AT_FINAL_SHA",
+  "ubuntuCI": "SEE_EXACT_COMMIT_CHECKS",
+  "recoveryFaultProofs": [
+    "malformed32char-null-integerStudentCode",
+    "permanentManifestWriteFailureAfterThirdJoin",
+    "malformedPartialBootstrapSqlReceipt"
+  ]
+}
