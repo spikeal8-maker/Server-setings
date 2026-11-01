@@ -53,14 +53,19 @@ def unchanged_root(api):
     if tuple(root.get(x) for x in ("modifier","match","proxyPass","proxyHost"))!=("^~","/","http://127.0.0.1:4610","$host"):
         raise PublishError("ROOT_PROXY_DRIFT")
 
+def canonical_headers(headers):
+    """HTTP header names are case-insensitive on every proxy hop."""
+    return {str(k).lower(): str(v) for k, v in headers.items()}
+
+
 def http_probe(path,public):
     url=("https://x.asa-lab.ru" if public else "http://127.0.0.1")+path
     request=urllib.request.Request(url,headers={} if public else {"Host":DOMAIN})
     try:
         with urllib.request.urlopen(request,timeout=10,context=ssl.create_default_context() if public else None) as reply:
-            return reply.status,dict(reply.headers),reply.read(15000)
+            return reply.status,canonical_headers(reply.headers),reply.read(15000)
     except urllib.error.HTTPError as e:
-        return e.code,dict(e.headers),e.read(15000)
+        return e.code,canonical_headers(e.headers),e.read(15000)
 
 def ready():
     for remote in (False,True):
@@ -102,7 +107,7 @@ def external():
         if code!=expected:raise PublishError("PUBLIC_MCP_HTTP_"+path.replace("/","_")+"_"+str(code))
         if path.endswith("resource/mcp") and json.loads(body).get("resource")!="https://x.asa-lab.ru/mcp":
             raise PublishError("PUBLIC_OAUTH_RESOURCE_MISMATCH")
-        if path=="/mcp" and "oauth-protected-resource/mcp" not in headers.get("WWW-Authenticate",""):
+        if path=="/mcp" and "oauth-protected-resource/mcp" not in headers.get("www-authenticate",""):
             raise PublishError("PUBLIC_CHALLENGE_MISSING")
     ready()
 
