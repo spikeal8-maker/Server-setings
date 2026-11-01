@@ -41,6 +41,15 @@ def command(args: tuple | list, *, timeout: int=15):
     return result.stdout
 
 
+def d2_peer_verified(peer):
+    return (
+        D2_IP in (peer.get("TailscaleIPs") or [])
+        and str(peer.get("HostName") or "").casefold()=="d2-r2"
+        and peer.get("DNSName")=="d2-r2.tail605710.ts.net."
+        and peer.get("Online") is True
+    )
+
+
 def preflight():
     if os.geteuid()!=0 or socket.gethostname()!=HOST:
         raise SafeStop("WRONG_SCHOOL_HOST")
@@ -51,8 +60,8 @@ def preflight():
             self_data.get("DNSName")!="asa-school-01.tail605710.ts.net."):
         raise SafeStop("TAILNET_MACHINE_NOT_VERIFIED")
     peers=state.get("Peer") or {}
-    expected=[x for x in peers.values() if D2_IP in (x.get("TailscaleIPs") or [])]
-    if len(expected)!=1 or expected[0].get("HostName")!="d2-r2":
+    expected=[x for x in peers.values() if d2_peer_verified(x)]
+    if len(expected)!=1:
         raise SafeStop("D2_TAILNET_IDENTITY_NOT_VERIFIED")
 
     sshd=command(["/usr/sbin/sshd","-T"])
