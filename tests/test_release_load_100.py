@@ -15,6 +15,7 @@ import urllib.error
 import uuid
 import struct
 import zlib
+import copy
 
 SPEC = importlib.util.spec_from_file_location('release_load_100', Path(__file__).resolve().parents[1] / 'scripts/asa-release-load.py')
 gate = importlib.util.module_from_spec(SPEC)
@@ -33,7 +34,94 @@ def hold_pipe(send):
     send.close()
 
 
+def completed_receipt(users=20, profile='core', ai_texts=0, ai_images=0):
+    f = fixture()
+    catalog = contracts.route_inventory()
+    binding = {'origin': f['origin'], 'revision': 'a'*40, 'schema': 286,
+               'cohortDigest': contracts.cohort_digest(f), 'sourceInventoryDigest': contracts.digest(catalog)}
+    workload = {'profile': profile, 'paceMs': 0, 'maxP95Ms': 5000, 'maxP99Ms': 10000,
+                'deadlineSeconds': 600, 'aiTextUsers': ai_texts, 'aiImages': ai_images,
+                'aiFirstTokenMs': 120000, 'aiTotalMs': 240000}
+    runner = gate.Runner(f, 'a'*40, users, schema=286, profile=profile, ai_texts=ai_texts, ai_images=ai_images,
+                         deployment_binding=binding, workload=workload, inventory_verified=profile=='mixed')
+    runner.completed = True; runner.started_at = time.time()-10; runner.finished_at = time.time()
+    runner.actual_seats = [s['seat'] for s in f['seats'][:users]]
+    runner.provenance = [{'revision': 'a'*40, 'schema': 286}]*2
+    runner.telemetry = [{'memory.rssMb': 100, 'database.waiting': 0, 'requests.total': 900}]
+    modules = [*gate.MODULES, *(['mixed-portal'] if profile == 'mixed' else [])]
+    runner.results = [{'user': i+1, 'module': m, 'ok': True} for i in range(users) for m in modules]
+    counts = {'identity':users, 'create':3*users, 'save':3*users, 'reopen':3*users,
+              'snapshot-save':3*users, 'snapshot-read':3*users, 'scratch-read':users,
+              'scratch-upload':users, 'isolation-denial':3*users, 'revision':2, 'runtime-metrics':1}
+    if profile == 'mixed': counts.update({'portal-'+key:1 for key in contracts.READS})
+    runner.samples = [{'label': label, 'actor': i%users+1, 'ms': 1.0, 'status': 403 if label=='isolation-denial' else 200,
+                       'ok': True, 'expectedNegative': label=='isolation-denial', 'error': None}
+                      for label, count in counts.items() for i in range(count)]
+    runner.ai_results = ([{'kind':'text','ok':True,'ms':20,'firstByteMs':1,'firstTokenMs':2}]*ai_texts
+                        + [{'kind':'image','ok':True,'ms':30,'admitMs':1}]*ai_images)
+    report = runner.report()
+    assert report['passed']
+    return report, binding, workload
+
+
 class Release100Safety(unittest.TestCase):
+    def test_prior_step_accepts_complete_matching_fresh_chain(self):
+        report, binding, workload = completed_receipt()
+        self.assertEqual(contracts.previous_step(report, binding, workload, 50, time.time()), [])
+        next_report, _, _ = completed_receipt(50)
+        next_report['stepChain'] = [{'users':20, 'receiptSha256':contracts.digest(report),
+            'bindingDigest':contracts.digest(binding), 'workloadDigest':contracts.digest(workload), 'runFinishedAt':report['runFinishedAt']}]
+        self.assertEqual(len(contracts.previous_step(next_report,binding,workload,100,time.time())),1)
+
+    def test_prior_step_rejects_empty_green_forgery_and_partial_evidence(self):
+        report, binding, workload = completed_receipt()
+        green = {k: report[k] for k in ('format','passed','users','revision','schema','profile','paceMs','actualDistinctStudents','aiWorkloadState','maxP95Ms','maxP99Ms')}
+        with self.assertRaises(contracts.ContractError): contracts.previous_step(green,binding,workload,50,time.time())
+        for key, value in [('journeys',[]),('provenance',[]),('telemetry',[]),('requests',[]),('operationLatency',{}),
+                           ('completionStage','incomplete'),('state','running'),('inFlight',[{'requestId':'synthetic'}]),('unexpectedErrors',1)]:
+            with self.subTest(key=key), self.assertRaises(contracts.ContractError):
+                contracts.previous_step(dict(report,**{key:value}),binding,workload,50,time.time())
+
+    def test_prior_step_rejects_cross_origin_cohort_revision_and_source(self):
+        report, binding, workload = completed_receipt()
+        for key, value in [('origin','https://other.example'),('cohortDigest','b'*64),('revision','b'*40),('schema',287),('sourceInventoryDigest','b'*64)]:
+            with self.subTest(key=key), self.assertRaises(contracts.ContractError):
+                contracts.previous_step(report,dict(binding,**{key:value}),workload,50,time.time())
+        self.assertNotEqual(contracts.cohort_digest(fixture(100)), contracts.cohort_digest(fixture(99)))
+        changed=fixture(); changed['seats'][0]['token']='x'*64
+        self.assertEqual(contracts.cohort_digest(fixture()),contracts.cohort_digest(changed))
+
+    def test_prior_step_rejects_stale_future_overlong_and_broken_chain(self):
+        report, binding, workload = completed_receipt()
+        for start, finish in [(time.time()-2000,time.time()-1900),(time.time(),time.time()+60),(time.time()-1000,time.time())]:
+            with self.assertRaises(contracts.ContractError):
+                contracts.previous_step(dict(report,runStartedAt=start,runFinishedAt=finish),binding,workload,50,time.time())
+        report, binding, workload = completed_receipt(50)
+        with self.assertRaises(contracts.ContractError): contracts.previous_step(report,binding,workload,100,time.time())
+        report['stepChain']=[{'users':20,'receiptSha256':'a'*64,'bindingDigest':'b'*64,'workloadDigest':contracts.digest(workload),'runFinishedAt':time.time()}]
+        with self.assertRaises(contracts.ContractError): contracts.previous_step(report,binding,workload,100,time.time())
+
+    def test_prior_step_rejects_ai_counts_budgets_and_missing_source_checks(self):
+        report, binding, workload = completed_receipt(profile='mixed',ai_texts=2,ai_images=1)
+        contracts.previous_step(report,binding,workload,50,time.time())
+        for key, value in [('aiImages',10),('aiTextUsers',3),('aiFirstTokenMs',1000),('aiTotalMs',30000),('deadlineSeconds',900),('maxP95Ms',6000),('paceMs',1),('profile','core')]:
+            with self.subTest(key=key), self.assertRaises(contracts.ContractError):
+                contracts.previous_step(report,binding,dict(workload,**{key:value}),50,time.time())
+        for key, value in [('sourceInventoryVerified',False),('routeCoverage',[]),('ai',[]),('aiWorkloadState','FAIL')]:
+            with self.assertRaises(contracts.ContractError): contracts.previous_step(dict(report,**{key:value}),binding,workload,50,time.time())
+        bad=copy.deepcopy(report); bad['ai'][0]['firstTokenMs']=999999
+        with self.assertRaises(contracts.ContractError): contracts.previous_step(bad,binding,workload,50,time.time())
+
+    def test_prior_step_rejects_request_polarity_and_inconsistent_counters(self):
+        report,binding,workload=completed_receipt()
+        for kind in ('missing-identity','wrong-polarity','bad-latency','missing-count'):
+            bad=copy.deepcopy(report)
+            if kind=='missing-identity': bad['requests']=[r for r in bad['requests'] if r['label']!='identity']
+            if kind=='wrong-polarity': next(r for r in bad['requests'] if r['label']=='create')['expectedNegative']=True
+            if kind=='bad-latency': bad['operationLatency']['save']['p99Ms']=0
+            if kind=='missing-count': bad['modules']['blocks']['passed']=19
+            with self.subTest(kind=kind), self.assertRaises(contracts.ContractError): contracts.previous_step(bad,binding,workload,50,time.time())
+
     def test_plans_all_three_steps_without_network_source_or_fixture_access(self):
         with mock.patch.object(gate.urllib.request.OpenerDirector, 'open', side_effect=AssertionError('network')), \
                 mock.patch.object(gate, 'private_fixture', side_effect=AssertionError('fixture')), \

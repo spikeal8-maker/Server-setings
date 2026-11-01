@@ -7,7 +7,9 @@
   "liveLoad": "NOT_RUN",
   "profiles": [20, 50, 100],
   "modes": ["core", "mixed"],
-  "localContractTests": {"state": "PASS", "count": 20, "network": false},
+  "localContractTests": {"state": "PASS", "count": 26, "network": false},
+  "receiptFormat": "asa-release-http-load-v3",
+  "priorStepGuard": "Complete fresh deployment/cohort/workload-bound evidence and step chain; no cryptographic attestation",
   "sourceInventory": {
     "revision": "14ca13ed3a5939d7fea46710d806c07d522cc111",
     "routes": 64,

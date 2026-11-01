@@ -28,7 +28,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from release_load_contracts import (ContractError, PROFILES, READS, contract, field, require,
                                     private_fixture, quantiles, route_inventory, coverage,
-                                    numeric_telemetry, safe_code, local_ai, required_log_coverage)
+                                    numeric_telemetry, safe_code, local_ai, required_log_coverage,
+                                    digest, cohort_digest, previous_step)
 from release_load_ai import LocalAiWorkload
 
 MODULES = ('three-d', 'electronics', 'blocks')
@@ -69,7 +70,8 @@ def png_bytes(index):
 class Runner(LocalAiWorkload):
     def __init__(self, fixture, revision, users, max_p95_ms=5000, pace_ms=0, *, schema=None,
                  profile='core', catalog=None, partial=None, p99_ms=10000, ai_texts=0, ai_images=0, cancel_event=None,
-                 ai_first_token_ms=120000, ai_total_ms=240000, inventory_verified=False):
+                 ai_first_token_ms=120000, ai_total_ms=240000, inventory_verified=False,
+                 deployment_binding=None, workload=None, step_chain=None):
         self.f = fixture
         self.origin = fixture['origin']
         self.revision = revision
@@ -84,6 +86,12 @@ class Runner(LocalAiWorkload):
         self.ai_texts, self.ai_images = ai_texts, ai_images
         self.ai_first_token_ms, self.ai_total_ms = ai_first_token_ms, ai_total_ms
         self.inventory_verified = inventory_verified
+        self.started_at = time.time()
+        self.finished_at = None
+        self.completed = False
+        self.deployment_binding = deployment_binding
+        self.workload = workload
+        self.step_chain = step_chain or []
         self.cancel_event = cancel_event or threading.Event()
         self.samples = []
         self.results = []
@@ -123,7 +131,7 @@ class Runner(LocalAiWorkload):
             if not force and now - self.last_checkpoint < 1:
                 return
             self.last_checkpoint = now
-            report = {'format': 'asa-release-http-load-v2', 'passed': False, 'state': 'running',
+            report = {'format': 'asa-release-http-load-v3', 'passed': False, 'state': 'running',
                       'revision': self.revision, 'schema': self.schema, 'users': self.users,
                       'requests': list(self.samples), 'journeys': list(self.results), 'ai': list(self.ai_results),
                       'telemetry': list(self.telemetry), 'inFlight': list(self.inflight.values()), 'releaseAccepted': False}
@@ -395,7 +403,10 @@ class Runner(LocalAiWorkload):
                   and not unexpected and bool(self.telemetry) and len(self.provenance) >= 2
                   and all(m['p95Ms'] <= self.max_p95_ms and m['p99Ms'] <= self.p99_ms for m in by_operation.values() if m)
                   and len(self.ai_results) == self.ai_texts + self.ai_images and all(x.get('ok') for x in self.ai_results) and ai_budget_ok)
-        return {'format': 'asa-release-http-load-v2', 'passed': passed, 'httpProfilePassed': passed, 'releaseAccepted': False,
+        return {'format': 'asa-release-http-load-v3', 'passed': passed, 'httpProfilePassed': passed, 'releaseAccepted': False,
+                'origin': self.origin, 'deploymentBinding': self.deployment_binding, 'workload': self.workload,
+                'runStartedAt': self.started_at, 'runFinishedAt': self.finished_at,
+                'completionStage': 'complete' if self.completed and not fatal else 'incomplete', 'stepChain': self.step_chain,
                 'revision': self.revision, 'schema': self.schema, 'provenance': self.provenance,
                 'users': self.users, 'profile': self.profile, 'paceMs': self.pace_ms, 'state': 'failed' if fatal else 'complete',
                 'error': fatal, 'scope': 'HTTP data contracts and synthetic project/media persistence; no browser execution',
@@ -406,6 +417,7 @@ class Runner(LocalAiWorkload):
                 'modules': {m: {'journeys': sum(x['module'] == m for x in self.results),
                                'passed': sum(x['module'] == m and x['ok'] for x in self.results)} for m in (*MODULES, 'mixed-portal')},
                 'sourceInventoryRevision': self.catalog['sourceRevision'], 'sourceInventoryVerified': self.inventory_verified,
+                'sourceInventoryDigest': digest(self.catalog),
                 'routeCoverage': coverage(self.catalog, self.checks), 'aiLatency': ai_latency,
                 'aiWorkloadState': 'NOT_RUN' if not (self.ai_texts or self.ai_images) else 'PASS' if len(self.ai_results) == self.ai_texts + self.ai_images and all(x.get('ok') for x in self.ai_results) and ai_budget_ok else 'FAIL',
                 'aiBudgets': {'firstTokenMs': self.ai_first_token_ms, 'totalMs': self.ai_total_ms, 'firstByteMs': self.max_p95_ms},
@@ -443,6 +455,8 @@ class Runner(LocalAiWorkload):
         finally:
             self.stop.set()
             monitor.join(35)
+        self.completed = True
+        self.finished_at = time.time()
         return self.report()
 
 
@@ -481,7 +495,7 @@ def supervise(child, receive, cancel, deadline, report, partial):
                 acknowledged = receive.recv()
                 require(acknowledged is True, 'invalid worker acknowledgement')
                 completed = json.loads(partial.read_text(encoding='utf-8'))
-                require(completed.get('format') == 'asa-release-http-load-v2'
+                require(completed.get('format') == 'asa-release-http-load-v3'
                         and completed.get('revision') == report['revision']
                         and completed.get('users') == report['users'], 'invalid worker receipt identity')
                 return completed
@@ -535,6 +549,10 @@ def main(argv=None):
     u = urllib.parse.urlsplit(args.origin)
     if u.scheme != 'https' or not u.hostname or u.username or u.password or u.query or u.fragment or u.path:
         p.error('an exact HTTPS application origin without path/credentials is required')
+    hostname = '[' + u.hostname + ']' if ':' in u.hostname else u.hostname
+    canonical_origin = 'https://' + hostname.lower() + (':' + str(u.port) if u.port not in (None, 443) else '')
+    if args.origin != canonical_origin:
+        p.error('origin must be canonical: lowercase hostname, no default port')
     if len(args.revision) != 40 or any(c not in '0123456789abcdef' for c in args.revision):
         p.error('pin a full lowercase Git revision')
     if not 0 < args.max_p95_ms <= args.max_p99_ms or not 0 <= args.pace_ms <= 5000 or not 30 <= args.deadline_seconds <= 900:
@@ -563,23 +581,25 @@ def main(argv=None):
         p.error('mixed apply requires --source-root for route/API drift detection')
     fixture = private_fixture(args.fixture, args.origin, args.users, args.profile)
     catalog = route_inventory(args.source_root, args.revision) if args.source_root else route_inventory()
+    workload = {'profile': args.profile, 'paceMs': args.pace_ms, 'maxP95Ms': args.max_p95_ms,
+                'maxP99Ms': args.max_p99_ms, 'deadlineSeconds': args.deadline_seconds,
+                'aiTextUsers': args.ai_text_users, 'aiImages': args.ai_images,
+                'aiFirstTokenMs': args.ai_max_first_token_ms, 'aiTotalMs': args.ai_max_total_ms}
+    binding = {'origin': args.origin, 'revision': args.revision, 'schema': args.schema,
+               'cohortDigest': cohort_digest(fixture), 'sourceInventoryDigest': digest(catalog)}
     previous_hash = None
+    step_chain = []
     if args.users != 20:
         if not args.previous_receipt:
             p.error('50/100 apply requires prior successful 20/50 receipt; no blind escalation')
         previous_raw = args.previous_receipt.read_bytes()
         previous = json.loads(previous_raw)
-        expected_users = 20 if args.users == 50 else 50
-        require(previous.get('passed') is True and previous.get('users') == expected_users
-                and previous.get('format') == 'asa-release-http-load-v2'
-                and previous.get('actualDistinctStudents') == expected_users
-                and previous.get('revision') == args.revision and previous.get('schema') == args.schema
-                and previous.get('profile') == args.profile and previous.get('paceMs') == args.pace_ms
-                and previous.get('maxP95Ms') == args.max_p95_ms and previous.get('maxP99Ms') == args.max_p99_ms
-                and previous.get('aiWorkloadState') == ('PASS' if args.ai_text_users or args.ai_images else 'NOT_RUN'),
-                'previous step differs or failed; no escalation')
+        step_chain = previous_step(previous, binding, workload, args.users, time.time())
         previous_hash = hashlib.sha256(previous_raw).hexdigest()
-    report = {'format': 'asa-release-http-load-v2', 'revision': args.revision, 'schema': args.schema, 'users': args.users,
+        step_chain = [*step_chain, {'users': previous['users'], 'receiptSha256': previous_hash,
+                                   'bindingDigest': digest(binding), 'workloadDigest': digest(workload),
+                                   'runFinishedAt': previous['runFinishedAt']}]
+    report = {'format': 'asa-release-http-load-v3', 'revision': args.revision, 'schema': args.schema, 'users': args.users,
               'profile': args.profile, 'passed': False, 'state': 'running', 'deadlineSeconds': args.deadline_seconds,
               'releaseAccepted': False, 'previousReceiptSha256': previous_hash}
     write_receipt(args.output, report, exclusive=True)
@@ -590,7 +610,8 @@ def main(argv=None):
     options = {'schema': args.schema, 'profile': args.profile, 'catalog': catalog, 'partial': partial,
                'p99_ms': args.max_p99_ms, 'ai_texts': args.ai_text_users, 'ai_images': args.ai_images, 'cancel_event': cancel,
                'ai_first_token_ms': args.ai_max_first_token_ms, 'ai_total_ms': args.ai_max_total_ms,
-               'inventory_verified': args.source_root is not None}
+               'inventory_verified': args.source_root is not None,
+               'deployment_binding': binding, 'workload': workload, 'step_chain': step_chain}
     child = context.Process(target=worker, args=(send, fixture, args.revision, args.users, args.max_p95_ms, args.pace_ms, options))
     try:
         child.start()

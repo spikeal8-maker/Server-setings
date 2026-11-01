@@ -60,6 +60,98 @@ def safe_code(value):
     return value if isinstance(value, str) and value in allowed else 'unclassified_api_error'
 
 
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def cohort_digest(fixture):
+    # Stable across steps/token rotation; hash the entire authorized cohort,
+    # never session secrets. All steps must use the same fixture membership.
+    return digest({'seats': [s['seat'] for s in fixture['seats']],
+                   'roles': {k: v['accountId'] for k, v in fixture.get('roles', {}).items()},
+                   'resources': fixture.get('resources', {}), 'documents': fixture.get('documents', {}),
+                   'requiredLogs': fixture.get('expectedRequiredLogSourceIds', [])})
+
+
+def previous_step(previous, binding, workload, users, now):
+    """Validate complete recent evidence, not an operator-supplied green flag."""
+    n = 20 if users == 50 else 50
+    require(previous.get('format') == 'asa-release-http-load-v3' and previous.get('users') == n
+            and previous.get('passed') is True and previous.get('httpProfilePassed') is True
+            and previous.get('state') == 'complete' and previous.get('completionStage') == 'complete'
+            and previous.get('error') is None and previous.get('unexpectedErrors') == 0,
+            'previous step is not complete successful evidence')
+    require(previous.get('deploymentBinding') == binding and previous.get('workload') == workload,
+            'previous deployment/cohort/workload differs')
+    require(previous.get('origin') == binding['origin'] and previous.get('revision') == binding['revision']
+            and previous.get('schema') == binding['schema'] and previous.get('profile') == workload['profile']
+            and previous.get('paceMs') == workload['paceMs'], 'previous top-level deployment/profile mismatch')
+    started, finished = previous.get('runStartedAt'), previous.get('runFinishedAt')
+    require(type(started) in (int, float) and type(finished) in (int, float)
+            and 0 <= now - finished <= 1800 and 0 <= finished - started <= workload['deadlineSeconds'] + 15,
+            'previous step is stale/future or exceeds deadline')
+    require(previous.get('actualDistinctStudents') == n and previous.get('inFlight') == [], 'previous identities/in-flight evidence incomplete')
+    modules = ('three-d', 'electronics', 'blocks') + (('mixed-portal',) if workload['profile'] == 'mixed' else ())
+    journeys = previous.get('journeys', [])
+    require(isinstance(journeys, list) and len(journeys) == n * len(modules)
+            and {(r.get('user'), r.get('module')) for r in journeys} == {(i, m) for i in range(1, n+1) for m in modules}
+            and all(r.get('ok') is True for r in journeys), 'previous journey evidence incomplete')
+    require(all(previous.get('modules', {}).get(m) == {'journeys': n, 'passed': n} for m in modules), 'previous module counts incomplete')
+    provenance = previous.get('provenance', [])
+    require(len(provenance) >= 2 and all(p == {'revision': binding['revision'], 'schema': binding['schema']} for p in provenance), 'previous runtime provenance incomplete')
+    telemetry = previous.get('telemetry', [])
+    require(isinstance(telemetry, list) and bool(telemetry), 'previous telemetry missing')
+    for row in telemetry:
+        require(all(type(v) in (int, float) and math.isfinite(v) for v in row.values())
+                and all(k in row for k in ('memory.rssMb', 'requests.total', 'database.waiting')), 'previous telemetry incomplete')
+    requests = previous.get('requests', [])
+    require(isinstance(requests, list) and bool(requests) and all(r.get('ok') is True
+            and type(r.get('ms')) in (int, float) and math.isfinite(r['ms']) and r['ms'] >= 0
+            and type(r.get('status')) is int and (200 <= r['status'] < 300 or r.get('expectedNegative') is True)
+            for r in requests), 'previous requests missing/failed')
+    for label, count in {'identity': n, 'create': 3*n, 'save': 3*n, 'reopen': 3*n,
+                         'snapshot-save': 3*n, 'snapshot-read': 3*n, 'scratch-read': n,
+                         'scratch-upload': n, 'isolation-denial': 3*n, 'revision': 2, 'runtime-metrics': 1}.items():
+        require(sum(r.get('label') == label for r in requests) >= count, 'previous critical request evidence missing: ' + label)
+        require(all(r.get('expectedNegative') is (label == 'isolation-denial') for r in requests if r.get('label') == label), 'previous critical request polarity mismatch')
+    require({r.get('actor') for r in requests if r.get('label') == 'identity'} == set(range(1, n+1)), 'previous identity actors incomplete')
+    require(sum(r.get('expectedNegative') is True for r in requests) == previous.get('expectedNegativeChecks')
+            and all(r.get('status') in (403, 404) and r.get('expectedNegative') is True for r in requests if r.get('label') == 'isolation-denial'), 'previous isolation evidence incomplete')
+    latencies = previous.get('operationLatency', {})
+    require(bool(latencies) and all(v and v.get('p95Ms', math.inf) <= workload['maxP95Ms']
+            and v.get('p99Ms', math.inf) <= workload['maxP99Ms'] for v in latencies.values() if v is not None), 'previous latency evidence missing/failed')
+    recomputed = {label: quantiles([r['ms'] for r in requests if r['label'] == label and not r.get('expectedNegative')])
+                  for label in {r['label'] for r in requests}}
+    require(latencies == recomputed and previous.get('errorCountsByOperation') == {k: 0 for k in recomputed}, 'previous latency/error evidence inconsistent')
+    ai = previous.get('ai', [])
+    require(len(ai) == workload['aiTextUsers'] + workload['aiImages']
+            and sum(r.get('kind') == 'text' for r in ai) == workload['aiTextUsers']
+            and sum(r.get('kind') == 'image' for r in ai) == workload['aiImages']
+            and all(r.get('ok') is True for r in ai), 'previous AI workload incomplete')
+    require(previous.get('aiConfiguration') == {'textUsers': workload['aiTextUsers'], 'images': workload['aiImages']}
+            and previous.get('aiBudgets') == {'firstTokenMs': workload['aiFirstTokenMs'], 'totalMs': workload['aiTotalMs'], 'firstByteMs': workload['maxP95Ms']}
+            and previous.get('aiWorkloadState') == ('PASS' if ai else 'NOT_RUN'), 'previous AI budgets/state inconsistent')
+    for row in ai:
+        limits = {'ms': workload['aiTotalMs']}
+        if row['kind'] == 'text':
+            limits.update(firstByteMs=workload['maxP95Ms'], firstTokenMs=workload['aiFirstTokenMs'])
+        require(all(type(row.get(k)) in (int, float) and math.isfinite(row[k]) and 0 <= row[k] <= limit
+                    for k, limit in limits.items()), 'previous AI latency missing/over budget')
+    if workload['profile'] == 'mixed':
+        require(previous.get('sourceInventoryVerified') is True
+                and previous.get('sourceInventoryDigest') == binding['sourceInventoryDigest']
+                and bool(previous.get('routeCoverage')), 'previous source/route evidence missing')
+        require(all(any(r.get('label') == 'portal-' + key and not r.get('expectedNegative') for r in requests) for key in READS), 'previous mixed API evidence missing')
+    chain = previous.get('stepChain')
+    expected = [] if n == 20 else [20]
+    require(isinstance(chain, list) and [r.get('users') for r in chain] == expected
+            and all(r.get('bindingDigest') == digest(binding) and r.get('workloadDigest') == digest(workload)
+                    and re.fullmatch(r'[a-f0-9]{64}', str(r.get('receiptSha256', '')))
+                    and type(r.get('runFinishedAt')) in (int, float) and 0 <= now-r['runFinishedAt'] <= 1800 for r in chain),
+            'previous step chain incomplete/mismatched/stale')
+    return chain
+
+
 def private_fixture(path, origin, users, profile):
     path = Path(path)
     for node in (path.absolute(), *path.absolute().parents):
