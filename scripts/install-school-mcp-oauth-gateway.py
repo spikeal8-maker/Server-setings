@@ -120,7 +120,7 @@ def install():
         "DATA_PATH=/var/lib/asa-school-mcp-gateway\n"
         f"PASSWORD={password}\n"
         f"PROXY_BEARER_TOKEN={bearer}\n"
-        "TRUSTED_PROXIES=127.0.0.1\n"
+        "TRUSTED_PROXIES=127.0.0.1/32\n"
         "NO_PROVIDER_AUTO_SELECT=true\n"
     )
     unit = """[Unit]
