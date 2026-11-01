@@ -1,0 +1,26 @@
+name: Synthetic release HTTP gate contracts
+on:
+  pull_request:
+    paths: ['scripts/asa-release-load.py', 'scripts/release_load_*.py', 'tests/test_release_load*.py', 'profiles/school-*.json', '.github/workflows/release-load-contract.yml']
+  push:
+    branches: ['test/school-release-100-20261102']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p 'test_release_load*.py' -v
+      - name: Plans only; no school, credentials or workload
+        run: |
+          for users in 20 50 100; do
+            python scripts/asa-release-load.py --origin https://school.example --revision 0000000000000000000000000000000000000000 --users "$users"
+          done
+      - run: python -m compileall -q scripts tests
+      - run: git diff --check HEAD

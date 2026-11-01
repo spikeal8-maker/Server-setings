@@ -1,0 +1,19 @@
+{
+  "format": "asa-school-http-load-settings-v2",
+  "status": "author-prepared; live load NOT_RUN; not a publisher hook",
+  "profiles": [
+    {"users": 20, "previousUsers": null, "defaultPaceMs": 0},
+    {"users": 50, "previousUsers": 20, "defaultPaceMs": 0},
+    {"users": 100, "previousUsers": 50, "defaultPaceMs": 0}
+  ],
+  "modes": {
+    "core": "Every pupil creates/saves/reopens all three project types, Scratch media, preview bytes and cross-seat denial. One own project per module also tests duplicate/rename/archive/trash/restore.",
+    "mixed": "Core plus source-pinned portal GET data contracts with separate Guest/Seat/Teacher/Admin roles. Pupil groups rotate by index modulo five: modules/games; learning/assignments/results; knowledge/course; collections/publications; AI status/modules. Optional explicitly local AI reuses a subset of these pupils."
+  },
+  "requiredRolesForMixed": {"Seat": "20/50/100 distinct real session identities", "Teacher": "one separate synthetic educator/content-author Account in the test classroom", "Admin": "one separate synthetic platform-admin Account", "Guest": "no cookies"},
+  "defaultBudgets": {"requestP95Ms": 5000, "requestP99Ms": 10000, "wallTimeSecondsPerInvocation": 600, "localAiFirstByteMs": 5000, "localAiFirstTokenMs": 120000, "localAiTotalMs": 240000},
+  "localAiLimits": {"defaultTextUsers": 0, "defaultImageJobs": 0, "maxTextUsers": "explicit cohort size", "maxImageUsers": 10, "maxAdditionalRetryJobs": 1, "textOperationDeadlineSeconds": 180, "imageOperationDeadlineSeconds": 240, "paidDefault": "BLOCKED"},
+  "stopPolicy": "Unexpected HTTP/contract error stops new authenticated work; already admitted owned AI jobs receive scoped cancellation attempts. Hard wall deadline preserves partial FAIL and terminates generator; in-flight server cancellation cannot be guaranteed after forced termination.",
+  "notProvenByHttp": ["browser rendering", "100 actual browsers", "WebGL", "numerical simulation", "login/join/confirmation forms", "real publisher/update/backup/restore", "complete provider queue correctness", "source IP as seen at ingress"],
+  "releaseAcceptedByThisTool": false
+}

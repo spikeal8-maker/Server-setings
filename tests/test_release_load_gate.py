@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 import urllib.error
 import urllib.request
+import uuid
 
 SPEC = importlib.util.spec_from_file_location('asa_release_load_gate', Path(__file__).resolve().parents[1] / 'scripts/asa-release-load.py')
 gate = importlib.util.module_from_spec(SPEC)
@@ -18,7 +19,7 @@ SPEC.loader.exec_module(gate)
 class ReleaseLoadSafety(unittest.TestCase):
     def fixture(self, path):
         f = {'origin': 'https://school.example', 'authorizedSyntheticFixture': True,
-             'seats': [{'seat': str(i), 'token': str(i).zfill(64)} for i in range(50)]}
+             'seats': [{'seat': str(uuid.UUID(int=i+1)), 'token': str(i).zfill(64)} for i in range(50)]}
         path.write_text(json.dumps(f))
         path.chmod(0o600)
         return f
@@ -48,7 +49,7 @@ class ReleaseLoadSafety(unittest.TestCase):
             before = p.read_bytes()
             with self.assertRaises(SystemExit):
                 gate.main(['--origin', 'https://school.example', '--revision', 'a' * 40,
-                           '--fixture', str(p), '--output', str(p), '--apply'])
+                           '--schema', '286', '--fixture', str(p), '--output', str(p), '--apply'])
             self.assertEqual(p.read_bytes(), before)
 
     def test_redirect_never_reaches_destination_with_credentials(self):
