@@ -37,6 +37,10 @@ def command(args: tuple | list, *, timeout: int=15):
     except subprocess.TimeoutExpired:
         raise SafeStop("FIREWALL_COMMAND_TIMEOUT") from None
     if result.returncode:
+        if Path(str(args[0])).name=="ufw":
+            # This command has no secrets; preserve its bounded diagnostic.
+            detail=" ".join((result.stderr or result.stdout).split())[:200]
+            raise SafeStop("UFW_ERROR_"+(detail or str(result.returncode)))
         raise SafeStop("COMMAND_FAILED_"+Path(str(args[0])).name)
     return result.stdout
 
@@ -91,14 +95,19 @@ def backup_ufw_rules():
     folder.mkdir(parents=True,exist_ok=True,mode=0o700)
     if folder.stat().st_uid!=0 or stat.S_IMODE(folder.stat().st_mode)!=0o700:
         raise SafeStop("BACKUP_FOLDER_UNTRUSTED")
-    if BACKUP.exists() or BACKUP.is_symlink():
-        raise SafeStop("BACKUP_ALREADY_EXISTS_REVIEW_FIRST")
     source=Path("/etc/ufw/user.rules")
     st=source.lstat()
     if not stat.S_ISREG(st.st_mode) or st.st_uid!=0:
         raise SafeStop("UFW_RULES_FILE_UNTRUSTED")
     with source.open("rb") as stream:
         body=stream.read(250000)
+    if BACKUP.exists() or BACKUP.is_symlink():
+        previous=BACKUP.lstat()
+        if (not stat.S_ISREG(previous.st_mode) or previous.st_uid!=0
+                or stat.S_IMODE(previous.st_mode)!=0o600
+                or BACKUP.read_bytes()!=body):
+            raise SafeStop("BACKUP_EXISTS_BUT_UFW_CONTENT_CHANGED")
+        return
     fd=os.open(BACKUP,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     with os.fdopen(fd,"wb") as target:
         target.write(body)
