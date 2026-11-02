@@ -1,11 +1,12 @@
 {
-  "status": "SOURCE_ONLY_NOT_REHEARSED",
+  "status": "FIRST_LIVE_ATTEMPT_FAILED_BEFORE_DOCKER_SOURCE_FIX_NOT_RETRIED",
   "target": "admins-MS-7D22",
   "live_changes": false,
   "timer_enabled": false,
   "canonical_procedure": "reviewed ASA backup.restore_check via nonce-only exec adapter",
   "private_age_key_on_server": false,
   "source_row_fingerprint_equality_claimed": false,
-  "validation": "9 focused unit tests, py_compile, default plan, git diff --check",
+  "validation": "10 tests including real canonical import at dfee5badd299d318a8e51ff0cbf88e9656333a5d, py_compile, default plan, git diff --check",
+  "first_failure": "0210639 MCP fe076cc2da71413a9df6a3e6f8e09bb9: missing resources.py dependency before Docker",
   "remaining": "Independent exact-SHA review and actual isolated restore/cleanup proof"
 }

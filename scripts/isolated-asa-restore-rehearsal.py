@@ -25,7 +25,7 @@ import time
 import uuid
 
 STATE = Path('/var/lib/asa-restore-rehearsal')
-SOURCE_FILES = {'__init__.py', 'backup.py', 'contracts.py', 'system.py'}
+SOURCE_FILES = {'__init__.py', 'backup.py', 'contracts.py', 'system.py', 'resources.py'}
 LABEL = 'org.asa-lab.isolated-rehearsal'
 
 

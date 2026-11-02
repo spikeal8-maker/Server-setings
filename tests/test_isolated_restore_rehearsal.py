@@ -1,10 +1,13 @@
+import ast
 import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tarfile
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -34,6 +37,39 @@ class FakeDocker:
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_real_canonical_dependency_closure_and_import(self):
+        revision = 'dfee5badd299d318a8e51ff0cbf88e9656333a5d'
+        repo = Path(os.environ.get('ASA_CANONICAL_SOURCE_REPO',
+                    str(Path(__file__).parents[2] / 'asa-lab-source')))
+        if not (repo / '.git').exists():
+            self.skipTest('Set ASA_CANONICAL_SOURCE_REPO to canonical ASA checkout containing pinned runtime commit')
+        sources = {}
+        for name in restore.SOURCE_FILES:
+            sources[name] = subprocess.check_output(['git', '-C', str(repo), 'show',
+                                                     revision + ':tools/deployment/' + name])
+        # Audit the entire relative-import closure of the exact deployed revision,
+        # rather than silently assuming the developer checkout matches runtime.
+        for name, content in sources.items():
+            for node in ast.walk(ast.parse(content, filename=name)):
+                if isinstance(node, ast.ImportFrom) and node.level:
+                    self.assertEqual(node.level, 1)
+                    self.assertIn(node.module + '.py', restore.SOURCE_FILES)
+        receipt = {'repository': 'spikeal8-maker/asa-lab', 'commit': revision,
+                   'files': {name: hashlib.sha256(content).hexdigest() for name, content in sources.items()}}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, content in sources.items():
+                (root / name).write_bytes(content)
+            # This cross-platform source test replaces only POSIX trust metadata;
+            # imports must not spawn host/Docker processes or network requests.
+            with patch.object(restore, 'trusted_tree', return_value=receipt), \
+                 patch('subprocess.run', side_effect=AssertionError('import must not execute commands')), \
+                 patch('urllib.request.urlopen', side_effect=AssertionError('import must not contact network')):
+                canonical, actual = restore.load_canonical(root, 'dependency_closure_test')
+            self.assertTrue(callable(canonical.restore_check))
+            self.assertEqual(actual['commit'], revision)
+            self.assertEqual({path.name for path in root.iterdir()}, restore.SOURCE_FILES)
+
     def test_container_rejects_host_network_and_foreign_mounts(self):
         image = 'sha256:' + 'b' * 64
         cid = 'c' * 64

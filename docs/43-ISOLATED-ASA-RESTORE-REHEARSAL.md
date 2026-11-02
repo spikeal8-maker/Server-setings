@@ -1,6 +1,6 @@
 # Изолированная проверка восстановления ASA
 
-Статус: SOURCE_ONLY. Реальный запуск не выполнялся; nightly timer не включён.
+Статус: восстановление не доказано; nightly timer не включён. Первый реальный запуск 0210639 (MCP fe076cc2da71413a9df6a3e6f8e09bb9) остановился до Docker: deployed canonical system.py импортирует resources.py, отсутствовавший в первоначальном allowlist. Исправление добавляет точную зависимость; повторный live запуск этим изменением не выполнялся.
 
 `scripts/isolated-asa-restore-rehearsal.py` без `--apply` выводит план. Запуск root на домашней Ubuntu допускается после независимого review точного SHA. Работающие PostgreSQL/MinIO и Compose-проект не используются.
 
@@ -10,7 +10,9 @@
 
 Decryption receipt: `installation_instance_id`, `decryption_verified: true`, `archive_sha256` (ciphertext), `plaintext_sha256` (tar). Оба SHA проверяются заново; UUID сверяется с конфигурацией, last-success и текущей установкой.
 
-Нужен независимо проверенный root-owned снимок canonical `tools/deployment`: только `__init__.py`, `backup.py`, `contracts.py`, `system.py`, `source-receipt.json`. Receipt содержит `repository: spikeal8-maker/asa-lab`, точный 40-символьный `commit`, `files` с SHA256 четырёх модулей. Файлы 0600, все предки принадлежат root и недоступны на запись группе/остальным; посторонние файлы/pycache запрещены. Самозаписанные хеши не заменяют review кода.
+Нужен независимо проверенный root-owned снимок canonical `tools/deployment`: только `__init__.py`, `backup.py`, `contracts.py`, `system.py`, `resources.py`, `source-receipt.json`. Receipt содержит `repository: spikeal8-maker/asa-lab`, точный 40-символьный `commit`, `files` с SHA256 пяти модулей. Файлы 0600, все предки принадлежат root и недоступны на запись группе/остальным; посторонние файлы/pycache запрещены. Самозаписанные хеши не заменяют review кода.
+
+Тест exact runtime commit `dfee5badd299d318a8e51ff0cbf88e9656333a5d` читает модули через git show, проверяет AST-замыкание относительных imports и реально импортирует canonical backup без запуска команд/сети. Для другого расположения checkout задать `ASA_CANONICAL_SOURCE_REPO`; без checkout этот отдельный тест явно skipped, а не считается доказанным. При смене runtime commit замыкание необходимо перепроверить.
 
 ## Запуск после review
 
