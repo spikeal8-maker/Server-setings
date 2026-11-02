@@ -6,6 +6,7 @@ ready TLS plus HTTP->HTTPS before it connects the panel. rollback quarantines
 only this owned site, without deleting certificates, sites or application data.
 """
 import argparse
+import datetime as dt
 import json
 import re
 import socket
@@ -97,7 +98,7 @@ def deploy(api, stage, apply, account, expected_ip):
             api.request('POST', '/websites/ssl', {'primaryDomain': DOMAIN, 'otherDomains': '',
                         'provider': 'http', 'acmeAccountId': account, 'autoRenew': True,
                         'keyType': 'EC256', 'apply': True})
-        return {'prepared': True, 'website_id': site['id'], 'panel_upstream_activated': False}
+        return {'prepared': True, 'website_id': site['id'], 'proxy_configuration_changed': False}
     if not site:
         raise RuntimeError('Run prepare first')
     deadline = time.monotonic() + 180
@@ -111,6 +112,9 @@ def deploy(api, stage, apply, account, expected_ip):
         time.sleep(3)
     if cert.get('autoRenew') is not True:
         raise RuntimeError('Certificate auto-renew must be enabled before activation')
+    expires = dt.datetime.fromisoformat(cert['expireDate'].replace('Z', '+00:00'))
+    if expires <= dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1):
+        raise RuntimeError('Certificate expired or expires too soon; renew before activation')
     https = {'websiteId': site['id'], 'enable': True, 'websiteSSLId': cert['id'],
              'type': 'existed', 'httpConfig': 'HTTPToHTTPS',
              'SSLProtocol': ['TLSv1.2', 'TLSv1.3'], 'algorithm': 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384',
