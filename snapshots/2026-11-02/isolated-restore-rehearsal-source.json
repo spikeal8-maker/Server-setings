@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NOT_REHEARSED",
+  "target": "admins-MS-7D22",
+  "live_changes": false,
+  "timer_enabled": false,
+  "canonical_procedure": "reviewed ASA backup.restore_check via nonce-only exec adapter",
+  "private_age_key_on_server": false,
+  "source_row_fingerprint_equality_claimed": false,
+  "validation": "9 focused unit tests, py_compile, default plan, git diff --check",
+  "remaining": "Independent exact-SHA review and actual isolated restore/cleanup proof"
+}
