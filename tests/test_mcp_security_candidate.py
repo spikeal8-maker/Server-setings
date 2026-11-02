@@ -13,7 +13,9 @@ def report():
     return {'Metadata': {'OS': {'Family': 'debian', 'Name': '12.15'}}, 'Results': [
         {'Class': 'lang-pkgs', 'Type': 'gobinary', 'Target': 'usr/local/bin/' + binary,
          'Packages': [{'Name': 'stdlib', 'Version': 'v1.27.3'}]}
-        for binary in ('mcp-auth-proxy', 'mcp-1panel')]}
+        for binary in ('mcp-auth-proxy', 'mcp-1panel')] + [
+            {'Class': 'os-pkgs', 'Type': 'debian', 'Target': 'debian 12.15',
+             'Packages': [{'Name': 'base-files', 'Version': '12.4+deb12u15'}]}]}
 
 
 class MCPScanAcceptance(unittest.TestCase):
@@ -29,6 +31,39 @@ class MCPScanAcceptance(unittest.TestCase):
         data['Results'][0]['Packages'] = []
         with self.assertRaisesRegex(ValueError, 'coverage'):
             scan.check(data, ['mcp-auth-proxy'], True)
+
+    def test_missing_stdlib_rejected_despite_other_detected_packages(self):
+        for index, binary in enumerate(('mcp-auth-proxy', 'mcp-1panel')):
+            with self.subTest(binary=binary):
+                data = report()
+                data['Results'][index]['Packages'] = [{'Name': 'example.org/module', 'Version': 'v1.0.0'}]
+                with self.assertRaisesRegex(ValueError, 'stdlib coverage'):
+                    scan.check(data, ['mcp-auth-proxy', 'mcp-1panel'], True)
+
+    def test_wrong_go_version_rejected_for_each_executable(self):
+        for index, binary in enumerate(('mcp-auth-proxy', 'mcp-1panel')):
+            with self.subTest(binary=binary):
+                data = report()
+                data['Results'][index]['Packages'][0]['Version'] = 'v1.26.6'
+                with self.assertRaisesRegex(ValueError, 'stdlib version'):
+                    scan.check(data, ['mcp-auth-proxy', 'mcp-1panel'], True)
+
+    def test_os_metadata_without_os_packages_rejected(self):
+        for packages in (None, []):
+            with self.subTest(packages=packages):
+                data = report()
+                if packages is None:
+                    data['Results'].pop()
+                else:
+                    data['Results'][-1]['Packages'] = packages
+                with self.assertRaisesRegex(ValueError, 'OS package coverage'):
+                    scan.check(data, ['mcp-auth-proxy', 'mcp-1panel'], True)
+
+    def test_standalone_binary_requires_stdlib_but_no_os_packages(self):
+        data = report()
+        data.pop('Metadata')
+        data['Results'] = [data['Results'][1]]
+        scan.check(data, ['mcp-1panel'], False)
 
     def test_eol_zero_is_rejected(self):
         data = report()

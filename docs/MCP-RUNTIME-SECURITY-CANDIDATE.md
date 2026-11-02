@@ -41,7 +41,9 @@ Workflow `MCP security candidate (no deployment or registry push)`:
    никаких команд ОС не выполняет. Root-capable полномочия не урезаются.
 4. Trivy0.76.1 с проверенным SHA сканирует фактический image и отдельный rootfs ELF.
    Gate требует supported Debian12, оба Go binary targets в image и отдельный
-   mcp-1panel target с обнаруженными packages. Пустой scan не считается PASS.
+   mcp-1panel target, обнаруженный stdlib ровно версии Go1.27.3 в каждом ELF
+   и непустой Debian OS package target для image. Для отдельного ELF OS target
+   не требуется. Metadata ОС без packages и Go packages без stdlib не дают PASS.
    Fixable HIGH/CRITICAL или EOSL завершают gate ошибкой. DB metadata сохраняется.
 5. Сохраняет candidate image tar, ELF, locks, hashes и scan reports как CI artifacts.
    Registry push, live credentials и deployment отсутствуют.
