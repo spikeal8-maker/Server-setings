@@ -4,13 +4,23 @@ import argparse
 import json
 import os
 from pathlib import Path
-import pwd
 import socket
 import stat
 import subprocess
 
 
+def validate_acl(acl, owner):
+    """Do not unmask unrelated users/groups when setfacl recalculates the mask."""
+    allowed = {'user::rwx', 'group::---', 'other::---', 'mask::---',
+               'mask::--x', 'user:' + owner + ':--x'}
+    for line in acl.splitlines():
+        value = line.split('#', 1)[0].strip()
+        if value and value not in allowed:
+            raise ValueError('Unexpected parent ACL; manual review required')
+
+
 def main():
+    import pwd
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--apply', action='store_true')
     p.add_argument('--expected-host')
@@ -29,6 +39,7 @@ def main():
     assert owner.pw_uid != 0 and state.stat().st_uid == owner.pw_uid
     assert stat.S_IMODE(state.stat().st_mode) == 0o700
     before = subprocess.check_output(['getfacl', '-cp', str(parent)], text=True)
+    validate_acl(before, owner.pw_name)
     if not a.apply:
         print(json.dumps({'plan': True, 'parent': str(parent), 'owner': owner.pw_name,
                           'change': 'restore named-user traversal ACL only', 'restart': False}))
