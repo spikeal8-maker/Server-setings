@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+"""Replacement -sf script: emits a validated private proposal, never routes/DNS."""
+import os
+from pathlib import Path
+import sys
+
+sys.path.insert(0, '/usr/local/lib/asa-school-uplink')
+from school_uplink_runtime.adapters import dhcp_hook
+
+try:
+    dhcp_hook(Path('/var/lib/asa-school-internet'), os.environ)
+except Exception:
+    raise SystemExit(2)

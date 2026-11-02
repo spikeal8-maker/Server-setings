@@ -1,0 +1,19 @@
+[Unit]
+Description=Explicitly armed school IPv4 backup uplink (no NetworkManager takeover)
+After=network-online.target
+ConditionPathExists=/etc/asa-school-internet/profiles.json
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/asa-school-uplink-runtime run --apply
+ExecStopPost=/usr/local/sbin/asa-school-uplink-runtime recover --apply
+Restart=no
+TimeoutStopSec=40
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK AF_PACKET
+
+[Install]
+WantedBy=multi-user.target

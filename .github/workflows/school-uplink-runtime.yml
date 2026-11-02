@@ -1,0 +1,19 @@
+name: School uplink runtime isolated namespaces
+on:
+  pull_request:
+    paths: ['scripts/school_uplink_runtime/**', 'scripts/school-uplink-runtime.py', 'scripts/asa-school-dhcp-hook', 'tests/uplink_netns/**', 'units/asa-school-uplink*', '.github/workflows/school-uplink-runtime.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile source without host installation
+        run: python3 -m compileall -q scripts/school_uplink_runtime scripts/school-uplink-runtime.py tests/uplink_netns
+      - name: Real routes TLS DNS and rollback inside disposable network namespaces
+        run: sudo unshare --net --mount-proc python3 -m unittest discover -s tests/uplink_netns -v

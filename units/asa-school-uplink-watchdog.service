@@ -1,0 +1,8 @@
+[Unit]
+Description=Rollback stale school backup-uplink transactions
+ConditionPathExists=/var/lib/asa-school-internet/journal.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/asa-school-uplink-runtime watchdog --apply
+UMask=0077

@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_CANDIDATE_NOT_INSTALLED_NOT_ARMED",
+  "baseline_main": "d631c25cf02e497ef224f61e532e72036831649e",
+  "host": "pve",
+  "scope": "IPv4 PVE host uplink only",
+  "runtime_profiles": "private-only",
+  "actual_hardware_qualification": false,
+  "namespace_ci": "PENDING",
+  "independent_review": "PENDING",
+  "existing_primary_network_changed": false,
+  "phase1_files_changed": false,
+  "credentials_included": false
+}
