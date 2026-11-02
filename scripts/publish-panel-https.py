@@ -84,7 +84,7 @@ def deploy(api, stage, apply, account, expected_ip):
         raise RuntimeError('DNS does not match explicitly expected public IPv4')
     if stage == 'prepare':
         if not site:
-            groups = api.request('GET', '/websites/groups') or []
+            groups = api.request('POST', '/groups/search', {'type': 'website'}) or []
             default = [g for g in groups if g.get('isDefault')]
             if len(default) != 1:
                 raise RuntimeError('Expected exactly one default website group')
