@@ -2,6 +2,7 @@
 """Owned school panel publication through FRP and edge Traefik; plan by default."""
 import argparse
 import hashlib
+import multiprocessing
 import importlib.util
 import json
 import os
@@ -26,7 +27,7 @@ COMPANION_SHA256 = {
 FRPC_SHA256 = '142f447f43fef286acc8da8a6852dda80631db631d604b2e63634b2db4d6848c'
 
 
-def trusted_chain(path, allow_missing=False):
+def trusted_chain(path, allow_missing=False, public_edge=False):
     path=Path(path)
     if not path.is_absolute() or '..' in path.parts: raise RuntimeError('Absolute canonical path required')
     current=Path(path.anchor)
@@ -36,7 +37,8 @@ def trusted_chain(path, allow_missing=False):
         except FileNotFoundError:
             if allow_missing: return
             raise RuntimeError('Trusted path missing') from None
-        if stat.S_ISLNK(value.st_mode) or value.st_uid!=0 or value.st_mode & 0o022:
+        allowed_uid=1000 if public_edge and current in (Path('/data/coolify/proxy'),Path('/data/coolify/proxy/dynamic'),EDGE) else 0
+        if stat.S_ISLNK(value.st_mode) or value.st_uid!=allowed_uid or value.st_mode & 0o022:
             raise RuntimeError('Untrusted path ancestor')
         if current!=path and not stat.S_ISDIR(value.st_mode): raise RuntimeError('Non-directory path ancestor')
 
@@ -181,9 +183,42 @@ def school():
     return {'school_configured':True,'direct_panel_port_opened':False,'password_or_entrance_changed':False}
 
 
+def edge_writer(content):
+    """Child loses all root credentials before touching Coolify-owned public path."""
+    os.setgroups([])
+    os.setgid(1000)
+    os.setuid(1000)
+    if os.getuid()!=1000 or os.geteuid()!=1000: raise RuntimeError('Privilege drop failed')
+    trusted_chain(EDGE,allow_missing=True,public_edge=True)
+    trusted_chain(EDGE.parent,public_edge=True)
+    flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW
+    directory=os.open(EDGE.parent,flags)
+    name='.asa-school-panel-'+str(os.getpid())
+    try:
+        # Directory FD prevents rename races from redirecting the write elsewhere.
+        fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644,dir_fd=directory)
+        with os.fdopen(fd,'wb') as output:
+            output.write(content);output.flush();os.fsync(output.fileno())
+        os.replace(name,EDGE.name,src_dir_fd=directory,dst_dir_fd=directory)
+        os.fsync(directory)
+    finally:
+        try: os.unlink(name,dir_fd=directory)
+        except FileNotFoundError: pass
+        os.close(directory)
+
+
+def public_edge_write(content):
+    # fork only a one-purpose writer; root never opens output under uid1000 parents.
+    process=multiprocessing.get_context('fork').Process(target=edge_writer,args=(content,))
+    process.start();process.join(15)
+    if process.is_alive():
+        process.terminate();process.join();raise RuntimeError('Public writer timeout')
+    if process.exitcode!=0: raise RuntimeError('Unprivileged public writer failed')
+
+
 def edge():
-    trusted_chain(EDGE,allow_missing=True)
-    trusted_chain(EDGE.parent)
+    trusted_chain(EDGE,allow_missing=True,public_edge=True)
+    trusted_chain(EDGE.parent,public_edge=True)
     prepare_state()
     content=(json.dumps(edge_document(),indent=2)+'\n').encode()
     marker=STATE/'edge-installed.sha256'
@@ -194,7 +229,7 @@ def edge():
         if not marker.exists() or hashlib.sha256(old).hexdigest()!=marker.read_text().strip(): raise RuntimeError('Existing edge file not owned or changed')
     else: old=b''
     receipt('edge',old)
-    atomic(EDGE,content,0o644)
+    public_edge_write(content)
     atomic(marker,(hashlib.sha256(content).hexdigest()+'\n').encode())
     return {'edge_configured':True,'proxy_restarted':False}
 

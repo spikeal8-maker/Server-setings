@@ -1,6 +1,6 @@
 import importlib.util
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import sys
 import unittest
@@ -46,18 +46,34 @@ class Tests(unittest.TestCase):
         def info(path):
             mode=stat.S_IFDIR | (0o777 if path.name=='unsafe' else 0o755)
             return SimpleNamespace(st_mode=mode,st_uid=0)
-        with patch.object(m.Path,'lstat',info),self.assertRaises(RuntimeError):
-            m.trusted_chain(Path('/unsafe/file'))
+        with patch.object(m,'Path',PurePosixPath),patch.object(PurePosixPath,'lstat',info,create=True),self.assertRaises(RuntimeError):
+            m.trusted_chain(PurePosixPath('/unsafe/file'))
     def test_trust_rejects_symlink_ancestor(self):
         def info(path):
             return SimpleNamespace(st_mode=(stat.S_IFLNK|0o777 if path.name=='link' else stat.S_IFDIR|0o755),st_uid=0)
-        with patch.object(m.Path,'lstat',info),self.assertRaises(RuntimeError):
-            m.trusted_chain(Path('/link/file'))
+        with patch.object(m,'Path',PurePosixPath),patch.object(PurePosixPath,'lstat',info,create=True),self.assertRaises(RuntimeError):
+            m.trusted_chain(PurePosixPath('/link/file'))
     def test_pins_match_git_blobs(self):
         import hashlib
         for name,digest in m.COMPANION_SHA256.items():
             raw=subprocess.check_output(['git','show','HEAD:scripts/'+name],cwd=SCRIPT.parents[1])
             self.assertEqual(hashlib.sha256(raw).hexdigest(),digest)
+    def test_only_exact_coolify_ancestors_allow_uid1000(self):
+        def info(path):
+            uid=1000 if str(path).replace('\\','/').endswith(('/data/coolify/proxy','/data/coolify/proxy/dynamic')) else 0
+            return SimpleNamespace(st_mode=stat.S_IFDIR|0o700,st_uid=uid)
+        with patch.object(m,'Path',PurePosixPath),patch.object(PurePosixPath,'lstat',info,create=True):
+            m.trusted_chain(PurePosixPath('/data/coolify/proxy/dynamic'),public_edge=True)
+            with self.assertRaises(RuntimeError):m.trusted_chain(PurePosixPath('/data/coolify/proxy/dynamic'))
+    def test_unrelated_uid1000_ancestor_rejected(self):
+        def info(path):return SimpleNamespace(st_mode=stat.S_IFDIR|0o700,st_uid=1000 if path.name=='other' else 0)
+        with patch.object(m,'Path',PurePosixPath),patch.object(PurePosixPath,'lstat',info,create=True),self.assertRaises(RuntimeError):
+            m.trusted_chain(PurePosixPath('/other/file'),public_edge=True)
+    def test_writer_drops_privileges_before_path_io(self):
+        events=[]
+        with patch.object(m.os,'setgroups',lambda value:events.append('groups'),create=True),patch.object(m.os,'setgid',lambda value:events.append('gid'),create=True),patch.object(m.os,'setuid',lambda value:events.append('uid'),create=True),patch.object(m.os,'getuid',return_value=1000,create=True),patch.object(m.os,'geteuid',return_value=1000,create=True),patch.object(m,'trusted_chain',side_effect=RuntimeError('stop')):
+            with self.assertRaises(RuntimeError):m.edge_writer(b'public')
+        self.assertEqual(events,['groups','gid','uid'])
     def test_wrong_host_before_io(self):
         r=subprocess.run([sys.executable,str(SCRIPT),'school','--apply','--expected-host','wrong'],capture_output=True,text=True)
         self.assertNotEqual(r.returncode,0);self.assertNotIn('Traceback',r.stderr)
