@@ -9,12 +9,28 @@
   "independentNativeJournal": "excluded-and-untouched",
   "businessData": "excluded-and-untouched",
   "requiresIndependentReviewBeforeApply": true,
-  "linuxCopyTests": "pending-exact-source-CI",
+  "linuxCopyTests": "PASS-H03-synthetic-18-zero-skips",
   "liveHostCopy": "NOT_RUN",
   "managerBinding": "canonical-user-or-system-no-fallback",
   "digestContracts": {
     "dfee5badd299d318a8e51ff0cbf88e9656333a5d": 4,
     "3e32de6987665c4d7c1d33ba7ba82019afdf9cdb": 5
   },
-  "previousSourceLinuxCI": "79e5c9f/41514415795-PASS-not-repair-qualification"
+  "previousSourceLinuxCI": "79e5c9f/41514415795-PASS-not-repair-qualification",
+  "linuxSyntheticEvidence": {
+    "host": "admins-MS-7D22",
+    "operationId": "ec26101bc8c24258b8de77b1d3bdf85c",
+    "sourceRevision": "8d202fa5b55849d25f7053b42b6174316426455b",
+    "toolSha256": "39aa23317ab83038d0a82591f4579ea4f1b35333a8548ffcee93c64870feaf09",
+    "testSha256": "7d4cf8741c6b20fe49984893e6b8c9a108c5cecbaa60ccd8e9cbc286c0eb921f",
+    "startedAt": "2026-11-02T20:17:10.627803+00:00",
+    "finishedAt": "2026-11-02T20:17:10.866743+00:00",
+    "testsRun": 18,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "realCaptureRun": false,
+    "collectorServiceChanged": false,
+    "businessDataTouched": false
+  }
 }

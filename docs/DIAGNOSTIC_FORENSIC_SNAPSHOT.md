@@ -109,3 +109,13 @@ SQLite/catalog/segments independently or erase the31-file debt.
 Tests: `python3 -m unittest discover -s tests -p test_diagnostic_forensic_snapshot.py -v`.
 Windows runs contract/error tests only; actual fd/flock/WAL/mode/CAS tests need
 Linux. No H03 apply or runtime-consistency claim follows from source tests.
+
+## Actual H03 synthetic verification
+
+On2026-11-02 at20:17:10UTC, exact reviewed source8d202fa5 ran18 synthetic
+Linux tests on admins-MS-7D22:18PASS,0FAIL,0ERROR,0SKIP. Durable MCP
+operation:ec26101bc8c24258b8de77b1d3bdf85c. Tool SHA256:
+`39aa23317ab83038d0a82591f4579ea4f1b35333a8548ffcee93c64870feaf09`;
+test SHA256:`7d4cf8741c6b20fe49984893e6b8c9a108c5cecbaa60ccd8e9cbc286c0eb921f`.
+These tests used isolated private synthetic fixtures. They did not capture
+actual history, change the collector service or touch application data.
