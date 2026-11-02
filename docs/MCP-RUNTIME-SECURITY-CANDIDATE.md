@@ -59,4 +59,3 @@ host-mounted ELF; volume identities/OAuth keys/state/env/full mode и loopback
 bindings сохраняются. Smoke с synthetic state проверяет рестарт своего нового
 state, но не миграцию копии старого owner state: такую миграцию проверить отдельно
 приватно без публикации копии. До этого live53+4 findings остаются открытыми.
-
