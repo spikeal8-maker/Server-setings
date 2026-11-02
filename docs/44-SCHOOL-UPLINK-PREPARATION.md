@@ -27,3 +27,13 @@ sudo asa-school-internet packages-apply --apply
 Проверки кандидата: 12 focused unit tests PASS на Windows (секреты/инъекции/план/armingSTOP/package pin+offline flags/trust-chain). Namespace и фактическое оборудование этим этапом не тестировались. Закреплён наблюдаемый список22 новых пакетов с точными версиями; новые версии требуют нового review.
 
 Review repair: архитектурные `[amd64]`/`[all]` внутри APT candidate parentheses не означают обновление; ведущий `[oldversion]` означает и запрещает обновление. Timeout/ошибка APT сохраняет приватную частичную квитанцию; finally выполняет bounded daemon-reload без рестартов, mask новых unit, доказательство masked/inactive и проверки primary hashes/routes/rules. Никакие чужие сервисы не останавливаются и никакие сетевые файлы не откатываются поверх неизвестных изменений.
+
+## Фактическая подготовка 03.11.2026 МСК
+
+Проверенный source c6e3aee91c6c81e5e26cdb4aaa7052c234ea85be установлен на PVE. Все12 focused tests дополнительно прошли на реальном Linux непривилегированным nobody. CLI установлен; профили пока не вводились. Подготовка не включает автоматическую маршрутизацию.
+
+Durable unit asa-school-uplink-prepare-20261103 завершился Result=success/ExecMainStatus0. Установлены22 закреплённых новых пакета, включая iw/wpa_supplicant/mmcli/usb_modeswitch; PVE и существующие пакеты не обновлялись и не удалялись. Частная квитанция /etc/asa-school-internet/packages-result.json: exit_code0, apt_error null, cleanup_errors[], network_unchanged true, primary_hashes_unchanged true, optional_units_masked true, automatic_failover_enabled false. ModemManager.service и wpa_supplicant.service masked/inactive; самостоятельное D-Bus-подключение не разрешено.
+
+Хеши /etc/network/interfaces и /etc/resolv.conf остались исходными, routes/rules до и после совпали. Повторное новое SSH подключение на PVE успешно; pveproxy/pvedaemon/ssh active. Два независимых канала IPMI доступны, сертификат BMC совпал по публичному fingerprint с чтением через PVE LAN. x/test2 /health/ready200 ready, школьная HTTPS1Panel200 и unauth settings code401. В GitHub не помещены BMC session credentials, Wi-Fi MAC/SSID/пароли или private snapshots.
+
+Резервная копия исходных сетевых файлов и route/rule metadata сохранена root-private /var/backups/asa-school-uplink/preparation-20261103. Проверено наличие изолированного unshare network namespace без host route/config изменений; испытания самого failover runtime этим этапом ещё не выполнены. Реальные Wi-Fi, модем, резервный Ethernet, автоматическое переключение и возврат остаются НЕ ПРИНЯТЫМИ до следующего runtime/qualification этапа.
