@@ -1,0 +1,59 @@
+{
+  "kind": "h03-forensic-fixed-runtime-contract-source-only",
+  "status": "CANDIDATE_NOT_DEPLOYED",
+  "infraBaseRevision": "0378b6d353eb85ae00e10d87f704765d74569c01",
+  "runtimeSourceRepository": "spikeal8-maker/asa-lab",
+  "runtimeSourceRevision": "6a98bddd8953eff732ec7d2cbb3de8cdec8abdee",
+  "runtimeBundleSha256": "b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731",
+  "algorithm": "SHA256(relative filename UTF-8 + exact file bytes), concatenated in listed order",
+  "files": [
+    {
+      "path": "tools/collect_logs.py",
+      "gitBlob": "a02188e932a14453164f44374740559a4ff3a7c3",
+      "bytes": 138984,
+      "sha256": "8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2"
+    },
+    {
+      "path": "tools/collect-windows-logs.ps1",
+      "gitBlob": "73c636e139f19cbb0c30142cb59ea5646d312f06",
+      "bytes": 4143,
+      "sha256": "0492cbd60c6f45721b974fff8d11c74af4c7dab96cadc493efd7dc4ab1d3ce21"
+    },
+    {
+      "path": "tools/resource_sampling.py",
+      "gitBlob": "599d0cc1df462b4df8f32ff9317eea653846ee29",
+      "bytes": 9173,
+      "sha256": "aa49ae8359a1036c034667ba216d105744f05cff9ee8d105b34c0bc1852337b5"
+    },
+    {
+      "path": "tools/memory_sampling.py",
+      "gitBlob": "5d67dd209f789ddaeb9b4ce04e40e68d5ce489f0",
+      "bytes": 9123,
+      "sha256": "55a5f5e68161973d9c37ff9b2ddcd5baaf1288152221beeaad4c33331d9995be"
+    },
+    {
+      "path": "tools/deployment/operational.py",
+      "gitBlob": "b49916f4f27ca8a87f283c4525fe26f98ff63c15",
+      "bytes": 26444,
+      "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
+    }
+  ],
+  "guardToolSha256Lf": "f6ed00d8f2ba9d8011275d26907a0573421faf5c79119a534ca086a5fe456ff6",
+  "legacyContractsPreserved": {
+    "dfee5badd299d318a8e51ff0cbf88e9656333a5d": 4,
+    "3e32de6987665c4d7c1d33ba7ba82019afdf9cdb": 5
+  },
+  "newContractRequires": [
+    "registered revision is exactly 40 lowercase hex characters",
+    "registered scriptDigest equals the closed pinned runtime bundle",
+    "all five actual files recompute to that same pinned bundle",
+    "unchanged canonical identity, owner, unit, path, quiescence and lock guards"
+  ],
+  "windowsFocusedTests": {"run": 24, "passed": 8, "linuxOnlySkipped": 16},
+  "linuxTests": "PENDING_CI",
+  "independentReview": "PENDING",
+  "applicationHelperRepin": "REQUIRED_SEPARATE_REVIEWED_SLICE",
+  "liveChanges": false,
+  "liveRecovery": "NOT_RUN",
+  "generalFutureReleaseCompatibility": false
+}

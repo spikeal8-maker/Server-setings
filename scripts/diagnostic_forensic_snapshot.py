@@ -24,6 +24,11 @@ DIGEST_CONTRACTS = {
     'dfee5badd299d318a8e51ff0cbf88e9656333a5d': BASE_DIGEST_FILES,
     '3e32de6987665c4d7c1d33ba7ba82019afdf9cdb': (*BASE_DIGEST_FILES, 'deployment/operational.py'),
 }
+# Exact five-file runtime bytes from asa-lab PR965, immutable source
+# 6a98bddd8953eff732ec7d2cbb3de8cdec8abdee. A merge/doc-only revision may
+# differ, but neither registration nor operator input may choose other bytes.
+FIXED_RUNTIME_DIGEST_FILES = (*BASE_DIGEST_FILES, 'deployment/operational.py')
+FIXED_RUNTIME_BUNDLE_SHA256 = 'b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731'
 
 
 class Blocked(RuntimeError):
@@ -126,6 +131,15 @@ def owner_account(name):
     return pwd.getpwnam(name)
 
 
+def runner_digest_files(revision, stored_digest):
+    if isinstance(revision, str) and revision in DIGEST_CONTRACTS:
+        return DIGEST_CONTRACTS[revision]
+    require(isinstance(revision, str) and re.fullmatch(r'[a-f0-9]{40}', revision)
+            and stored_digest == FIXED_RUNTIME_BUNDLE_SHA256,
+            'RUNNER_REVISION_CONTRACT_UNSUPPORTED')
+    return FIXED_RUNTIME_DIGEST_FILES
+
+
 def validate_registration(root, settings, runner, unit):
     project = settings.get('project')
     require(isinstance(project, str) and re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,62}', project), 'RUNNER_PROJECT_INVALID')
@@ -149,7 +163,7 @@ def validate_registration(root, settings, runner, unit):
             'RUNNER_UNIT_MISMATCH')
     require(isinstance(runner.get('scriptDigest'), str) and re.fullmatch(r'[a-f0-9]{64}', runner['scriptDigest']),
             'RUNNER_DIGEST_INVALID')
-    require(runner.get('revision') in DIGEST_CONTRACTS, 'RUNNER_REVISION_CONTRACT_UNSUPPORTED')
+    runner_digest_files(runner.get('revision'), runner['scriptDigest'])
     return dict(revision=runner['revision'], mode=mode, owner=owner, uid=account.pw_uid, gid=account.pw_gid, name=unit, root=str(root),
                 scriptDigest=runner['scriptDigest'])
 
@@ -173,7 +187,7 @@ def registered_runner(installation, unit):
     tools = directory(root/'tools')
     try:
         digest = hashlib.sha256()
-        for name in DIGEST_CONTRACTS[identity['revision']]:
+        for name in runner_digest_files(identity['revision'], identity['scriptDigest']):
             digest.update(name.encode())
             with opened(tools, name) as stream:
                 info = os.fstat(stream)

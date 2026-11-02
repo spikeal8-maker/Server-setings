@@ -107,6 +107,35 @@ class PublicContract(unittest.TestCase):
                     m.user_manager_prefix(identity)
 
 
+    def test_fixed_bundle_contract_requires_exact_pin_and_valid_revision(self):
+        self.assertEqual(m.runner_digest_files('b'*40, m.FIXED_RUNTIME_BUNDLE_SHA256),
+                         (*m.BASE_DIGEST_FILES, 'deployment/operational.py'))
+        for revision in (None, [], '', 'B'*40, 'b'*39, 'b'*41, 'x'*40):
+            with self.subTest(revision=revision), self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+                m.runner_digest_files(revision, m.FIXED_RUNTIME_BUNDLE_SHA256)
+        for digest in (None, '', 'a'*64, m.FIXED_RUNTIME_BUNDLE_SHA256[:-1]+'0'):
+            with self.subTest(digest=digest), self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+                m.runner_digest_files('b'*40, digest)
+        self.assertEqual(m.runner_digest_files('dfee5badd299d318a8e51ff0cbf88e9656333a5d', 'a'*64),
+                         m.BASE_DIGEST_FILES)
+        self.assertEqual(m.runner_digest_files('3e32de6987665c4d7c1d33ba7ba82019afdf9cdb', 'a'*64),
+                         (*m.BASE_DIGEST_FILES, 'deployment/operational.py'))
+
+    def test_fixed_bundle_contract_preserves_registration_identity_guards(self):
+        settings = {'project': 'demo'}
+        runner = dict(version=1, root='/example', project='demo', owner='admins', mode='user',
+                      name='asa-log-collector-demo.service', scriptDigest=m.FIXED_RUNTIME_BUNDLE_SHA256,
+                      revision='b'*40)
+        with patch.object(m, 'owner_account', return_value=SimpleNamespace(pw_uid=1000, pw_gid=1000)):
+            self.assertEqual(m.validate_registration(PurePosixPath('/example'), settings, runner, None)['revision'], 'b'*40)
+            for changed in ({'root':'/foreign'}, {'project':'foreign'}, {'mode':'unknown'},
+                            {'name':'ssh.service'}, {'owner':'root;bad'}, {'ownerUid':2000}):
+                with self.subTest(changed=changed), self.assertRaises(m.Blocked):
+                    m.validate_registration(PurePosixPath('/example'), settings, {**runner, **changed}, None)
+            with self.assertRaisesRegex(m.Blocked, 'UNIT_MISMATCH'):
+                m.validate_registration(PurePosixPath('/example'), settings, runner, 'asa-log-collector.service')
+
+
 @unittest.skipUnless(os.name == 'posix' and hasattr(os, 'O_NOFOLLOW'), 'Actual fd/flock/modes require Linux; Ubuntu CI runs these')
 class LinuxCopy(unittest.TestCase):
     def setUp(self):
@@ -234,6 +263,55 @@ class LinuxCopy(unittest.TestCase):
         (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
         with self.assertRaises(FileNotFoundError):
             m.registered_runner(self.install, None)
+
+    def test_fixed_bundle_later_revision_recomputes_every_required_file(self):
+        # Synthetic bytes exercise the closed hash mechanism; the production pin
+        # is separately derived from immutable public Git blobs, never this fixture.
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with patch.object(m, 'FIXED_RUNTIME_BUNDLE_SHA256', self.runner['scriptDigest']):
+            self.assertEqual(m.registered_runner(self.install, None)['revision'], 'b'*40)
+            for name in m.FIXED_RUNTIME_DIGEST_FILES:
+                path = self.install/'tools'/name
+                original = path.read_bytes()
+                with self.subTest(name=name, fault='changed-byte'):
+                    path.write_bytes(original+b'\x00')
+                    with self.assertRaisesRegex(m.Blocked, 'REGISTRATION_STALE'):
+                        m.registered_runner(self.install, None)
+                    path.write_bytes(original)
+                with self.subTest(name=name, fault='missing-file'):
+                    path.unlink()
+                    with self.assertRaises(FileNotFoundError):
+                        m.registered_runner(self.install, None)
+                    path.write_bytes(original)
+
+    def test_fixed_bundle_forged_registration_cannot_replace_actual_bytes(self):
+        self.runner.update(revision='b'*40, scriptDigest=m.FIXED_RUNTIME_BUNDLE_SHA256)
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with self.assertRaisesRegex(m.Blocked, 'REGISTRATION_STALE'):
+            m.registered_runner(self.install, None)
+
+    def test_unknown_revision_denies_unreviewed_self_consistent_bundle(self):
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+            m.registered_runner(self.install, None)
+
+    def test_fixed_bundle_preserves_actual_registration_and_quiescence_checks(self):
+        self.quiet_patch.stop()
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        inactive = ('LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory='
+                    +str(self.install)+'\nUser='+self.runner['owner']+'\n')
+        with patch.object(m, 'FIXED_RUNTIME_BUNDLE_SHA256', self.runner['scriptDigest']):
+            with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=inactive)):
+                m.quiescent(self.install, None)
+            for stdout in (inactive.replace('inactive', 'active'), inactive.replace('MainPID=0', 'MainPID=8'),
+                           inactive.replace(str(self.install), '/foreign'), inactive.replace('User='+self.runner['owner'], 'User=foreign')):
+                with self.subTest(stdout=stdout), patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=stdout)), self.assertRaises(m.Blocked):
+                    m.quiescent(self.install, None)
+            with self.assertRaisesRegex(m.Blocked, 'UNIT_MISMATCH'):
+                m.registered_runner(self.install, 'ssh.service')
 
     def test_user_inactive_service_timer_and_actual_lock_copy(self):
         self.quiet_patch.stop()
