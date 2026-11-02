@@ -121,7 +121,7 @@ def package_plan():
     if re.search(r'(?m)^Remv ',output):raise Stop('APT предлагает удаление пакетов')
     # Inst name [oldversion] denotes upgrade. This preparation may add packages only.
     installs=re.findall(r'(?m)^Inst (\S+)(.*)$',output)
-    if any('[' in rest for _,rest in installs):raise Stop('APT предлагает обновление: нужен отдельный review')
+    if any(re.match(r'\s*\[',rest) for _,rest in installs):raise Stop('APT предлагает обновление: нужен отдельный review')
     observed={name:re.match(r'\s*\((\S+)',rest).group(1) if re.match(r'\s*\((\S+)',rest) else None for name,rest in installs}
     if any(PACKAGE_VERSIONS.get(name)!=version for name,version in observed.items()):raise Stop('Новые зависимости/версии: требуется review')
     names=set(observed)
@@ -147,19 +147,41 @@ def packages_apply():
         if any(value!='not-found' for value in before.values()):raise Stop('Служба уже существует: требуется отдельный review')
         snapshot=network_snapshot()
         atomic_private(ROOT/'packages-before.json',(json.dumps(snapshot)+'\n').encode())
-        environment=os.environ.copy();environment.update({'SYSTEMD_OFFLINE':'1','DEBIAN_FRONTEND':'noninteractive','LC_ALL':'C'})
-        # No upgrade/removal, no new network manager or systemwide service policy file.
-        result=subprocess.run(['apt-get','-y','--no-upgrade','--no-remove','--no-install-recommends','install',*[name+'='+version for name,version in PACKAGE_VERSIONS.items()]],env=environment,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=900)
-        # Only these newly introduced optional units may be disabled/stopped.
+        # Preverified absent units only; refuse foreign overrides before creating masks.
         for unit in units:
-            loaded=subprocess.run(['systemctl','show',unit,'--property=LoadState','--value'],capture_output=True,text=True,check=True).stdout.strip()
-            if loaded!='not-found':
-                subprocess.run(['systemctl','disable','--now',unit],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True,timeout=30)
-        baseline()
-        unchanged=network_snapshot()==snapshot
-        atomic_private(ROOT/'packages-result.json',(json.dumps({'schema':1,'exit_code':result.returncode,'network_unchanged':unchanged,'automatic_failover_enabled':False})+'\n').encode())
-        if result.returncode or not unchanged:raise Stop('Установка не принята: проверьте приватную квитанцию')
-        print('Пакеты подготовлены; службы отключены. Сеть не изменена. Автопереключение не включено.')
+            for directory in ('/etc/systemd/system','/run/systemd/system','/usr/lib/systemd/system','/lib/systemd/system'):
+                candidate=Path(directory)/unit
+                if os.path.lexists(candidate):raise Stop('Unit file already exists: separate review required')
+        environment=os.environ.copy();environment.update({'SYSTEMD_OFFLINE':'1','DEBIAN_FRONTEND':'noninteractive','LC_ALL':'C'})
+        result=None;apt_error=None;cleanup_errors=[];unchanged=False;hashes_unchanged=False
+        try:
+            # Mask before apt to block D-Bus activation, without forcing any existing override.
+            subprocess.run(['systemctl','mask',*units],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30)
+            result=subprocess.run(['apt-get','-y','--no-upgrade','--no-remove','--no-install-recommends','install',*[name+'='+version for name,version in PACKAGE_VERSIONS.items()]],env=environment,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=900)
+        except Exception as error:
+            apt_error=type(error).__name__
+        finally:
+            # Even failed/timed-out apt must leave only the preverified new services masked.
+            for command in (['systemctl','daemon-reload'],['systemctl','mask','--now',*units]):
+                try:subprocess.run(command,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30)
+                except Exception as error:cleanup_errors.append(type(error).__name__)
+            for unit in units:
+                try:
+                    enabled=subprocess.run(['systemctl','is-enabled',unit],capture_output=True,text=True,timeout=15).stdout.strip()
+                    active=subprocess.run(['systemctl','is-active',unit],capture_output=True,text=True,timeout=15).stdout.strip()
+                    if enabled!='masked' or active not in ('inactive','unknown'):raise Stop('New unit not safely masked/inactive')
+                except Exception as error:cleanup_errors.append('unit-proof:'+type(error).__name__)
+            try:baseline();hashes_unchanged=True
+            except Exception as error:cleanup_errors.append('baseline:'+type(error).__name__)
+            try:unchanged=network_snapshot()==snapshot
+            except Exception as error:cleanup_errors.append('network:'+type(error).__name__)
+            receipt={'schema':1,'exit_code':result.returncode if result else None,'apt_error':apt_error,
+                     'cleanup_errors':cleanup_errors,'network_unchanged':unchanged,'primary_hashes_unchanged':hashes_unchanged,
+                     'optional_units_masked':not cleanup_errors,'automatic_failover_enabled':False}
+            atomic_private(ROOT/'packages-result.json',(json.dumps(receipt)+'\n').encode())
+        if result is None or result.returncode or apt_error or cleanup_errors or not unchanged or not hashes_unchanged:
+            raise Stop('Установка не принята: проверьте приватную квитанцию')
+        print('Пакеты подготовлены; новые службы замаскированы. Сеть не изменена. Автопереключение не включено.')
     finally:os.close(fd)
 
 
