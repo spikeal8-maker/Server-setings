@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from release_load_contracts import (ContractError, PROFILES, READS, contract, field, require,
                                     private_fixture, quantiles, route_inventory, coverage,
                                     numeric_telemetry, safe_code, local_ai, required_log_coverage,
-                                    digest, cohort_digest, previous_step)
+                                    digest, cohort_digest, previous_step, telemetry_source, operations_runtime)
 from release_load_ai import LocalAiWorkload
 
 MODULES = ('three-d', 'electronics', 'blocks')
@@ -80,6 +80,8 @@ class Runner(LocalAiWorkload):
         self.pace_ms = pace_ms
         self.schema = schema
         self.profile = profile
+        self.telemetry_source = telemetry_source(fixture, profile)
+        self.admin_identity_verified = False
         self.catalog = catalog or route_inventory()
         self.partial = partial
         self.p99_ms = p99_ms
@@ -134,7 +136,8 @@ class Runner(LocalAiWorkload):
             report = {'format': 'asa-release-http-load-v3', 'passed': False, 'state': 'running',
                       'revision': self.revision, 'schema': self.schema, 'users': self.users,
                       'requests': list(self.samples), 'journeys': list(self.results), 'ai': list(self.ai_results),
-                      'telemetry': list(self.telemetry), 'inFlight': list(self.inflight.values()), 'releaseAccepted': False}
+                      'telemetry': list(self.telemetry), 'telemetrySource': self.telemetry_source,
+                      'inFlight': list(self.inflight.values()), 'releaseAccepted': False}
             write_receipt(self.partial, report)
 
     def call(self, user, path, body=None, method=None, bearer=None, binary=None, expected=(200,), label='request', cleanup=False):
@@ -197,7 +200,7 @@ class Runner(LocalAiWorkload):
         while not self.stop.is_set():
             try:
                 self.call(None, '/health/ready', label='health')
-                counters = numeric_telemetry(self.call(None, '/health/metrics', label='runtime-metrics'))
+                counters = self.runtime_telemetry()
                 with self.lock:
                     self.telemetry.append(counters)
             except CheckFailed:
@@ -211,6 +214,15 @@ class Runner(LocalAiWorkload):
                 self.sample({'label': 'runtime-metrics-contract', 'ok': False, 'expectedNegative': False,
                              'error': 'telemetry_sampling_failed', 'ms': 0, 'status': None})
             self.stop.wait(1)
+
+    def runtime_telemetry(self):
+        if self.telemetry_source['kind'] == 'admin-operations-runtime':
+            require(self.admin_identity_verified, 'private telemetry identity not verified')
+            data = self.call('admin', self.telemetry_source['path'], label='runtime-metrics')
+            counters = operations_runtime(data, self.revision, self.schema)
+        else:
+            counters = numeric_telemetry(self.call(None, self.telemetry_source['path'], label='runtime-metrics'))
+        return {**counters, 'sampledAt': time.time()}
 
     def journey(self, user, module, barrier):
         result = {'user': user + 1, 'module': module, 'ok': False}
@@ -302,17 +314,19 @@ class Runner(LocalAiWorkload):
             self.actual_seats.append(who['student']['seatId'])
         require(len(set(self.actual_seats)) == self.users, 'actual pupils are not distinct')
         self.checks.add('seat-identity')
-        if self.profile == 'mixed':
-            for role in ('teacher', 'admin'):
+        if self.telemetry_source['kind'] == 'admin-operations-runtime':
+            for role in (('teacher', 'admin') if self.profile == 'mixed' else ('admin',)):
                 who = self.call(role, '/api/auth/me', label='identity-' + role)
                 contract(who, {'authenticated': 'bool', 'account.id': 'string', 'capabilities': 'list'})
                 require(who['authenticated'] and who['account']['id'] == self.f['roles'][role]['accountId'], 'wrong synthetic Account role')
                 if role == 'teacher':
                     require(any(c.get('capability') == 'educator' and c.get('state') in ('verified', 'provisional') for c in who['capabilities']), 'teacher educator capability missing')
-            require(self.f['roles']['teacher']['accountId'] != self.f['roles']['admin']['accountId'], 'separate teacher/admin required')
+            if self.profile == 'mixed':
+                require(self.f['roles']['teacher']['accountId'] != self.f['roles']['admin']['accountId'], 'separate teacher/admin required')
             profile = self.call('admin', '/api/admin/v1/me', label='identity-admin-scope')
             contract(profile, {'administrator': 'bool', 'scopes': 'list'})
             require(profile['administrator'] and any(v.get('kind') == 'platform' and v.get('role') == 'platform_admin' for v in profile['scopes']), 'platform-admin fixture required')
+            self.admin_identity_verified = True
         self.checkpoint(True)
 
     def probe(self, key, user=None):
@@ -405,6 +419,7 @@ class Runner(LocalAiWorkload):
                   and len(self.ai_results) == self.ai_texts + self.ai_images and all(x.get('ok') for x in self.ai_results) and ai_budget_ok)
         return {'format': 'asa-release-http-load-v3', 'passed': passed, 'httpProfilePassed': passed, 'releaseAccepted': False,
                 'origin': self.origin, 'deploymentBinding': self.deployment_binding, 'workload': self.workload,
+                'telemetrySource': self.telemetry_source,
                 'runStartedAt': self.started_at, 'runFinishedAt': self.finished_at,
                 'completionStage': 'complete' if self.completed and not fatal else 'incomplete', 'stepChain': self.step_chain,
                 'revision': self.revision, 'schema': self.schema, 'provenance': self.provenance,
@@ -586,7 +601,8 @@ def main(argv=None):
                 'aiTextUsers': args.ai_text_users, 'aiImages': args.ai_images,
                 'aiFirstTokenMs': args.ai_max_first_token_ms, 'aiTotalMs': args.ai_max_total_ms}
     binding = {'origin': args.origin, 'revision': args.revision, 'schema': args.schema,
-               'cohortDigest': cohort_digest(fixture), 'sourceInventoryDigest': digest(catalog)}
+               'cohortDigest': cohort_digest(fixture), 'sourceInventoryDigest': digest(catalog),
+               'telemetrySource': telemetry_source(fixture, args.profile)}
     previous_hash = None
     step_chain = []
     if args.users != 20:
