@@ -103,6 +103,12 @@ class PublisherTests(unittest.TestCase):
         self.assertIn(default_rule, content)
         self.assertLess(content.index(public_key_rule), content.index(default_rule))
         self.assertEqual(content.count('proxy_cookie_flags '), 2)
+        self.assertEqual(content.count('location / {'), 1)
+        self.assertNotIn('location = /api/v2/core/auth/setting {', content)
+        self.assertIn('set $asa_panel_request_cookie $http_cookie;', content)
+        self.assertIn('if ($uri = /api/v2/core/auth/setting) {', content)
+        self.assertIn('set $asa_panel_request_cookie "";', content)
+        self.assertIn('proxy_set_header Cookie $asa_panel_request_cookie;', content)
 
     def test_rollback_only_quarantines_owned_proxy(self):
         api = Api()
