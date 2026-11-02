@@ -1,0 +1,31 @@
+{
+  "format": "asa-mixed-resource-author-evidence-v1",
+  "date": "2026-11-02",
+  "state": "AUTHOR_PREPARED",
+  "productionChanges": false,
+  "liveResourceCreation": "NOT_RUN",
+  "releaseAccepted": false,
+  "scope": "own synthetic class project and material-only course/version/run/public knowledge course",
+  "publication": "explicit existing PUBLIC UUID, read-only",
+  "sessionsRolesAndExpiry": "UNCHANGED",
+  "plannedWrites": 7,
+  "maximumWritesIncludingFailureCleanup": 8,
+  "maximumCallsIncludingFailureCleanup": 160,
+  "sourceAudit": {
+    "observedMergedAppRevision": "0d693050fc75b9e5e040e00227a654b5f772e87a",
+    "additionalSideEffectBlobs": 20,
+    "fixtureBlobs": 11,
+    "changedFixtureBlobs": 1,
+    "routeBlobs": 31,
+    "changedRouteBlobs": 6,
+    "routeEntries": 64,
+    "sseTransportPin": "UNCHANGED_IMPROVED_HASH",
+    "communications": "No real-recipient or external-service path in the audited material-only operation; exact QA audience required"
+  },
+  "offlineFocusedTests": {"run": 11, "passed": 11},
+  "offlineReleaseLoadSuite": {"run": 56, "passed": 55, "skipped": 1, "skip": "POSIX mode/lock runs in Linux CI"},
+  "realIsolatedApiIntegration": "NOT_CONFIGURED_IN_INFRA_CI",
+  "cleanup": "manual own course private before original session expiry; pending writes remain UNKNOWN until settled",
+  "independentReview": "REQUIRED_AT_FINAL_SHA",
+  "linuxCI": "SEE_EXACT_COMMIT_CHECKS"
+}

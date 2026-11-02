@@ -1,0 +1,31 @@
+name: School backup compatibility
+on:
+  pull_request:
+    paths:
+      - 'scripts/install-school-nightly-database-backup.py'
+      - 'scripts/school-nightly-database-backup.py'
+      - 'tests/test_school_nightly_timer.py'
+      - 'tests/test_school_nightly_database.py'
+      - 'tests/test_school_backup_receipt_contract.py'
+      - 'tests/fixtures/school-backup-success.json'
+      - '.github/workflows/school-backup-compat.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fault-injected timer rollback and actual receipt-writer contract
+        run: python -m unittest discover -s tests -p 'test_school_nightly*.py' -v
+      - name: Published receipt matches the real producer
+        run: python -m unittest discover -s tests -p test_school_backup_receipt_contract.py -v
+      - run: git diff --check

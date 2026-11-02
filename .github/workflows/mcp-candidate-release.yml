@@ -44,7 +44,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release
-          python3 -m unittest discover -s tests -v
+          python3 -m venv /tmp/asa-infra-checks
+          /tmp/asa-infra-checks/bin/pip install -r scripts/requirements-ingress.txt
+          /tmp/asa-infra-checks/bin/python -m unittest discover -s tests -v
           python3 -m compileall -q scripts
           (cd vendor/mcp-auth-proxy && go test -count=1 ./...) 2>&1 | tee release/go-tests.log
           (cd vendor/mcp-auth-proxy && go test -race -count=1 ./pkg/proxy ./pkg/idp) 2>&1 | tee release/go-race-tests.log

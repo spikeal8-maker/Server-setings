@@ -1,0 +1,44 @@
+{
+  "status": "SOURCE_ALIGNMENT_ONLY",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "infrastructureBase": "0f52fa01292de55e1a35fab72b3774231fe21f2b",
+  "previousObservedApplication": "0d693050fc75b9e5e040e00227a654b5f772e87a",
+  "observedApplication": "0489c430d1e9d06631c970c29e30ea2229c2c9f0",
+  "actualReaderVerificationHead": "2259ef92dd5a0e3e2cd76f802cf998d20bb89b9d",
+  "testOnlyFollowUpFiles": [
+    "e2e/ai-image-generation.spec.ts",
+    "e2e/public-project-electronics-player.spec.ts"
+  ],
+  "sourceFileCounts": {"fixture": 11, "route": 31, "mixed": 20},
+  "changedPinnedReferences": 2,
+  "unchangedPinnedReferences": 60,
+  "routesPreserved": 64,
+  "newEndpoints": [],
+  "changedSourceFiles": {
+    "apps/web/src/api.ts": {
+      "previous": "6552de8d6871294120306103f08004d62b9505bf8f098b75c792535477a57f29",
+      "reviewed": "8b63f517fda99586fb5c45e996981f47cdda90cf64ba1a9bfa74e489cdf75614",
+      "reason": "Optional AbortSignal on the same authorized project GET"
+    },
+    "packages/contracts/src/public-project-display-artifact.ts": {
+      "previous": "c0b2bf7caf2150e2669dcacce18f0f5151df0f985f70cebbe31b83d026fb0de9",
+      "reviewed": "05b69c12c2499247468022309bdc04c3cd30661bf2c5e66ab4c6c65bdcdcbac6",
+      "reason": "Closed schema4 ThreeD public display artifact on the existing artifact endpoint"
+    }
+  },
+  "runtimeChanged": false,
+  "applicationWorktreeChanged": false,
+  "workingDataChanged": false,
+  "runtimeLoadTest": "NOT_RUN",
+  "browserThreeDRendering": "NOT_RUN",
+  "offlineEvidence": {
+    "allPinnedReferences": "62_MATCH_REVIEWED_APPLICATION",
+    "routesAndRoles": "64_IDENTICAL_TO_INFRASTRUCTURE_BASE",
+    "runnerFixtureResourceAndAiCode": "UNCHANGED",
+    "existingContractSuite": "56_TESTS_OK_ONE_WINDOWS_SKIP",
+    "mixedPlans": "20_50_100_ZERO_NETWORK_AND_FIXTURE_READS",
+    "actualRouteAndMixedSourceReaders": "PASS_CLEAN_2259EF92_SAME_RUNTIME_SOURCE_BLOBS"
+  },
+  "independentReview": "REQUIRED",
+  "exactShaCI": "REQUIRED"
+}
