@@ -1,8 +1,8 @@
 {
   "host": "admins-MS-7D22",
   "installed_kernel": "7.0.0-42-generic",
-  "running_kernel": "7.0.0-38-generic",
-  "reboot_accepted": false,
+  "running_kernel": "7.0.0-42-generic",
+  "reboot_accepted": true,
   "previous_kernel_preserved": true,
   "package_removal": false,
   "operation": "08a408604bd946d48aa9db0c0b612ff3",
@@ -11,5 +11,11 @@
   "full_mcp_preserved": true,
   "panel_owner_login": "Success 2026-11-02T21:50:42.979239993+03:00",
   "focused_tests": 3,
-  "production_ready": false
+  "production_ready": false,
+  "postboot_services": "ssh/panel-core/panel-agent/asa-operations/docker/tailscaled active",
+  "asa_ready_http": 200,
+  "asa_database": "up",
+  "asa_containers": "healthy",
+  "public_panel_https": 200,
+  "postboot_root_operation": "e2f5c24395164012bc98fdacc3fdab36"
 }
