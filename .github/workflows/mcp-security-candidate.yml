@@ -1,0 +1,84 @@
+name: MCP security candidate (no deployment or registry push)
+
+on:
+  pull_request:
+    paths: ['security/mcp/**', 'tests/test_mcp_security_candidate.py', '.github/workflows/mcp-security-candidate.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-security-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Source contract tests
+        run: python3 -m unittest discover -s tests -p test_mcp_security_candidate.py -v
+      - name: Prepare pinned reviewed upstreams
+        run: python3 security/mcp/prepare.py artifacts/mcp-source
+      - name: Build and test candidates (never push)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/mcp-security
+          builder=$(python3 -c 'import json; print(json.load(open("security/mcp/pins.json"))["builder"])')
+          runtime=$(python3 -c 'import json; print(json.load(open("security/mcp/pins.json"))["runtime"])')
+          snapshot=$(python3 -c 'import json; print(json.load(open("security/mcp/pins.json"))["debian_snapshot"])')
+          docker build --progress=plain --platform linux/amd64 --build-arg BUILDER="$builder" \
+            --build-arg RUNTIME="$runtime" --build-arg DEBIAN_SNAPSHOT="$snapshot" \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            -f security/mcp/Dockerfile -t asa-mcp-security:candidate .
+          docker build --platform linux/amd64 --target binaries --build-arg BUILDER="$builder" \
+            --build-arg RUNTIME="$runtime" --output type=local,dest=artifacts/mcp-security/binaries \
+            -f security/mcp/Dockerfile .
+          docker image inspect --format '{{.Id}}' asa-mcp-security:candidate > artifacts/mcp-security/image-id.txt
+          sha256sum artifacts/mcp-security/binaries/mcp-* > artifacts/mcp-security/binary-sha256.txt
+      - name: Actual image and mounted binary smoke
+        run: python3 security/mcp/smoke.py asa-mcp-security:candidate artifacts/mcp-security/binaries/mcp-1panel
+      - name: Install checksum-verified official scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/mcp-security/tools
+          curl --fail --location --retry 3 https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz -o artifacts/mcp-security/trivy.tar.gz
+          hash=$(python3 -c 'import json; print(json.load(open("security/mcp/pins.json"))["trivy_archive_sha256"])')
+          echo "$hash  artifacts/mcp-security/trivy.tar.gz" | sha256sum --check
+          tar -xzf artifacts/mcp-security/trivy.tar.gz -C artifacts/mcp-security/tools trivy
+      - name: Fail closed on real image and separately mounted ELF coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          trivy=artifacts/mcp-security/tools/trivy
+          "$trivy" version --format json > artifacts/mcp-security/scanner-version.json
+          "$trivy" image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --list-all-pkgs \
+            --format json --output artifacts/mcp-security/image-scan.json asa-mcp-security:candidate
+          mkdir -p artifacts/mcp-security/mounted-rootfs/usr/local/bin
+          cp artifacts/mcp-security/binaries/mcp-1panel artifacts/mcp-security/mounted-rootfs/usr/local/bin/mcp-1panel
+          "$trivy" rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --list-all-pkgs \
+            --format json --output artifacts/mcp-security/mounted-binary-scan.json artifacts/mcp-security/mounted-rootfs
+          "$trivy" version --format json > artifacts/mcp-security/scanner-db-version.json
+          python3 security/mcp/check_scan.py image artifacts/mcp-security/image-scan.json
+          python3 security/mcp/check_scan.py binary artifacts/mcp-security/mounted-binary-scan.json
+      - name: Preserve exact candidate image for later independent review
+        run: docker save asa-mcp-security:candidate | gzip -1 > artifacts/mcp-security/gateway-image.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mcp-security-candidate-${{ github.sha }}
+          path: |
+            artifacts/mcp-security/binaries/
+            artifacts/mcp-security/*-scan.json
+            artifacts/mcp-security/*version.json
+            artifacts/mcp-security/*sha256.txt
+            artifacts/mcp-security/image-id.txt
+            artifacts/mcp-security/gateway-image.tar.gz
+          if-no-files-found: warn
+          retention-days: 14
