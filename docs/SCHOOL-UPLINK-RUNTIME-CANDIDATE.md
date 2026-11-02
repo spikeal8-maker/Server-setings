@@ -1,17 +1,18 @@
 # Школьный PVE: IPv4 uplink runtime, source checkpoint
 
-Runtime source проверен в изолированных namespaces; на физическом оборудовании
-не квалифицирован и этим исполнителем НЕ установлен/НЕ armed. WiFi/USB/SIM
-оборудование отсутствует. Main convergence выполнен один раз с phase1 main0378b6d.
+Runtime source проверен в изолированных namespaces и установлен контроллером
+в dormant состоянии на PVE. На физическом uplink оборудовании не квалифицирован,
+НЕ armed. WiFi/USB/SIM отсутствует. Main convergence один раз с phase1 main0378b6d.
 
 ## Проверки и границы доказательства
 
 - Код feeb1f22366557871e7a033fec0a49bb93b5a460: 14/14 namespace tests PASS,
   22.045s, существующий WSL ASA-Lab-Ubuntu-Repro-20261018. NET+PID+MOUNT изолированы,
   /run — private tmpfs; Docker не используется, host systemd не вызывается.
-- Предыдущий код be7a0f6: контроллер независимо выполнил 13/13 на настоящем PVE,
-  Python3.13/kernel7.0.2-6-pve, 20.206s. Interfaces/resolver hashes, main routes и
-  RPDB до/после точно совпали. Это namespace proof, НЕ переключение реального uplink.
+- Контроллер независимо выполнил exact feeb1f2 14/14 на настоящем PVE,
+  Python3.13/kernel7.0.2-6-pve, 20.367s (до этого be7a0f6:13/13,20.206s).
+  Interfaces/resolver hashes, main routes и RPDB до/после точно совпали.
+  Это namespace proof, НЕ переключение реального uplink.
 - Installer contract tests 7/7 и phase1 compatibility 12/12 PASS; Python compile,
   YAML parse и diff check PASS. Plan installer не меняет систему.
 - Exact-head GitHub CI и independent review проверяются по PR60; до их завершения
@@ -119,3 +120,24 @@ failover/failback, renewal/expiry/replug, SIGKILL+independent watcher cleanup,
 oldboot ordering/resume, PIDFD lifecycle, stale PID/reboot negatives, foreign
 route/ifindex/ancestor guards, DNS CAS и rogue DHCP/WiFi input. DHCP lease acquisition
 моделируется, wire-level DHCP/radio/SIM остаются обязательной физической приёмкой.
+
+## Контроллер: live dormant acceptance feeb1f2 (2026-11-03)
+
+Independent review разрешил dormant install. Durable job: Result=success,
+ExecMainStatus=0; receipt accepted. Watchdog timer enabled/active; manager
+disabled/inactive; ModemManager/wpa_supplicant masked/inactive. Status:
+armed=false, phase=dormant, hardware_qualified=false, configured_modes=[].
+Profiles.json и journal.json отсутствуют. wireless-regdb2026.05.30-1~deb13u1
+установлен; country/radio/network reload не выполнялись.
+
+Primary interfaces SHA256e676d55c7ff7e8eaa3cda0896f3caac4209ebe0fa4a56d3c6907a8bc268f0aba
+и resolver SHA2563f4c6ebc4d48dbfbd3312cbd06e1a102a0d6767b1e64a3a9949664f24a1af52b
+не изменились; main routes/RPDB прежние, pveproxy/pvedaemon/ssh active.
+Post checks контроллера: public school panelHTTPS200/TLS1.3, unauthAPI401;
+x/test2 ready200; VM100 asa-school-01 FRP/ssh/MCP active, loopbackMCP unauth401.
+FRP NRestarts1 остался baseline, FRP не перезапускался.
+
+Все live наблюдения переданы контроллером; этот source executor не применял
+сетевые изменения. Hardware qualification/arm/реальный reboot остаются отдельной
+будущей приёмкой владельца. GitHub exact-head CI может ещё ожидать runner;
+локальный CI-equivalent фиксируется отдельно, а queued не называется PASS.

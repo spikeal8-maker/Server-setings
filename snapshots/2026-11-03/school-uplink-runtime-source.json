@@ -1,14 +1,18 @@
 {
-  "status": "SOURCE_CANDIDATE_NOT_INSTALLED_NOT_ARMED",
-  "baseline_main": "d631c25cf02e497ef224f61e532e72036831649e",
+  "status": "DORMANT_INSTALLED_CONTROLLER_ACCEPTED_NOT_ARMED",
+  "baseline_main": "0378b6d353eb85ae00e10d87f704765d74569c01",
   "host": "pve",
   "scope": "IPv4 PVE host uplink only",
   "runtime_profiles": "private-only",
   "actual_hardware_qualification": false,
   "namespace_ci": "PENDING_EXACT_HEAD",
-  "independent_review": "PENDING",
+  "independent_review": {
+    "source_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
+    "status": "PASS",
+    "scope": "dormant_install_only"
+  },
   "existing_primary_network_changed": false,
-  "phase1_files_changed": false,
+  "phase1_files_changed": true,
   "credentials_included": false,
   "code_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
   "phase1_integrated_main": "0378b6d353eb85ae00e10d87f704765d74569c01",
@@ -19,11 +23,34 @@
     "status": "PASS"
   },
   "namespace_pve_controller_report": {
-    "code_sha": "be7a0f6126f8cbf6687d51e7632497acb9da63f0",
-    "tests": 13,
-    "seconds": 20.206,
+    "code_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
+    "tests": 14,
+    "seconds": 20.367,
     "host_network_hashes_unchanged": true
   },
   "installer_contract_tests": 7,
-  "phase1_compatibility_tests": 12
+  "phase1_compatibility_tests": 12,
+  "dormant_install_controller_report": {
+    "source_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
+    "result": "success",
+    "exec_main_status": 0,
+    "watchdog": "enabled_active",
+    "manager": "disabled_inactive",
+    "mm_wpa": "masked_inactive",
+    "armed": false,
+    "profiles_present": false,
+    "journal_present": false,
+    "wireless_regdb": "2026.05.30-1~deb13u1",
+    "primary_hashes_routes_rules_unchanged": true,
+    "pve_core_services_active": true,
+    "public_panel_https": 200,
+    "public_panel_unauth_api": 401,
+    "x_test2_readiness": 200,
+    "vm100_frp_ssh_mcp": "active",
+    "vm100_mcp_unauth": 401,
+    "frp_restarts_baseline_unchanged": 1
+  },
+  "initial_runtime_base_sha": "d631c25cf02e497ef224f61e532e72036831649e",
+  "immutable_deployed_phase1_c6_source_changed": false,
+  "local_full_static_ci_equivalent": "RUNNING_PINNED_PYYAML_6.0.3"
 }
