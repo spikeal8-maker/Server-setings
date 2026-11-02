@@ -61,6 +61,12 @@ def proxy_content(active):
     return '''location / {
     proxy_pass http://127.0.0.1:19192;
     proxy_http_version 1.1;
+    # Reissue the browser-readable RSA key even if an old HttpOnly cookie exists.
+    set $asa_panel_request_cookie $http_cookie;
+    if ($uri = /api/v2/core/auth/setting) {
+        set $asa_panel_request_cookie "";
+    }
+    proxy_set_header Cookie $asa_panel_request_cookie;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
