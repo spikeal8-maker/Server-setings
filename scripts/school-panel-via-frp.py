@@ -21,7 +21,7 @@ FRP = Path('/etc/asa-frpc/frpc.toml')
 EDGE = Path('/data/coolify/proxy/dynamic/asa-school-panel-routes.yaml')
 STATE = Path('/var/lib/server-settings/school-panel-publication')
 COMPANION_SHA256 = {
- 'publish-panel-https.py': 'e182f176d3b024f9302effff4a013b1540d3b23538194ccc3c7afe6edcbb4231',
+ 'publish-panel-https.py': 'bd8b0a3d06206bded7698ed43a51e9f49a30a380db7d8b1e5377721d703407e6',
  'panelctl.py': 'cec93e00e1b34163034eafc7d46e9d2e8e540b6852cf419793c64c62c8a8074d',
 }
 FRPC_SHA256 = '142f447f43fef286acc8da8a6852dda80631db631d604b2e63634b2db4d6848c'

@@ -92,6 +92,19 @@ class Tests(unittest.TestCase):
                 owner.assert_called_once();self.assertEqual(owner.call_args.args[1:],(0,987))
                 mode.assert_called_once();self.assertEqual(mode.call_args.args[1],0o640)
                 self.assertEqual(target.read_bytes(),b'candidate')
+    def test_public_csrf_and_rsa_cookies_precede_session_httponly(self):
+        path=SCRIPT.with_name('publish-panel-https.py')
+        spec=importlib.util.spec_from_file_location('cookiepublisher',path)
+        publisher=importlib.util.module_from_spec(spec)
+        sys.path.insert(0,str(SCRIPT.parent))
+        try:spec.loader.exec_module(publisher)
+        finally:sys.path.pop(0)
+        content=publisher.proxy_content(True)
+        catchall=content.index('proxy_cookie_flags ~ secure httponly samesite=lax;')
+        for cookie in ('panel_public_key','pcsrftoken'):
+            self.assertLess(content.index('proxy_cookie_flags '+cookie+' secure nohttponly samesite=lax;'),catchall)
+        self.assertIn('proxy_set_header Cookie $asa_panel_request_cookie;',content)
+        self.assertNotIn('X-CSRF-Token ""',content)
     def test_wrong_host_before_io(self):
         r=subprocess.run([sys.executable,str(SCRIPT),'school','--apply','--expected-host','wrong'],capture_output=True,text=True)
         self.assertNotEqual(r.returncode,0);self.assertNotIn('Traceback',r.stderr)
