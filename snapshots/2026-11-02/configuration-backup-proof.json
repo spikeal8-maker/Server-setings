@@ -1,0 +1,14 @@
+{
+  "archive": "server-settings-20261102T191428Z.tar.age",
+  "bytes": 18088440,
+  "sha256": "6c2b3632aaf765a315a3a27d8f5ea4970a79b0b780396299ff6ab121fe52784f",
+  "upload_operation": "263d7164ceeb44c58c8276104a7f04b0",
+  "download_operation": "16bce0fbb3ac4b6f9f881af0b2ddd3d7",
+  "scope": "selected server configuration and panel SQLite backups",
+  "ciphertext_roundtrip_verified": true,
+  "owner_side_decryption_verified": true,
+  "tar_entries": 111,
+  "private_identity_transferred_to_server": false,
+  "full_asa_database_backup": false,
+  "whole_server_restore_tested": false
+}
