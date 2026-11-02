@@ -8,6 +8,14 @@
 
 TLS завершается на OpenResty; upstreamHTTP проходит только внутри того же узла. HTTP301→HTTPS сохраняет путь. РазрешеныTLS1.2/1.3. В proxy-location явно заданы HSTS31536000 безincludeSubDomains, nosniff,SAMEORIGIN,no-referrer,no-store. Это важно: location-level add_header отменяет наследование серверных headers. Поддержаны WebSocket upgrade/длинные соединения; X-Forwarded-For/X-Real-IP перезаписываются входным адресом, а не произвольной строкой клиента. Для upstreamcookies заданы Secure/HttpOnly/SameSite=Lax; поведение конкретной авторизованной cookie не проверялось без входа.
 
+## Исправление авторизации через HTTPS (2 ноября 2026)
+
+У 1Panel v2.3.2 в браузерном коде функция `encryptPassword` читает публичный RSA-ключ из cookie `panel_public_key` через `document.cookie`. При отсутствии читаемой cookie она отправляет пароль без шифрования, тогда как сервер ожидает формат RSA/AES с тремя компонентами. В журнале входов это проявилось как `encrypted data format error` — не как проверка неверного пароля.
+
+Первоначальное правило `proxy_cookie_flags ~ secure httponly samesite=lax;` выставляло `HttpOnly` всем cookie, в том числе `panel_public_key`. Исправлено точечно через штатный API 1Panel для управляемого сайта №8: **первое совпадение** для `panel_public_key` выставляет `secure nohttponly samesite=lax`, а все прочие cookie по-прежнему получают `secure httponly samesite=lax`.
+
+После изменения проверен HTTPS-запрос к `/api/v2/core/auth/setting`: статус 200, `panel_public_key` устанавливается с `Secure` и `SameSite=Lax`, без `HttpOnly`. Успешную интерактивную авторизацию владельца этой серверной проверкой не подтверждали — её выполняют отдельно без записи и передачи паролей. Не возвращайте глобальный `HttpOnly` на `panel_public_key` при повторной публикации сайта.
+
 ## Повторение на аналогичной установке
 
 Требуется уже работающая1Panel на localhost19192, управляемый OpenResty80/443, DNSдомен→реальныйпубличныйIP, NAT/маршрутизация80/443 и **существующий** ACMEаккаунт в1Panel. Для новой машины использовать её фактический hostname/IP и IDеёACMEаккаунта. Этот script привязан к согласованному имени1panel.asa-lab.ru и loopback19192; другое имя/порт требует отдельной адаптации. НовыеACMEаккаунты/согласия не создаются.
