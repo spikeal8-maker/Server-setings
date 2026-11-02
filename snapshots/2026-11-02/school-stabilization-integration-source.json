@@ -1,0 +1,21 @@
+{
+  "format": "asa-school-stabilization-integration-source-v1",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "status": "combined_source_candidate_not_runtime_acceptance",
+  "reviewedLeaves": {
+    "ingress": "0bfda46f92646889279c0e92f093dfb55b88cd12",
+    "http100": "3d46abe1da0332a32df19d2bbb67051c85c1b254",
+    "privateFixture": "bbb66023da8db30c98f6901b24bed87db123510b",
+    "mixedResources": "06dd7ac34d68f1d169b60cb5387f926e2544a0db",
+    "portableDocs": "0fd2c749643931fd3914b05271441e3bacb9a3b1",
+    "schoolBackupAndTimer": "cebf20cf72c75b6f362bbf8215be7674809fa3fe"
+  },
+  "localFocusedTests": {"passed": 81, "platformSkipped": 4},
+  "schoolIsolatedArchiveRehearsal": {"schemaBefore": 286, "schemaAfter": 294, "status": "pass", "coreFingerprintsPreserved": true, "freshCloudArchiveDecrypted": false},
+  "production": {"revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b", "schema": 286, "updatedByProgramme": false},
+  "ingressApplied": false,
+  "newPermanentCollectorAccepted": false,
+  "students100Accepted": false,
+  "freshPhysicalHostAccepted": false,
+  "secretsIncluded": false
+}

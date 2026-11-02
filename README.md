@@ -76,4 +76,9 @@ python3 -m compileall -q scripts
 
 [Полная матрица доказательств и ограничений](docs/08-ПРОВЕРКИ-И-ОГРАНИЧЕНИЯ.md). Секреты и персональные данные в GitHub **не хранить**, даже в private repository.
 
+Школьная стабилизация: [единый порядок переноса приложения, данных, журналов и GPU](docs/41-PORTABLE-SCHOOL-RUNTIME.md),
+[HTTP20/50/100](docs/38-SCHOOL-HTTP-LOAD-100.md), [приватная QA-когорта](docs/39-SYNTHETIC-ACCEPTANCE-FIXTURE.md)
+и [учебные QA-ресурсы/cleanup](docs/40-SYNTHETIC-MIXED-RESOURCES.md).
+Эти исходные инструменты не означают завершённую установку на новом узле или успешную нагрузку100.
+
 Проверка обновления короткого IP SSL: `python3 scripts/check-certificate.py --host 94.29.44.211`; при необходимости ставится локальный systemd timer `sudo bash scripts/install-cert-monitor.sh --host 94.29.44.211 --apply` (логи без внешних уведомлений).
