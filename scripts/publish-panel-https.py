@@ -70,6 +70,8 @@ def proxy_content(active):
     proxy_read_timeout 3600s;
     proxy_send_timeout 3600s;
     proxy_buffering off;
+    # Public RSA key is read by browser JS to encrypt login passwords.
+    proxy_cookie_flags panel_public_key secure nohttponly samesite=lax;
     proxy_cookie_flags ~ secure httponly samesite=lax;
     add_header Cache-Control "no-store" always;
     add_header Strict-Transport-Security "max-age=31536000" always;
