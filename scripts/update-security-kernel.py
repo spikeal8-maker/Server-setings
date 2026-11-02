@@ -24,7 +24,7 @@ def main():
         if package.is_upgradable:
             assert any(o.archive.endswith('-security') for o in package.candidate.origins)
             updates.append({'name': name, 'version': package.candidate.version})
-    command = ['apt-get', 'install', '--only-upgrade'] + [u['name'] + '=' + u['version'] for u in updates]
+    command = ['apt-get', 'install', '--only-upgrade', '--no-remove'] + [u['name'] + '=' + u['version'] for u in updates]
     if not updates:
         print(json.dumps({'updated': False, 'reason': 'No newer security kernel candidates'})); return
     plan = subprocess.run(command[:1] + ['--simulate'] + command[1:], capture_output=True, text=True, check=True)
