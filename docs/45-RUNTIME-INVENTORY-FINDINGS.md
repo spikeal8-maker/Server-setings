@@ -22,3 +22,9 @@
 Приватные JSON-отчёты и краткий summary сохранены на сервере в /var/log/asa-security/runtime-inventory-20261102. В GitHub не копируются дампы, переменные окружения или ключи. Повторяемая команда сканирования одного сохранённого imageID: `trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json --output <private-report.json> <sha256:image-id>`. Для точного сравнения сохраняйте версию vulnerability DB и время сканирования; новые базы могут изменить результат.
 
 Дополнительный read-only осмотр: UFW active/default deny incoming, SSH разрешён LAN/Tailscale, прямой 1Panel также ограничен LAN/Tailscale; ни у одного работающего контейнера нет privileged=true или mount Docker socket. Часть контейнеров имеет unbounded json-file logs — отдельный риск заполнения диска. Эти наблюдения не заменяют внешний тест firewall/NAT и приложения.
+
+## Отдельный исполняемый файл MCP
+
+В 1Panel gateway /opt/server-settings/bin/mcp-1panel монтируется поверх бинарного файла образа. Image scan не покрывает этот файл. Первый filesystem scan (operation2e6c918610d3425fb7e928a0615a3aa2) не обнаружил ни одного package target и НЕ принят как доказательство отсутствия CVE.
+
+По [официальной инструкции Trivy для Go binaries](https://trivy.dev/docs/dev/guide/coverage/language/golang/) выполнен rootfs scan точного ELF (operation77d9dca29731495da54f01f62e916205): один gobinary target, девять detected packages, четыре исправляемых HIGH, ноль CRITICAL. SHA-256 исполняемого файла 427a6f8288823b32e5fb97a082bb37c564fe8bad347ccadf31ae4163272abc7d. Находки относятся к stdlib v1.26.6; scanner указывает исправления вплоть до 1.26.10/1.27.3. Нужна отдельная пересборка существующего официального MCP с проверкой API/tools; полномочия владельца должны сохраниться. Нулевой результат первого скана не используется в оценке готовности.
