@@ -1,6 +1,6 @@
 # School VM100: HTTPS for 1Panel through the existing FRP connection
 
-Source candidate, not a live deployment receipt. Target is `asa-school-01`, not the home server or Proxmox host. Public name: `1panel.x.asa-lab.ru`; edge address: `161.104.46.160`. A changing school ISP address does not change the name: the VM initiates its existing outbound TLS FRP connection.
+Applied narrow deployment with live acceptance below; the initial source-only limitations are retained as history. Target is `asa-school-01`, not the home server or Proxmox host. Public name: `1panel.x.asa-lab.ru`; edge address: `161.104.46.160`. A changing school ISP address does not change the name: the VM initiates its existing outbound TLS FRP connection.
 
 `python3 scripts/school-panel-via-frp.py school` and `... edge` print plans without reading keys or modifying services. Review exact Git SHA first. Run school role as root on VM100 with `--apply --expected-host asa-school-01`; run edge role as root on the separately diagnosed Leticia host with its exact `--expected-host`. Keep the repository companion `panelctl.py` and `publish-panel-https.py` adjacent to the script.
 
@@ -44,3 +44,8 @@ CSRF cookie repair: the v2.3.2 frontend reads `pcsrftoken` to construct `X-CSRF-
 Смена школьного WAN IP не требует смены DNS: исходящий клиент обращается к стабильному внешнему узлу; source school WAN address не закреплён, guest использует DHCP. Физическая смена провайдера не выполнялась. Порт7000 может блокироваться некоторыми сетями, captive portal требует отдельного входа. Резерв443 не установлен. FRP проверка CA/servername и корректное разделение клиентских IP остаются открыты; шифрование/token auth не выдаются за mTLS. Это отдельные security/resilience follow-ups, а не препятствие уже проверенному входу.
 
 Quick-command reproducibility: the existing shortcut installer now requires exactly one canonical `x.asa-lab.ru` proxy with alias `asa-lab-x`, while allowing additional sites such as the owned public panel. Missing/duplicate/wrong-type/wrong-alias canonical entries still fail closed. Root/hostname/key and command identity guards remain unchanged; existing commands are not recreated by this source change.
+
+
+### Внутренняя сеть гипервизора: дополнительное ограничение
+
+Read-only проверка Proxmox: vmbr0 настроен статически 172.23.104.170/23, gateway172.23.104.1, bridge-portnic1. FRP внутри VM не зависит от школьного публичного IP, но интернет VM зависит от действующего uplink Proxmox. Если новый провайдер сохраняет школьную LAN/gateway, смена внешнего IP не требует правки домена/FRP. При подключении к роутеру с другой LAN текущая статическая конфигурация может оставить гипервизор без интернета. Для такого сценария требуется отдельный проверенный DHCP/uplink-профиль с резервным доступом и откатом; конфигурация Proxmox в этой задаче не изменялась. Не заявлять работу при произвольной смене роутера без этой адаптации.
