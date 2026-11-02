@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import socket
 import stat
+import sys
 import subprocess
 import tempfile
 import time
@@ -18,15 +19,52 @@ ALIAS = 'asa-school-panel'
 FRP = Path('/etc/asa-frpc/frpc.toml')
 EDGE = Path('/data/coolify/proxy/dynamic/asa-school-panel-routes.yaml')
 STATE = Path('/var/lib/server-settings/school-panel-publication')
+COMPANION_SHA256 = {
+ 'publish-panel-https.py': 'e182f176d3b024f9302effff4a013b1540d3b23538194ccc3c7afe6edcbb4231',
+ 'panelctl.py': 'cec93e00e1b34163034eafc7d46e9d2e8e540b6852cf419793c64c62c8a8074d',
+}
+FRPC_SHA256 = '142f447f43fef286acc8da8a6852dda80631db631d604b2e63634b2db4d6848c'
+
+
+def trusted_chain(path, allow_missing=False):
+    path=Path(path)
+    if not path.is_absolute() or '..' in path.parts: raise RuntimeError('Absolute canonical path required')
+    current=Path(path.anchor)
+    for part in path.parts[1:]:
+        current=current/part
+        try: value=current.lstat()
+        except FileNotFoundError:
+            if allow_missing: return
+            raise RuntimeError('Trusted path missing') from None
+        if stat.S_ISLNK(value.st_mode) or value.st_uid!=0 or value.st_mode & 0o022:
+            raise RuntimeError('Untrusted path ancestor')
+        if current!=path and not stat.S_ISDIR(value.st_mode): raise RuntimeError('Non-directory path ancestor')
+
+
+def pinned_file(path, expected):
+    trusted_chain(path)
+    if not stat.S_ISREG(path.lstat().st_mode) or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
+        raise RuntimeError('Pinned file content mismatch')
+
+
+def prepare_state():
+    trusted_chain(STATE,allow_missing=True)
+    STATE.mkdir(mode=0o700,parents=True,exist_ok=True)
+    trusted_chain(STATE)
+    if STATE.stat().st_mode & 0o077: raise RuntimeError('Private state directory required')
+
 
 
 def require_private(path):
+    trusted_chain(path)
     s = path.lstat()
     if not stat.S_ISREG(s.st_mode) or s.st_uid != 0 or s.st_mode & 0o077:
         raise RuntimeError('Private root-owned regular file required')
 
 
 def atomic(path, content, mode=0o600):
+    trusted_chain(path.parent)
+    trusted_chain(path,allow_missing=True)
     fd, name = tempfile.mkstemp(prefix='.school-panel-', dir=path.parent)
     try:
         os.fchmod(fd, mode)
@@ -80,7 +118,7 @@ def edge_document():
 
 
 def receipt(role, content):
-    STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
+    prepare_state()
     s=STATE.lstat()
     if not stat.S_ISDIR(s.st_mode) or s.st_uid!=0 or s.st_mode & 0o077: raise RuntimeError('Unsafe state directory')
     path=STATE/(role+'-original')
@@ -89,11 +127,17 @@ def receipt(role, content):
 
 
 def school():
+    trusted_chain(STATE,allow_missing=True)
+    companions=Path(__file__).absolute().parent
+    trusted_chain(Path(__file__).absolute())
+    for filename,digest in COMPANION_SHA256.items(): pinned_file(companions/filename,digest)
     require_private(FRP)
     require_private(Path('/var/lib/server-settings/1panel-api.key'))
     raw=FRP.read_bytes(); candidate=frp_candidate(raw.decode()).encode()
     # Validate executable/config before any API mutation or service restart.
     binary='/usr/local/bin/frpc'
+    pinned_file(Path(binary),FRPC_SHA256)
+    prepare_state()
     probe=subprocess.run(['systemctl','show','asa-frpc','--property=ExecStart','--value'],capture_output=True,text=True,check=True)
     if binary not in probe.stdout or str(FRP) not in probe.stdout: raise RuntimeError('FRP service executable drift')
     fd,name=tempfile.mkstemp(prefix='.panel-verify-',dir=FRP.parent)
@@ -102,7 +146,9 @@ def school():
         with os.fdopen(fd,'wb') as out: out.write(candidate)
         subprocess.run([binary,'verify','-c',name],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     finally: os.unlink(name)
-    module=Path(__file__).with_name('publish-panel-https.py')
+    ctl_spec=importlib.util.spec_from_file_location('panelctl',companions/'panelctl.py')
+    ctl=importlib.util.module_from_spec(ctl_spec);sys.modules['panelctl']=ctl;ctl_spec.loader.exec_module(ctl)
+    module=companions/'publish-panel-https.py'
     spec=importlib.util.spec_from_file_location('panel_publish',module)
     pub=importlib.util.module_from_spec(spec);spec.loader.exec_module(pub)
     api=pub.LoopbackPanelAPI(pub.read_api_key('/var/lib/server-settings/1panel-api.key'))
@@ -136,6 +182,9 @@ def school():
 
 
 def edge():
+    trusted_chain(EDGE,allow_missing=True)
+    trusted_chain(EDGE.parent)
+    prepare_state()
     content=(json.dumps(edge_document(),indent=2)+'\n').encode()
     marker=STATE/'edge-installed.sha256'
     if EDGE.exists():

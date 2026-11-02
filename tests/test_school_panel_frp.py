@@ -4,6 +4,9 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
+import stat
 
 SCRIPT=Path(__file__).resolve().parents[1]/'scripts/school-panel-via-frp.py'
 spec=importlib.util.spec_from_file_location('schoolpanel',SCRIPT)
@@ -39,6 +42,22 @@ class Tests(unittest.TestCase):
         for r in doc['routers'].values():self.assertEqual(r['rule'],'Host(`1panel.x.asa-lab.ru`)')
         self.assertEqual(doc['services']['asa-school-panel']['loadBalancer'],{'passHostHeader':True,'servers':[{'url':'http://frps:8080'}]})
         self.assertEqual(doc['routers']['asa-school-panel-https']['tls'],{'certResolver':'letsencrypt'})
+    def test_trust_rejects_writable_ancestor(self):
+        def info(path):
+            mode=stat.S_IFDIR | (0o777 if path.name=='unsafe' else 0o755)
+            return SimpleNamespace(st_mode=mode,st_uid=0)
+        with patch.object(m.Path,'lstat',info),self.assertRaises(RuntimeError):
+            m.trusted_chain(Path('/unsafe/file'))
+    def test_trust_rejects_symlink_ancestor(self):
+        def info(path):
+            return SimpleNamespace(st_mode=(stat.S_IFLNK|0o777 if path.name=='link' else stat.S_IFDIR|0o755),st_uid=0)
+        with patch.object(m.Path,'lstat',info),self.assertRaises(RuntimeError):
+            m.trusted_chain(Path('/link/file'))
+    def test_pins_match_git_blobs(self):
+        import hashlib
+        for name,digest in m.COMPANION_SHA256.items():
+            raw=subprocess.check_output(['git','show','HEAD:scripts/'+name],cwd=SCRIPT.parents[1])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(),digest)
     def test_wrong_host_before_io(self):
         r=subprocess.run([sys.executable,str(SCRIPT),'school','--apply','--expected-host','wrong'],capture_output=True,text=True)
         self.assertNotEqual(r.returncode,0);self.assertNotIn('Traceback',r.stderr)
