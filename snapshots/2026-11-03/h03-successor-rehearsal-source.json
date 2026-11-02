@@ -1,0 +1,31 @@
+{
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "issue": 909,
+  "scope": "FRESH_PRIVATE_OFFLINE_HOST_CLONE_ONLY",
+  "infrastructureBase": "0378b6d353eb85ae00e10d87f704765d74569c01",
+  "appRevision": "6a98bddd8953eff732ec7d2cbb3de8cdec8abdee",
+  "expected": {
+    "files": 31,
+    "records": 607,
+    "successors": 1
+  },
+  "local": {
+    "tests": 15,
+    "passed": 10,
+    "posixSkipped": 5,
+    "syntheticApprovedCore": "PASS",
+    "syntheticRows": 257,
+    "syntheticActiveSegments": 226,
+    "syntheticRetiredSegments": 32
+  },
+  "actualH03Rehearsal": "NOT_RUN",
+  "liveApplied": false,
+  "fullCollectorStartup": false,
+  "historyHealthy": false,
+  "limitations": [
+    "Independent exact-SHA review pending",
+    "Ubuntu POSIX tests pending",
+    "No live update/repair/resume authorization"
+  ],
+  "documentation": "docs/47-H03-OFFLINE-SUCCESSOR-REHEARSAL.md"
+}
