@@ -25,6 +25,8 @@ if ($OpenPanel) {
         }
         if (!$listener) { throw 'SSH tunnel did not become ready' }
     }
+    $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
+    if ($proc.Name -ne 'ssh.exe' -or !$proc.CommandLine.Contains([string]$c.key_file)) { throw 'Unexpected owner of local tunnel port' }
     # Keep the private entrance out of process arguments and repository files.
     $shortcut = Join-Path (Split-Path -Parent $ConnectionFile) 'Panel.url'
     Set-Content -LiteralPath $shortcut -Encoding ascii -Value "[InternetShortcut]`r`nURL=http://127.0.0.1:$($c.local_port)$($c.entry_path)"
