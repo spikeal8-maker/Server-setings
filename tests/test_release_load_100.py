@@ -38,7 +38,8 @@ def completed_receipt(users=20, profile='core', ai_texts=0, ai_images=0):
     f = fixture()
     catalog = contracts.route_inventory()
     binding = {'origin': f['origin'], 'revision': 'a'*40, 'schema': 286,
-               'cohortDigest': contracts.cohort_digest(f), 'sourceInventoryDigest': contracts.digest(catalog)}
+               'cohortDigest': contracts.cohort_digest(f), 'sourceInventoryDigest': contracts.digest(catalog),
+               'telemetrySource': contracts.telemetry_source(f, profile)}
     workload = {'profile': profile, 'paceMs': 0, 'maxP95Ms': 5000, 'maxP99Ms': 10000,
                 'deadlineSeconds': 600, 'aiTextUsers': ai_texts, 'aiImages': ai_images,
                 'aiFirstTokenMs': 120000, 'aiTotalMs': 240000}
@@ -47,14 +48,16 @@ def completed_receipt(users=20, profile='core', ai_texts=0, ai_images=0):
     runner.completed = True; runner.started_at = time.time()-10; runner.finished_at = time.time()
     runner.actual_seats = [s['seat'] for s in f['seats'][:users]]
     runner.provenance = [{'revision': 'a'*40, 'schema': 286}]*2
-    runner.telemetry = [{'memory.rssMb': 100, 'database.waiting': 0, 'requests.total': 900}]
+    runner.telemetry = [{'memory.rssMb': 100, 'database.waiting': 0, 'requests.total': 900,
+                         'sampledAt': runner.finished_at-1}]
     modules = [*gate.MODULES, *(['mixed-portal'] if profile == 'mixed' else [])]
     runner.results = [{'user': i+1, 'module': m, 'ok': True} for i in range(users) for m in modules]
     counts = {'identity':users, 'create':3*users, 'save':3*users, 'reopen':3*users,
               'snapshot-save':3*users, 'snapshot-read':3*users, 'scratch-read':users,
               'scratch-upload':users, 'isolation-denial':3*users, 'revision':2, 'runtime-metrics':1}
     if profile == 'mixed': counts.update({'portal-'+key:1 for key in contracts.READS})
-    runner.samples = [{'label': label, 'actor': i%users+1, 'ms': 1.0, 'status': 403 if label=='isolation-denial' else 200,
+    runner.samples = [{'label': label, 'actor': ('admin' if profile=='mixed' else 'guest') if label=='runtime-metrics' else i%users+1,
+                       'ms': 1.0, 'status': 403 if label=='isolation-denial' else 200,
                        'ok': True, 'expectedNegative': label=='isolation-denial', 'error': None}
                       for label, count in counts.items() for i in range(count)]
     runner.ai_results = ([{'kind':'text','ok':True,'ms':20,'firstByteMs':1,'firstTokenMs':2}]*ai_texts

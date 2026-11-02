@@ -32,7 +32,8 @@
     "apps/api/src/ai-image.service.ts": "a72d4895612a9323cadbbd05577bb1445277986b33ceba60dfb33759a6955caf",
     "packages/contracts/src/public-project-display-artifact.ts": "05b69c12c2499247468022309bdc04c3cd30661bf2c5e66ab4c6c65bdcdcbac6",
     "apps/api/src/ai-ollama.ts": "939ad5bad1a640e4a825b03c6b4037295b88c3440788447253a49f168dc56f43",
-    "apps/api/src/ai-image-comfyui.ts": "a2fb1396e2fc292d43207e8dc24d3a8d2bfb309c03408b179fd64ca576ebb8af"
+    "apps/api/src/ai-image-comfyui.ts": "a2fb1396e2fc292d43207e8dc24d3a8d2bfb309c03408b179fd64ca576ebb8af",
+    "apps/api/src/app.module.ts": "de1ca10f39133c3fdf90fba29289f1d2b5073e27234d13ac0cee6d69bf56d759"
   },
   "routes": [
     {
