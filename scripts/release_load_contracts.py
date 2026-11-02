@@ -73,6 +73,29 @@ def cohort_digest(fixture):
                    'requiredLogs': fixture.get('expectedRequiredLogSourceIds', [])})
 
 
+def telemetry_source(fixture, profile):
+    # Pin one source before any I/O. Privileged fixtures never fall back publicly.
+    private = profile == 'mixed' or 'admin' in fixture.get('roles', {})
+    return {'kind': 'admin-operations-runtime' if private else 'public-health-metrics',
+            'path': '/api/admin/v1/operations/status' if private else '/health/metrics'}
+
+
+def operations_runtime(data, revision, schema, now=None):
+    contract(data, {'checkedAt': 'string', 'build.revision': 'string', 'build.synchronized': 'bool',
+                    'migration.version': 'string', 'services.api': 'string',
+                    'services.database': 'string', 'runtime': 'object'})
+    require(data['build']['revision'] == revision and data['migration']['version'] == str(schema)
+            and data['build']['synchronized'] is True
+            and data['services'] == {'api': 'responding', 'database': 'responding'},
+            'private telemetry deployment mismatch')
+    try:
+        age = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(data['checkedAt'].replace('Z', '+00:00'))).total_seconds()
+    except (TypeError, ValueError):
+        raise ContractError('private telemetry timestamp invalid') from None
+    require(0 <= age <= 30, 'private telemetry timestamp stale/future')
+    return numeric_telemetry(data['runtime'])
+
+
 def previous_step(previous, binding, workload, users, now):
     """Validate complete recent evidence, not an operator-supplied green flag."""
     n = 20 if users == 50 else 50
@@ -100,10 +123,15 @@ def previous_step(previous, binding, workload, users, now):
     provenance = previous.get('provenance', [])
     require(len(provenance) >= 2 and all(p == {'revision': binding['revision'], 'schema': binding['schema']} for p in provenance), 'previous runtime provenance incomplete')
     telemetry = previous.get('telemetry', [])
+    require(previous.get('telemetrySource') == binding.get('telemetrySource')
+            and binding.get('telemetrySource') in (telemetry_source({}, 'core'), telemetry_source({}, 'mixed'))
+            and (workload['profile'] != 'mixed' or binding['telemetrySource'] == telemetry_source({}, 'mixed')),
+            'previous telemetry source differs/missing')
     require(isinstance(telemetry, list) and bool(telemetry), 'previous telemetry missing')
     for row in telemetry:
         require(all(type(v) in (int, float) and math.isfinite(v) for v in row.values())
-                and all(k in row for k in ('memory.rssMb', 'requests.total', 'database.waiting')), 'previous telemetry incomplete')
+                and all(k in row for k in ('memory.rssMb', 'requests.total', 'database.waiting'))
+                and started <= row.get('sampledAt', -1) <= finished, 'previous telemetry incomplete/stale')
     requests = previous.get('requests', [])
     require(isinstance(requests, list) and bool(requests) and all(r.get('ok') is True
             and type(r.get('ms')) in (int, float) and math.isfinite(r['ms']) and r['ms'] >= 0
@@ -114,6 +142,9 @@ def previous_step(previous, binding, workload, users, now):
                          'scratch-upload': n, 'isolation-denial': 3*n, 'revision': 2, 'runtime-metrics': 1}.items():
         require(sum(r.get('label') == label for r in requests) >= count, 'previous critical request evidence missing: ' + label)
         require(all(r.get('expectedNegative') is (label == 'isolation-denial') for r in requests if r.get('label') == label), 'previous critical request polarity mismatch')
+    telemetry_actor = 'admin' if binding['telemetrySource']['kind'] == 'admin-operations-runtime' else 'guest'
+    require(all(r.get('actor') == telemetry_actor for r in requests if r.get('label') == 'runtime-metrics'),
+            'previous telemetry actor differs from pinned source')
     require({r.get('actor') for r in requests if r.get('label') == 'identity'} == set(range(1, n+1)), 'previous identity actors incomplete')
     require(sum(r.get('expectedNegative') is True for r in requests) == previous.get('expectedNegativeChecks')
             and all(r.get('status') in (403, 404) and r.get('expectedNegative') is True for r in requests if r.get('label') == 'isolation-denial'), 'previous isolation evidence incomplete')
@@ -177,6 +208,11 @@ def private_fixture(path, origin, users, profile):
         require(isinstance(layer, str) and re.fullmatch(r'[a-z0-9-]{1,80}', layer)
                 and isinstance(reference, str) and re.fullmatch(r'sha256:[a-f0-9]{64}', reference),
                 'external evidence references must be opaque SHA256 digests, never URLs/tokens')
+    if 'admin' in f.get('roles', {}):
+        actor = f['roles']['admin']
+        require(isinstance(actor, dict) and UUID.fullmatch(str(actor.get('accountId', ''))) is not None
+                and TOKEN.fullmatch(str(actor.get('token', ''))) is not None,
+                'invalid synthetic admin fixture')
     if profile == 'mixed':
         expected = f.get('expectedRequiredLogSourceIds', [])
         require(isinstance(expected, list) and bool(expected) and all(isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9:_./-]{1,160}', v) for v in expected)
