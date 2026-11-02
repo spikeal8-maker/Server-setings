@@ -1,0 +1,72 @@
+{
+  "observedAt": "2026-11-02T17:09:11Z",
+  "scope": "school programme 909; operator evidence, not deployment acceptance",
+  "applicationCandidate": "53a83e53d2ef40901a698082b215a314603e8d97",
+  "infrastructureReviewedCandidate": "36ec0f481603022b489ebd0a006df7099426a976",
+  "infrastructureMainIntegration": "46d59c4f865c6743e0b60be5d4b9d3e088ebe536",
+  "infrastructureIndependentReview": "APPROVE",
+  "infrastructureExactCandidateCI": {
+    "static": {"run": 41486420937, "conclusion": "SUCCESS"},
+    "backupCompatibility": {"run": 41486420944, "conclusion": "SUCCESS"},
+    "syntheticHTTPContracts": {"run": 41486420953, "conclusion": "SUCCESS"}
+  },
+  "schoolObservedRuntime": {
+    "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
+    "schema": 286,
+    "synchronized": true,
+    "automaticUpdates": false
+  },
+  "nightCloudBackup": {
+    "verifiedAt": "2026-11-02T00:21:29.516640Z",
+    "status": "verified_cloud_sha256",
+    "trigger": "scheduled",
+    "bytes": 231019784,
+    "sha256": "b5577e55020683f85f110a89daf2d1afc8d585aae0c637c7071f81a4ab07b53b",
+    "decryptedInThisRehearsal": false
+  },
+  "isolatedRehearsal": {
+    "archiveRecoverySet": "20261101T164804Z-632b4e2c",
+    "distinctFromLatestEncryptedCloudBackup": true,
+    "normalRestoreTool": "02c780dbc25d1cc34c886a5603b4637cec8cdd0d",
+    "testDatabase": "asalab_observe909_c300_20261102_test",
+    "normalRestoreStartedAt": "2026-11-02T16:42:11.746686Z",
+    "normalRestoreFinishedAt": "2026-11-02T16:42:24.973449Z",
+    "normalRestore": "PASS",
+    "migrationStartedAt": "2026-11-02T16:53:06.096335Z",
+    "migrationFinishedAt": "2026-11-02T16:53:12.272055Z",
+    "migrationSource": "53a83e53d2ef40901a698082b215a314603e8d97",
+    "fromSchema": 286,
+    "toSchema": 300,
+    "planApplyAndRepeatedNoOp": "PASS",
+    "fullRowFingerprintsPreserved": true,
+    "counts": {"accounts": 94, "users": 5, "projects": 1736, "projectDrafts": 1736, "classroomStudentSeats": 433},
+    "productionDatabaseReplaced": false,
+    "productionContainerIdsUnchanged": true,
+    "productionContainersRestarted": false
+  },
+  "collectorPrivateCandidate": {
+    "validatedAgainstSource": "53a83e53d2ef40901a698082b215a314603e8d97",
+    "configurationSha256": "709864234dbf063e6e9fff8600334c1aa29bd901503ecab23fe97cc7f4f1bb22",
+    "previousConfigurationSha256": "ca02ff3022f050f1aa1f48b08b14b9194792dc2a992615e0fdc1bd7e2ba25ce5",
+    "providerIds": ["comfyui", "ollama"],
+    "actualNightReceiptValidated": true,
+    "liveConfigurationChanged": false,
+    "collectorInstalled": false,
+    "collectorActivated": false
+  },
+  "remaining": {
+    "applicationExactCandidateReviewAndCI": "PENDING",
+    "electronicsSharedFile": "WAIT_FOR_OTHER_AUTHOR_PER_OWNER",
+    "productionUpdate": "NOT_RUN",
+    "ingressApply": "NOT_RUN",
+    "completeBrowserJourneys": "NOT_RUN",
+    "school20To50To100MixedAcceptance": "NOT_RUN",
+    "freshPhysicalHostInstallation": "NOT_RUN"
+  },
+  "evidence": [
+    "https://github.com/spikeal8-maker/asa-lab/issues/909#issuecomment-6582957760",
+    "https://github.com/spikeal8-maker/Server-setings/pull/35#issuecomment-6583315677"
+  ],
+  "privateKeysTransferred": false,
+  "secretsPersonalDataOrRawLogsIncluded": false
+}
