@@ -95,6 +95,15 @@ class PublisherTests(unittest.TestCase):
         self.assertIn('proxy_set_header Upgrade $http_upgrade;', content)
         self.assertIn('proxy_set_header X-Forwarded-For $remote_addr;', content)
 
+    def test_public_key_cookie_usable_by_browser_login_and_other_cookies_httponly(self):
+        content = publisher.proxy_content(True)
+        public_key_rule = 'proxy_cookie_flags panel_public_key secure nohttponly samesite=lax;'
+        default_rule = 'proxy_cookie_flags ~ secure httponly samesite=lax;'
+        self.assertIn(public_key_rule, content)
+        self.assertIn(default_rule, content)
+        self.assertLess(content.index(public_key_rule), content.index(default_rule))
+        self.assertEqual(content.count('proxy_cookie_flags '), 2)
+
     def test_rollback_only_quarantines_owned_proxy(self):
         api = Api()
         with patch.object(publisher, 'websites', return_value=[SITE]), patch.object(publisher, 'certificates', return_value=[CERT]):
