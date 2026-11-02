@@ -7,17 +7,52 @@ only this owned site, without deleting certificates, sites or application data.
 """
 import argparse
 import datetime as dt
+import hashlib
 import json
 import re
 import socket
 import time
+import urllib.request
 
-from panelctl import PanelAPI, certificates, read_api_key, websites
+from panelctl import certificates, read_api_key, websites
 
 DOMAIN = '1panel.asa-lab.ru'
 ALIAS = 'asa-admin-panel-https'
 SINK = 'http://127.0.0.1:9'
 UPSTREAM = 'http://127.0.0.1:19192'
+PANEL_BASE = UPSTREAM
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        return None
+
+
+class LoopbackPanelAPI:
+    def __init__(self, key):
+        self.key = key
+        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+    def request(self, method, endpoint, payload=None):
+        if not endpoint.startswith('/') or endpoint.startswith('//') or any(c in endpoint for c in '\r\n'):
+            raise RuntimeError('Invalid API endpoint')
+        stamp = str(int(time.time()))
+        req = urllib.request.Request(PANEL_BASE + '/api/v2' + endpoint, method=method,
+            data=json.dumps(payload).encode() if payload is not None else None,
+            headers={'Content-Type': 'application/json', '1Panel-Timestamp': stamp,
+                     '1Panel-Token': hashlib.md5(('1panel' + self.key + stamp).encode()).hexdigest()})
+        try:
+            with self.opener.open(req, timeout=45) as response:
+                raw = response.read(8 * 1024 * 1024 + 1)
+            if len(raw) > 8 * 1024 * 1024:
+                raise ValueError()
+            result = json.loads(raw)
+            if result.get('code') not in (0, 200):
+                raise ValueError()
+            return result.get('data')
+        except Exception:
+            # Do not print response contents, credentials, signed headers or proxy URLs.
+            raise RuntimeError('Local panel API failed for ' + endpoint) from None
 
 
 def proxy_content(active):
@@ -140,7 +175,7 @@ def main():
     a = p.parse_args()
     if a.apply and a.expected_host != socket.gethostname():
         raise RuntimeError('Exact expected hostname required')
-    api = PanelAPI('http://127.0.0.1:19192', read_api_key(a.key_file), timeout=45)
+    api = LoopbackPanelAPI(read_api_key(a.key_file))
     print(json.dumps(deploy(api, a.stage, a.apply, a.acme_account_id, a.expected_ip)))
 
 

@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
+import http.server
+import threading
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
@@ -30,6 +32,35 @@ CERT = {'id': 9, 'primaryDomain': publisher.DOMAIN, 'status': 'ready', 'autoRene
 
 
 class PublisherTests(unittest.TestCase):
+    def test_signed_request_does_not_follow_redirect_or_environment_proxy(self):
+        received = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                received.append(self.path)
+                if self.path == '/stolen':
+                    self.send_response(200)
+                else:
+                    self.send_response(302)
+                    self.send_header('Location', '/stolen')
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with patch.object(publisher, 'PANEL_BASE', 'http://127.0.0.1:' + str(server.server_port)), patch.dict('os.environ', {'http_proxy': 'http://127.0.0.1:1', 'HTTP_PROXY': 'http://127.0.0.1:1', 'no_proxy': '', 'NO_PROXY': ''}):
+                with self.assertRaises(RuntimeError):
+                    publisher.LoopbackPanelAPI('0' * 32).request('GET', '/probe')
+            self.assertEqual(received, ['/api/v2/probe'])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_plan_does_not_mutate(self):
         api = Api()
         with patch.object(publisher, 'websites', return_value=[]), patch.object(publisher, 'certificates', return_value=[]):
