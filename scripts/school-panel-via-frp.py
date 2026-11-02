@@ -64,11 +64,12 @@ def require_private(path):
         raise RuntimeError('Private root-owned regular file required')
 
 
-def atomic(path, content, mode=0o600):
+def atomic(path, content, mode=0o600, group=None):
     trusted_chain(path.parent)
     trusted_chain(path,allow_missing=True)
     fd, name = tempfile.mkstemp(prefix='.school-panel-', dir=path.parent)
     try:
+        if group is not None: os.fchown(fd,0,group)
         os.fchmod(fd, mode)
         with os.fdopen(fd, 'wb') as out:
             out.write(content); out.flush(); os.fsync(out.fileno())
@@ -128,12 +129,26 @@ def receipt(role, content):
     return path
 
 
+def frp_metadata():
+    import grp
+    trusted_chain(FRP)
+    value=FRP.lstat()
+    group=grp.getgrnam('asa-frpc').gr_gid
+    if not stat.S_ISREG(value.st_mode) or value.st_uid!=0 or value.st_gid!=group or stat.S_IMODE(value.st_mode)!=0o640:
+        raise RuntimeError('FRP service-secret metadata drift')
+    result=subprocess.run(['systemctl','show','asa-frpc','--property=User','--property=Group','--property=DynamicUser'],capture_output=True,text=True,check=True)
+    values=dict(line.split('=',1) for line in result.stdout.splitlines() if '=' in line)
+    if values!={'User':'asa-frpc','Group':'asa-frpc','DynamicUser':'no'}:
+        raise RuntimeError('FRP service identity drift')
+    return group
+
+
 def school():
     trusted_chain(STATE,allow_missing=True)
     companions=Path(__file__).absolute().parent
     trusted_chain(Path(__file__).absolute())
     for filename,digest in COMPANION_SHA256.items(): pinned_file(companions/filename,digest)
-    require_private(FRP)
+    frp_group=frp_metadata()
     require_private(Path('/var/lib/server-settings/1panel-api.key'))
     raw=FRP.read_bytes(); candidate=frp_candidate(raw.decode()).encode()
     # Validate executable/config before any API mutation or service restart.
@@ -171,13 +186,13 @@ def school():
     receipt('frpc',raw)
     if candidate!=raw:
         if FRP.read_bytes()!=raw: raise RuntimeError('FRP changed concurrently')
-        atomic(FRP,candidate)
+        atomic(FRP,candidate,0o640,frp_group)
         try:
             subprocess.run(['systemctl','restart','asa-frpc'],check=True,timeout=30)
             time.sleep(3)
             subprocess.run(['systemctl','is-active','--quiet','asa-frpc'],check=True,timeout=10)
         except Exception:
-            atomic(FRP,raw)
+            atomic(FRP,raw,0o640,frp_group)
             subprocess.run(['systemctl','restart','asa-frpc'],check=True,timeout=30)
             raise RuntimeError('FRP restart failed; previous config restored') from None
     return {'school_configured':True,'direct_panel_port_opened':False,'password_or_entrance_changed':False}
