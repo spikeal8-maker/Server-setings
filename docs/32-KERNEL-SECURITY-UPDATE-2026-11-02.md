@@ -21,3 +21,7 @@ sudo python3 scripts/update-security-kernel.py --apply --expected-host ACTUAL_HO
 ## Проверка входа1Panel
 
 Владелец подтвердил успешный вход после исправления publickey-cookie. Это дополнительно подтверждено серверным loginlog: Success2026-11-02T21:50:42.979239993+03:00. Пароль/капча не извлекались, аккаунт не сбрасывался. Ранее заявленная только доступность формы теперь дополнена реальным успешным входом владельца.
+
+## Принятая перезагрузка2ноября2026
+
+Владелец подтвердил доступ к домашнему серверу/консоли и явно разрешил перезагрузку. После проверки отсутствия apt/dpkgtransaction запланирован штатный systemctlreboot. Сервер успешно загрузился на7.0.0-42-generic. На12-йсекунде загрузки Docker иASAещёстартовали (временный502); повторная проверка после завершения старта принята: SSHkey+sudo, ssh/1panel-core/agent/asa-operations/docker/tailscaled active, всеASAсервисыhealthy, ASAhealthHTTP200ready/databaseup/credentialConfigurationvalid. Публичная1Panel: TLS1.3/SAN/CAvalid, protectedentrance200, HTTP301/HSTS/unauthAPI401;19192снаружинеоткрыт. ПолныйrootMCPstatusenabledUID0; отдельнаяpostbootкомандаe2f5c24395164012bc98fdacc3fdab36проверяетсяпооперации. Старыеядра31/38сохранены. Это закрывает pendingreboot именноэтогошага, но не всюпрограммубоеготовности.
