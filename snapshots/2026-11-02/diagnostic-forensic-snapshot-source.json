@@ -1,0 +1,14 @@
+{
+  "kind": "source-only-forensic-copy-procedure",
+  "date": "2026-11-02",
+  "scope": "HOST_COLLECTOR_ONLY",
+  "runtimeApplied": false,
+  "recoverySnapshotVerified": false,
+  "qualification": "NOT_A_VERIFIED_RECOVERY_SNAPSHOT",
+  "knownLegacyMissingReceipts": 31,
+  "independentNativeJournal": "excluded-and-untouched",
+  "businessData": "excluded-and-untouched",
+  "requiresIndependentReviewBeforeApply": true,
+  "linuxCopyTests": "pending-exact-source-CI",
+  "liveHostCopy": "NOT_RUN"
+}
