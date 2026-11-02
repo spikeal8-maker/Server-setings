@@ -107,6 +107,89 @@ class PublicContract(unittest.TestCase):
                     m.user_manager_prefix(identity)
 
 
+    def test_fixed_bundle_contract_requires_exact_pin_and_valid_revision(self):
+        self.assertEqual(m.runner_digest_files('b'*40, m.FIXED_RUNTIME_BUNDLE_SHA256),
+                         (*m.BASE_DIGEST_FILES, 'deployment/operational.py'))
+        self.assertEqual(m.runner_digest_files('b'*40, m.CANONICAL_RUNTIME_BUNDLE_SHA256),
+                         (*m.BASE_DIGEST_FILES, 'deployment/operational.py'))
+        for revision in (None, [], '', 'B'*40, 'b'*39, 'b'*41, 'x'*40):
+            with self.subTest(revision=revision), self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+                m.runner_digest_files(revision, m.FIXED_RUNTIME_BUNDLE_SHA256)
+        for digest in (None, '', 'a'*64, m.FIXED_RUNTIME_BUNDLE_SHA256[:-1]+'0'):
+            with self.subTest(digest=digest), self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+                m.runner_digest_files('b'*40, digest)
+        self.assertEqual(m.runner_digest_files('dfee5badd299d318a8e51ff0cbf88e9656333a5d', 'a'*64),
+                         m.BASE_DIGEST_FILES)
+        self.assertEqual(m.runner_digest_files('3e32de6987665c4d7c1d33ba7ba82019afdf9cdb', 'a'*64),
+                         (*m.BASE_DIGEST_FILES, 'deployment/operational.py'))
+
+    def test_fixed_bundle_contract_preserves_registration_identity_guards(self):
+        settings = {'project': 'demo'}
+        runner = dict(version=1, root='/example', project='demo', owner='admins', mode='user',
+                      name='asa-log-collector-demo.service', scriptDigest=m.FIXED_RUNTIME_BUNDLE_SHA256,
+                      revision='b'*40)
+        with patch.object(m, 'owner_account', return_value=SimpleNamespace(pw_uid=1000, pw_gid=1000)):
+            self.assertEqual(m.validate_registration(PurePosixPath('/example'), settings, runner, None)['revision'], 'b'*40)
+            for changed in ({'root':'/foreign'}, {'project':'foreign'}, {'mode':'unknown'},
+                            {'name':'ssh.service'}, {'owner':'root;bad'}, {'ownerUid':2000}):
+                with self.subTest(changed=changed), self.assertRaises(m.Blocked):
+                    m.validate_registration(PurePosixPath('/example'), settings, {**runner, **changed}, None)
+            with self.assertRaisesRegex(m.Blocked, 'UNIT_MISMATCH'):
+                m.validate_registration(PurePosixPath('/example'), settings, runner, 'asa-log-collector.service')
+
+    def test_fixed_file_pins_reject_actual_6a98_redistribution_profiles(self):
+        # Recorded from immutable public 6a98 blobs: splitting collect_logs.py at
+        # byte74486 and moving the filename delimiter keeps the aggregate b5d79.
+        profiles = {
+            'collect_logs.py': (74486, 'd23cdb795b88d7e73b518d180d272c041257cef67e40fd4d2fec5c56e2c438af'),
+            'collect-windows-logs.ps1': (68641, '79a11984579f21c79d3ac50bf3bd3828634fde4fedd1e46232566c10968bd349'),
+        }
+        for profile_digest, pins in m.FIXED_RUNTIME_PROFILES.items():
+            for name, (length, digest) in pins.items():
+                m.verify_fixed_runtime_file(name, length, digest, profile_digest)
+                for wrong in ((length+1, digest), (length, '0'*64)):
+                    with self.subTest(profile=profile_digest, name=name, wrong=wrong), self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                        m.verify_fixed_runtime_file(name, *wrong, profile_digest)
+            for name, profile in profiles.items():
+                with self.subTest(profile=profile_digest, name=name), self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                    m.verify_fixed_runtime_file(name, *profile, profile_digest)
+
+    def test_materialization_profiles_require_one_complete_matching_profile(self):
+        ps1 = 'collect-windows-logs.ps1'
+        lf = m.FIXED_RUNTIME_BUNDLE_SHA256
+        crlf = m.CANONICAL_RUNTIME_BUNDLE_SHA256
+        self.assertEqual(len(m.FIXED_RUNTIME_PROFILES), 2)
+        self.assertEqual(set(m.FIXED_RUNTIME_PROFILES[lf]), set(m.FIXED_RUNTIME_DIGEST_FILES))
+        self.assertEqual(set(m.FIXED_RUNTIME_PROFILES[crlf]), set(m.FIXED_RUNTIME_DIGEST_FILES))
+        for selected, other in ((lf, crlf), (crlf, lf)):
+            with self.subTest(selected=selected), self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                m.verify_fixed_runtime_file(ps1, *m.FIXED_RUNTIME_PROFILES[other][ps1], selected)
+        for selected in (lf, crlf, 'a'*64):
+            with self.subTest(selected=selected), self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                m.verify_fixed_runtime_file(ps1, 4144, '0'*64, selected)
+
+    def test_filename_delimiter_can_preserve_aggregate_but_not_file_pins(self):
+        first, second = m.FIXED_RUNTIME_DIGEST_FILES[:2]
+        original = {name: b'# synthetic\n' for name in m.FIXED_RUNTIME_DIGEST_FILES}
+        original[first] = b'prefix'+second.encode()+b'suffix'
+        changed = dict(original)
+        changed[first] = b'prefix'
+        changed[second] = b'suffix'+second.encode()+original[second]
+        def aggregate(files):
+            h = m.hashlib.sha256()
+            for name in m.FIXED_RUNTIME_DIGEST_FILES:
+                h.update(name.encode()); h.update(files[name])
+            return h.hexdigest()
+        self.assertEqual(aggregate(original), aggregate(changed))
+        pins = {n:(len(b), m.hashlib.sha256(b).hexdigest()) for n,b in original.items()}
+        selected = aggregate(original)
+        with patch.object(m, 'FIXED_RUNTIME_PROFILES', {selected: pins}):
+            for name, value in changed.items():
+                if name in (first, second):
+                    with self.subTest(name=name), self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                        m.verify_fixed_runtime_file(name, len(value), m.hashlib.sha256(value).hexdigest(), selected)
+
+
 @unittest.skipUnless(os.name == 'posix' and hasattr(os, 'O_NOFOLLOW'), 'Actual fd/flock/modes require Linux; Ubuntu CI runs these')
 class LinuxCopy(unittest.TestCase):
     def setUp(self):
@@ -157,6 +240,11 @@ class LinuxCopy(unittest.TestCase):
             return m.inventory(fd, host_scope=True)
         finally:
             os.close(fd)
+
+    def runtime_file_pins(self):
+        return {name: (len(value), m.hashlib.sha256(value).hexdigest())
+                for name in m.FIXED_RUNTIME_DIGEST_FILES
+                for value in [(self.install/'tools'/name).read_bytes()]}
 
     def test_plan_is_completely_readonly(self):
         before = self.source()
@@ -234,6 +322,117 @@ class LinuxCopy(unittest.TestCase):
         (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
         with self.assertRaises(FileNotFoundError):
             m.registered_runner(self.install, None)
+
+    def test_fixed_bundle_later_revision_recomputes_every_required_file(self):
+        # Synthetic bytes exercise the closed hash mechanism; the production pin
+        # is separately derived from immutable public Git blobs, never this fixture.
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with patch.object(m, 'FIXED_RUNTIME_PROFILES', {self.runner['scriptDigest']: self.runtime_file_pins()}):
+            self.assertEqual(m.registered_runner(self.install, None)['revision'], 'b'*40)
+            for name in m.FIXED_RUNTIME_DIGEST_FILES:
+                path = self.install/'tools'/name
+                original = path.read_bytes()
+                with self.subTest(name=name, fault='changed-byte'):
+                    path.write_bytes(bytes([original[0] ^ 1])+original[1:])
+                    with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                        m.registered_runner(self.install, None)
+                    path.write_bytes(original)
+                with self.subTest(name=name, fault='missing-file'):
+                    path.unlink()
+                    with self.assertRaises(FileNotFoundError):
+                        m.registered_runner(self.install, None)
+                    path.write_bytes(original)
+
+    def test_fixed_bundle_forged_registration_cannot_replace_actual_bytes(self):
+        self.runner.update(revision='b'*40, scriptDigest=m.FIXED_RUNTIME_BUNDLE_SHA256)
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+            m.registered_runner(self.install, None)
+
+    def test_unknown_revision_denies_unreviewed_self_consistent_bundle(self):
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+            m.registered_runner(self.install, None)
+
+    def test_fixed_bundle_preserves_actual_registration_and_quiescence_checks(self):
+        self.quiet_patch.stop()
+        self.runner['revision'] = 'b'*40
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        inactive = ('LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory='
+                    +str(self.install)+'\nUser='+self.runner['owner']+'\n')
+        with patch.object(m, 'FIXED_RUNTIME_PROFILES', {self.runner['scriptDigest']: self.runtime_file_pins()}):
+            with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=inactive)):
+                m.quiescent(self.install, None)
+            for stdout in (inactive.replace('inactive', 'active'), inactive.replace('MainPID=0', 'MainPID=8'),
+                           inactive.replace(str(self.install), '/foreign'), inactive.replace('User='+self.runner['owner'], 'User=foreign')):
+                with self.subTest(stdout=stdout), patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=stdout)), self.assertRaises(m.Blocked):
+                    m.quiescent(self.install, None)
+            with self.assertRaisesRegex(m.Blocked, 'UNIT_MISMATCH'):
+                m.registered_runner(self.install, 'ssh.service')
+
+    def test_fixed_bundle_registered_runner_denies_delimiter_redistribution(self):
+        first, second = m.FIXED_RUNTIME_DIGEST_FILES[:2]
+        (self.install/'tools'/first).write_bytes(b'prefix'+second.encode()+b'suffix')
+        pins = self.runtime_file_pins()
+        def digest():
+            h = m.hashlib.sha256()
+            for name in m.FIXED_RUNTIME_DIGEST_FILES:
+                h.update(name.encode()); h.update((self.install/'tools'/name).read_bytes())
+            return h.hexdigest()
+        self.runner.update(revision='b'*40, scriptDigest=digest())
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with patch.object(m, 'FIXED_RUNTIME_PROFILES', {self.runner['scriptDigest']: pins}):
+            m.registered_runner(self.install, None)
+            previous_second = (self.install/'tools'/second).read_bytes()
+            (self.install/'tools'/first).write_bytes(b'prefix')
+            (self.install/'tools'/second).write_bytes(b'suffix'+second.encode()+previous_second)
+            self.assertEqual(digest(), self.runner['scriptDigest'])
+            with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                m.registered_runner(self.install, None)
+
+    def test_actual_fixed_profile_reads_accept_raw_and_canonical_but_deny_hybrids(self):
+        first, ps1 = m.FIXED_RUNTIME_DIGEST_FILES[:2]
+        original = {n:(self.install/'tools'/n).read_bytes() for n in m.FIXED_RUNTIME_DIGEST_FILES}
+        original[first] = b'prefix'+ps1.encode()+b'suffix'
+        original[ps1] = b'first\nsecond\n'
+        canonical = {**original, ps1: b'first\r\nsecond\r\n'}
+        def aggregate(values):
+            h = m.hashlib.sha256()
+            for n in m.FIXED_RUNTIME_DIGEST_FILES:
+                h.update(n.encode()); h.update(values[n])
+            return h.hexdigest()
+        def write(values, registered):
+            for n,v in values.items(): (self.install/'tools'/n).write_bytes(v)
+            self.runner.update(revision='b'*40, scriptDigest=registered)
+            (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        profiles = {aggregate(v):{n:(len(b),m.hashlib.sha256(b).hexdigest()) for n,b in v.items()}
+                    for v in (original, canonical)}
+        with patch.object(m, 'FIXED_RUNTIME_PROFILES', profiles):
+            for values in (original, canonical):
+                selected = aggregate(values)
+                write(values, selected)
+                m.registered_runner(self.install, None)
+                changed = {**values, ps1: bytes([values[ps1][0] ^ 1])+values[ps1][1:]}
+                write(changed, selected)
+                with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                    m.registered_runner(self.install, None)
+                redistributed = {**values, first:b'prefix', ps1:b'suffix'+ps1.encode()+values[ps1]}
+                self.assertEqual(aggregate(redistributed), selected)
+                write(redistributed, selected)
+                with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                    m.registered_runner(self.install, None)
+            write(canonical, aggregate(original))
+            with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                m.registered_runner(self.install, None)
+            mixed = {**original, ps1:b'first\r\nsecond\n'}
+            write(mixed, aggregate(mixed))
+            with self.assertRaisesRegex(m.Blocked, 'REVISION_CONTRACT_UNSUPPORTED'):
+                m.registered_runner(self.install, None)
+            write(mixed, aggregate(original))
+            with self.assertRaisesRegex(m.Blocked, 'FIXED_FILE_MISMATCH'):
+                m.registered_runner(self.install, None)
 
     def test_user_inactive_service_timer_and_actual_lock_copy(self):
         self.quiet_patch.stop()
