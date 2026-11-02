@@ -18,6 +18,12 @@ import uuid
 OWNER_UID = 0
 LIMIT = 64 * 1024**3
 RESERVE = 64 * 1024**2
+BASE_DIGEST_FILES = ('collect_logs.py', 'collect-windows-logs.ps1', 'resource_sampling.py', 'memory_sampling.py')
+# Closed reviewed source contracts, never probe/fallback on a missing fifth file.
+DIGEST_CONTRACTS = {
+    'dfee5badd299d318a8e51ff0cbf88e9656333a5d': BASE_DIGEST_FILES,
+    '3e32de6987665c4d7c1d33ba7ba82019afdf9cdb': (*BASE_DIGEST_FILES, 'deployment/operational.py'),
+}
 
 
 class Blocked(RuntimeError):
@@ -115,16 +121,110 @@ def inventory(root, limit=LIMIT, host_scope=False):
     return result
 
 
-def quiescent(unit):
-    require(re.fullmatch(r'asa-log-collector(?:-[a-z0-9_-]+)?\.service', unit), 'UNSUPPORTED_COLLECTOR_UNIT')
+def owner_account(name):
+    import pwd
+    return pwd.getpwnam(name)
+
+
+def validate_registration(root, settings, runner, unit):
+    project = settings.get('project')
+    require(isinstance(project, str) and re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,62}', project), 'RUNNER_PROJECT_INVALID')
+    require(type(runner.get('version')) is int and runner.get('version') == 1 and runner.get('root') == str(root) and runner.get('project') == project,
+            'RUNNER_INSTALLATION_MISMATCH')
+    mode, owner = runner.get('mode'), runner.get('owner')
+    require(mode in ('user', 'system', 'system-root'), 'RUNNER_MANAGER_UNKNOWN')
+    require(isinstance(owner, str) and re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}', owner), 'RUNNER_OWNER_INVALID')
+    try:
+        account = owner_account(owner)
+    except KeyError:
+        raise Blocked('RUNNER_OWNER_MISSING') from None
+    require(type(account.pw_uid) is int and type(account.pw_gid) is int and account.pw_uid >= 0 and account.pw_gid >= 0,
+            'RUNNER_UID_MISSING')
+    require(mode == 'system-root' and owner == 'root' and account.pw_uid == 0 and settings.get('collectorMode') == 'system-root'
+            or mode in ('system', 'user') and account.pw_uid > 0 and account.pw_gid > 0 and settings.get('collectorMode') != 'system-root',
+            'RUNNER_OWNER_MODE_MISMATCH')
+    require(type(runner.get('ownerUid', account.pw_uid)) is int and runner.get('ownerUid', account.pw_uid) == account.pw_uid, 'RUNNER_UID_MISMATCH')
+    unit = runner.get('name') if unit is None else unit
+    require(unit == runner.get('name') and unit in ('asa-log-collector.service', 'asa-log-collector-'+project+'.service'),
+            'RUNNER_UNIT_MISMATCH')
+    require(isinstance(runner.get('scriptDigest'), str) and re.fullmatch(r'[a-f0-9]{64}', runner['scriptDigest']),
+            'RUNNER_DIGEST_INVALID')
+    require(runner.get('revision') in DIGEST_CONTRACTS, 'RUNNER_REVISION_CONTRACT_UNSUPPORTED')
+    return dict(revision=runner['revision'], mode=mode, owner=owner, uid=account.pw_uid, gid=account.pw_gid, name=unit, root=str(root),
+                scriptDigest=runner['scriptDigest'])
+
+
+def registered_runner(installation, unit):
+    root = Path(installation)
+    fd = directory(root/'.asa')
+    try:
+        values, metadata = [], []
+        for name in ('installation.json', 'collector-runner.json'):
+            with opened(fd, name) as source:
+                info = os.fstat(source)
+                require(info.st_size <= 1024**2 and info.st_nlink == 1, 'RUNNER_REGISTRATION_UNSAFE')
+                data = os.read(source, 1024**2+1)
+                require(signature(os.fstat(source)) == signature(info), 'RUNNER_REGISTRATION_RACE')
+                values.append(json.loads(data)); metadata.append(info)
+        identity = validate_registration(root, values[0], values[1], unit)
+        require(all(s.st_uid in (0, identity['uid']) and not s.st_mode & 0o022 for s in metadata), 'RUNNER_REGISTRATION_OWNER')
+    finally:
+        os.close(fd)
+    tools = directory(root/'tools')
+    try:
+        digest = hashlib.sha256()
+        for name in DIGEST_CONTRACTS[identity['revision']]:
+            digest.update(name.encode())
+            with opened(tools, name) as stream:
+                info = os.fstat(stream)
+                require(info.st_size <= 8*1024**2, 'RUNNER_SOURCE_LIMIT')
+                while data := os.read(stream, 1024**2): digest.update(data)
+                require(signature(os.fstat(stream)) == signature(info), 'RUNNER_SOURCE_RACE')
+        require(digest.hexdigest() == identity['scriptDigest'], 'RUNNER_REGISTRATION_STALE')
+    finally:
+        os.close(tools)
+    return identity
+
+
+def user_manager_prefix(identity):
+    uid, gid = identity['uid'], identity['gid']
+    runtime = Path('/run/user')/str(uid)
+    fd = directory(runtime)
+    try:
+        info = os.fstat(fd)
+        bus = os.stat('bus', dir_fd=fd, follow_symlinks=False)
+        require(info.st_uid == uid and stat.S_IMODE(info.st_mode) == 0o700 and
+                stat.S_ISSOCK(bus.st_mode) and bus.st_uid == uid, 'USER_BUS_UNTRUSTED')
+    finally:
+        os.close(fd)
+    query = subprocess.run(['/usr/bin/loginctl', 'show-user', str(uid), '--property=Linger,RuntimePath,State'],
+                           capture_output=True, text=True, timeout=10)
+    values = dict(line.split('=', 1) for line in query.stdout.splitlines() if '=' in line)
+    require(query.returncode == 0 and values.get('Linger') == 'yes' and values.get('RuntimePath') == str(runtime)
+            and values.get('State') in ('active', 'lingering'), 'USER_MANAGER_UNAVAILABLE')
+    # Drop UID without a shell/PAM session or implicit user-manager activation.
+    return ['/usr/bin/setpriv', '--reuid', str(uid), '--regid', str(gid), '--clear-groups', '--no-new-privs',
+            '/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'XDG_RUNTIME_DIR='+str(runtime),
+            'DBUS_SESSION_BUS_ADDRESS=unix:path='+str(runtime/'bus'), '/usr/bin/systemctl', '--user']
+
+
+def quiescent(installation, unit):
+    identity = registered_runner(installation, unit)
+    unit = identity['name']
+    prefix = user_manager_prefix(identity) if identity['mode'] == 'user' else ['/usr/bin/systemctl', '--system']
     for name in (unit, unit[:-8] + '.timer'):
-        p = subprocess.run(['systemctl', 'show', name, '--property=LoadState,ActiveState,MainPID'],
+        p = subprocess.run(prefix+['show', name, '--property=LoadState,ActiveState,MainPID,WorkingDirectory,User'],
                            capture_output=True, text=True, timeout=10)
         values = dict(line.split('=', 1) for line in p.stdout.splitlines() if '=' in line)
         absent_timer = name.endswith('.timer') and values.get('LoadState') == 'not-found'
         require(absent_timer or (p.returncode == 0 and values.get('LoadState') == 'loaded'
-                and values.get('ActiveState') in ('inactive', 'failed') and values.get('MainPID', '0') == '0'),
+                and values.get('ActiveState') in ('inactive', 'failed')
+                and (values.get('MainPID', '0') if name.endswith('.timer') else values.get('MainPID')) == '0'),
                 'COLLECTOR_NOT_QUIESCENT')
+        if name == unit:
+            require(values.get('WorkingDirectory') == identity['root'] and
+                    values.get('User') == (identity['owner'] if identity['mode'] != 'user' else ''),
+                    'LOADED_RUNNER_IDENTITY_MISMATCH')
 
 
 def private_write(path, data):
@@ -193,7 +293,7 @@ def rename_new(parent, before, after):
     require(result == 0, 'DESTINATION_EXISTS_OR_RENAME_FAILED')
 
 
-def snapshot(installation, destination, unit='asa-log-collector.service', apply=False):
+def snapshot(installation, destination, unit=None, apply=False):
     require(os.name == 'posix' and hasattr(os, 'O_NOFOLLOW'), 'LINUX_ONLY')
     installation, destination = Path(installation), Path(destination)
     require(installation.is_absolute() and destination.is_absolute(), 'ABSOLUTE_SAFE_PATH_REQUIRED')
@@ -212,20 +312,24 @@ def snapshot(installation, destination, unit='asa-log-collector.service', apply=
     try:
         before = inventory(source, host_scope=True)
         required = ('diagnostics/private/index.sqlite', 'diagnostics/private/collector.lock',
-                    'diagnostics/private/segment-verification.key', 'diagnostics/store/catalog.json', 'log-collector.json')
+                    'diagnostics/private/segment-verification.key', 'diagnostics/store/catalog.json', 'log-collector.json',
+                    'collector-runner.json', 'installation.json')
         require(all(p in before for p in required), 'REQUIRED_FORENSIC_COMPONENT_MISSING')
+        identity = registered_runner(installation, unit)
         total = sum(v.get('bytes', 0) for v in before.values())
         require(os.fstatvfs(parent).f_favail >= len(before)*3+32, 'INSUFFICIENT_INODES')
         require(os.fstatvfs(parent).f_bavail * os.fstatvfs(parent).f_frsize >= total * 3 + RESERVE, 'INSUFFICIENT_SPACE')
         receipt = dict(format='asa-diagnostic-forensic-v1', status='PLAN',
                        toolSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), files=sum('bytes' in v for v in before.values()),
                        scope='HOST_COLLECTOR_ONLY', excluded=['diagnostics/application'], sourceBytes=total, recoverySnapshotVerified=False, qualification='NOT_A_VERIFIED_RECOVERY_SNAPSHOT')
+        receipt['runnerMode'] = identity['mode']
+        receipt['runnerSourceRevision'] = identity['revision']
         receipt['requiresStoppedCollector'] = True
         if not apply:
             return receipt
         require(os.geteuid() == OWNER_UID, 'ROOT_REQUIRED')
         previous_umask = os.umask(0o077)
-        quiescent(unit)
+        quiescent(installation, unit)
         import fcntl
         with opened(source, 'diagnostics/private/collector.lock') as lock:
             try:
@@ -253,7 +357,7 @@ def snapshot(installation, destination, unit='asa-log-collector.service', apply=
                         os.fstat(check).st_dev == os.fstat(source).st_dev, 'SOURCE_ROOT_CHANGED')
             finally:
                 os.close(check)
-            quiescent(unit)
+            quiescent(installation, unit)
             receipt.update(status='FORENSIC_COPY_ONLY', legacyDebt=debt_for_installation(stage))
             staged_fd = directory(stage)
             try:
@@ -299,7 +403,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--installation', required=True)
     parser.add_argument('--destination', required=True)
-    parser.add_argument('--collector-unit', default='asa-log-collector.service')
+    parser.add_argument('--collector-unit', help='Optional exact assertion; default is the registered canonical unit')
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args(argv)
     try:

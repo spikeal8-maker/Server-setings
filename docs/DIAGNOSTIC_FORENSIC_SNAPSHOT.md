@@ -16,8 +16,8 @@ Included from the explicit installation:
   receipts and existing collector lock;
 - `.asa/diagnostics/store/**`: all active/retired files and catalog/health/audit,
   including corrupt or unpublished bytes;
-- `.asa/log-collector.json`; optional `collector-runner.json`,
-  `collector-operation.json`, `installation.json`.
+- `.asa/log-collector.json`, canonical `collector-runner.json`, `installation.json`;
+  optional `collector-operation.json`.
 
 Independent API `.asa/diagnostics/application/**` is excluded and untouched
 (canonical `application-log-store.ts` default). Other `.asa`, PostgreSQL, MinIO
@@ -44,6 +44,21 @@ operator choices. Prepare the parent separately after review if needed:
 ## Apply after independent review
 
 Inspect the actual own collector service/timer and ensure no undeclared writer.
+The tool reads the canonical runner registration: exact installation/project,
+owner account resolved through passwd (no persisted UID is required), mode/name
+and scriptDigest. Owner/config permissions, loaded WorkingDirectory/User and
+closed source revision contracts are checked. Supported revisions: dfee5badd299d318a8e51ff0cbf88e9656333a5d
+uses its canonical FOUR-source digest; reviewed3e32de6987665c4d7c1d33ba7ba82019afdf9cdb
+uses FIVE including deployment/operational.py. Unknown revisions, stale/missing
+sources and inconsistent metadata fail closed; extending this table needs review.
+
+SYSTEM/system-root uses the system manager. USER uses only the resolved nonzero
+UID's existing private0700 runtime directory, owned bus socket and verified
+loginctl Linger=yes/RuntimePath. Numeric setpriv drops UID/GID with no shell/PAM,
+clear groups and a clean fixed environment before systemctl --user. No user manager
+is started, and no system manager is substituted for an unavailable user bus.
+The default unit is the registered canonical name, not a guessed legacy unit;
+optional --collector-unit only asserts that exact identity. No dummy unit is needed.
 Both must be inactive or failed with no running PID; an absent timer is allowed,
 a missing service is not. A failed unit's ERROR is not cleared. If running,
 separately quiesce only those own writers; the tool never issues stop/start/reset/
@@ -52,8 +67,7 @@ disable. Do not stop API. Use the actual existing unit name:
 ```sh
 sudo python3 scripts/diagnostic_forensic_snapshot.py \
   --installation /srv/asa-lab \
-  --destination /var/backups/asa-forensics/h03-host-20261102 \
-  --collector-unit asa-log-collector.service --apply
+  --destination /var/backups/asa-forensics/h03-host-20261102 --apply
 ```
 
 The existing canonical `diagnostics/private/collector.lock` is held exclusively

@@ -10,5 +10,11 @@
   "businessData": "excluded-and-untouched",
   "requiresIndependentReviewBeforeApply": true,
   "linuxCopyTests": "pending-exact-source-CI",
-  "liveHostCopy": "NOT_RUN"
+  "liveHostCopy": "NOT_RUN",
+  "managerBinding": "canonical-user-or-system-no-fallback",
+  "digestContracts": {
+    "dfee5badd299d318a8e51ff0cbf88e9656333a5d": 4,
+    "3e32de6987665c4d7c1d33ba7ba82019afdf9cdb": 5
+  },
+  "previousSourceLinuxCI": "79e5c9f/41514415795-PASS-not-repair-qualification"
 }

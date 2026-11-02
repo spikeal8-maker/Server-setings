@@ -4,11 +4,12 @@ import importlib.util
 import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sqlite3
 import stat
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('forensic', Path(__file__).parents[1]/'scripts/diagnostic_forensic_snapshot.py')
@@ -32,16 +33,69 @@ class PublicContract(unittest.TestCase):
             self.assertEqual(json.loads(output.getvalue())['code'], 'COPY_FAILED')
 
     def test_only_fixed_collector_units_and_inactive_state(self):
-        inactive = type('Result', (), {'returncode': 0, 'stdout': 'LoadState=loaded\nActiveState=inactive\nMainPID=0\n'})()
-        with patch.object(m.subprocess, 'run', return_value=inactive) as run:
-            m.quiescent('asa-log-collector.service')
+        identity = dict(mode='system', owner='admins', uid=1000, gid=1000, root='/example', name='asa-log-collector.service')
+        inactive = SimpleNamespace(returncode=0, stdout='LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory=/example\nUser=admins\n')
+        with patch.object(m, 'registered_runner', return_value=identity), patch.object(m.subprocess, 'run', return_value=inactive) as run:
+            m.quiescent('/example', None)
             self.assertEqual(run.call_count, 2)
-            self.assertTrue(all(c.args[0][:2] == ['systemctl', 'show'] for c in run.call_args_list))
-        with self.assertRaisesRegex(m.Blocked, 'UNSUPPORTED'):
-            m.quiescent('ssh.service')
+            self.assertTrue(all(c.args[0][:3] == ['/usr/bin/systemctl', '--system', 'show'] for c in run.call_args_list))
         active = type('Result', (), {'returncode': 0, 'stdout': 'LoadState=loaded\nActiveState=active\nMainPID=12\n'})()
-        with patch.object(m.subprocess, 'run', return_value=active), self.assertRaisesRegex(m.Blocked, 'NOT_QUIESCENT'):
-            m.quiescent('asa-log-collector.service')
+        with patch.object(m, 'registered_runner', return_value=identity), patch.object(m.subprocess, 'run', return_value=active), self.assertRaisesRegex(m.Blocked, 'NOT_QUIESCENT'):
+            m.quiescent('/example', None)
+
+    def test_user_manager_uses_only_verified_owner_bus_and_no_shell(self):
+        identity = dict(mode='user', owner='admins', uid=1000, gid=1000, root='/example', name='asa-log-collector-demo.service')
+        prefix = ['/usr/bin/setpriv', '--reuid', '1000', '/usr/bin/systemctl', '--user']
+        service = SimpleNamespace(returncode=0, stdout='LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory=/example\nUser=\n')
+        timer = SimpleNamespace(returncode=0, stdout='LoadState=loaded\nActiveState=inactive\n')
+        with patch.object(m, 'registered_runner', return_value=identity), patch.object(m, 'user_manager_prefix', return_value=prefix) as bus, patch.object(m.subprocess, 'run', side_effect=[service, timer]) as run:
+            m.quiescent('/example', None)
+            bus.assert_called_once_with(identity)
+            self.assertEqual(run.call_args_list[0].args[0], prefix+['show', identity['name'], '--property=LoadState,ActiveState,MainPID,WorkingDirectory,User'])
+            self.assertTrue(all(not c.kwargs.get('shell') for c in run.call_args_list))
+        missing_timer = SimpleNamespace(returncode=1, stdout='LoadState=not-found\n')
+        with patch.object(m, 'registered_runner', return_value=identity), patch.object(m, 'user_manager_prefix', return_value=prefix), patch.object(m.subprocess, 'run', side_effect=[service, missing_timer]):
+            m.quiescent('/example', None) # Canonical service-only installation needs no dummy timer.
+        for stdout in ('LoadState=not-found\n', 'LoadState=loaded\nActiveState=active\nMainPID=3\n',
+                       'LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory=/foreign\nUser=\n'):
+            with patch.object(m, 'registered_runner', return_value=identity), patch.object(m, 'user_manager_prefix', return_value=prefix), patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=stdout)), self.assertRaises(m.Blocked):
+                m.quiescent('/example', None)
+
+    def test_registration_denies_unknown_manager_missing_uid_wrong_unit_foreign_root(self):
+        settings = {'project': 'demo'}
+        runner = dict(version=1, root='/example', project='demo', owner='admins', mode='user',
+                      name='asa-log-collector-demo.service', scriptDigest='a'*64, revision='3e32de6987665c4d7c1d33ba7ba82019afdf9cdb')
+        account = SimpleNamespace(pw_uid=1000, pw_gid=1000)
+        with patch.object(m, 'owner_account', return_value=account):
+            self.assertEqual(m.validate_registration(PurePosixPath('/example'), settings, runner, None)['uid'], 1000)
+            for changed in ({'root':'/foreign'}, {'project':'foreign'}, {'mode':'unknown'}, {'name':'ssh.service'},
+                            {'owner':'admins;touch /tmp/no'}, {'ownerUid':2000}, {'scriptDigest':'stale'}, {'revision':'b'*40}):
+                with self.subTest(changed=changed), self.assertRaises(m.Blocked):
+                    m.validate_registration(PurePosixPath('/example'), settings, {**runner, **changed}, None)
+            with self.assertRaises(m.Blocked):
+                m.validate_registration(PurePosixPath('/example'), settings, runner, 'asa-log-collector.service')
+        with patch.object(m, 'owner_account', side_effect=KeyError), self.assertRaisesRegex(m.Blocked, 'OWNER_MISSING'):
+            m.validate_registration(PurePosixPath('/example'), settings, runner, None)
+        with patch.object(m, 'owner_account', return_value=SimpleNamespace(pw_uid=None, pw_gid=1000)), self.assertRaisesRegex(m.Blocked, 'UID_MISSING'):
+            m.validate_registration(PurePosixPath('/example'), settings, runner, None)
+
+    def test_user_bus_owner_linger_and_exact_clean_argv(self):
+        identity = dict(uid=1000, gid=1000)
+        info = SimpleNamespace(st_uid=1000, st_mode=stat.S_IFDIR | 0o700)
+        socket = SimpleNamespace(st_uid=1000, st_mode=stat.S_IFSOCK | 0o777)
+        login = SimpleNamespace(returncode=0, stdout='Linger=yes\nRuntimePath=/run/user/1000\nState=lingering\n')
+        with patch.object(m, 'Path', PurePosixPath), patch.object(m, 'directory', return_value=99), patch.object(m.os, 'fstat', return_value=info), patch.object(m.os, 'stat', return_value=socket), patch.object(m.os, 'close'), patch.object(m.subprocess, 'run', return_value=login) as query:
+            prefix = m.user_manager_prefix(identity)
+            self.assertEqual(prefix[:7], ['/usr/bin/setpriv', '--reuid', '1000', '--regid', '1000', '--clear-groups', '--no-new-privs'])
+            self.assertEqual(prefix[-2:], ['/usr/bin/systemctl', '--user'])
+            self.assertIn('DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus', prefix)
+            self.assertIn('-i', prefix)
+            self.assertEqual(query.call_args.args[0][:3], ['/usr/bin/loginctl', 'show-user', '1000'])
+            for bad in (SimpleNamespace(st_uid=2000, st_mode=stat.S_IFSOCK | 0o777), SimpleNamespace(st_uid=1000, st_mode=stat.S_IFLNK | 0o777)):
+                with patch.object(m.os, 'stat', return_value=bad), self.assertRaisesRegex(m.Blocked, 'USER_BUS_UNTRUSTED'):
+                    m.user_manager_prefix(identity)
+            with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stdout='')), self.assertRaisesRegex(m.Blocked, 'USER_MANAGER_UNAVAILABLE'):
+                m.user_manager_prefix(identity)
 
 
 @unittest.skipUnless(os.name == 'posix' and hasattr(os, 'O_NOFOLLOW'), 'Actual fd/flock/modes require Linux; Ubuntu CI runs these')
@@ -58,6 +112,21 @@ class LinuxCopy(unittest.TestCase):
         self.private.mkdir(parents=True)
         self.store.mkdir()
         (self.asa/'log-collector.json').write_text('{"version":1}')
+        import pwd
+        account = pwd.getpwuid(os.geteuid())
+        settings = dict(project='demo', **({'collectorMode':'system-root'} if account.pw_uid == 0 else {}))
+        (self.asa/'installation.json').write_text(json.dumps(settings))
+        self.runner = dict(version=1, root=str(self.install), project='demo', owner=account.pw_name,
+                           mode='system-root' if account.pw_uid == 0 else 'system', name='asa-log-collector-demo.service',
+                           revision='3e32de6987665c4d7c1d33ba7ba82019afdf9cdb')
+        digest = m.hashlib.sha256()
+        for name in ('collect_logs.py', 'collect-windows-logs.ps1', 'resource_sampling.py', 'memory_sampling.py', 'deployment/operational.py'):
+            path = self.install/'tools'/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'# synthetic source only\n')
+            digest.update(name.encode()); digest.update(path.read_bytes())
+        self.runner['scriptDigest'] = digest.hexdigest()
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
         (self.private/'segment-verification.key').write_bytes(SECRET)
         (self.private/'collector.lock').write_bytes(b'')
         (self.store/'catalog.json').write_text('{"historyAudit":{"state":"error"},"segments":[]}')
@@ -70,7 +139,8 @@ class LinuxCopy(unittest.TestCase):
         self.target = self.base/'snapshot'
         self.addCleanup(patch.stopall)
         patch.object(m, 'OWNER_UID', os.geteuid()).start()
-        patch.object(m, 'quiescent').start()
+        self.quiet_patch = patch.object(m, 'quiescent')
+        self.quiet_patch.start()
 
     def source(self):
         fd = m.directory(self.asa)
@@ -134,6 +204,37 @@ class LinuxCopy(unittest.TestCase):
             with self.assertRaisesRegex(m.Blocked, 'LOCK_BUSY'):
                 m.snapshot(self.install, self.target, apply=True)
         self.assertFalse(self.target.exists())
+
+    def test_actual_registration_denies_stale_digest(self):
+        identity = m.registered_runner(self.install, None)
+        self.assertEqual(identity['name'], self.runner['name'])
+        (self.install/'tools/collect_logs.py').write_bytes(b'# changed after registration\n')
+        with self.assertRaisesRegex(m.Blocked, 'REGISTRATION_STALE'):
+            m.registered_runner(self.install, None)
+
+    def test_known_legacy_four_file_contract_and_no_fallback_for_new_contract(self):
+        (self.install/'tools/deployment/operational.py').unlink()
+        self.runner['revision'] = 'dfee5badd299d318a8e51ff0cbf88e9656333a5d'
+        digest = m.hashlib.sha256()
+        for name in m.BASE_DIGEST_FILES:
+            digest.update(name.encode()); digest.update((self.install/'tools'/name).read_bytes())
+        self.runner['scriptDigest'] = digest.hexdigest()
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        self.assertEqual(m.registered_runner(self.install, None)['revision'], self.runner['revision'])
+        self.runner['revision'] = '3e32de6987665c4d7c1d33ba7ba82019afdf9cdb'
+        (self.asa/'collector-runner.json').write_text(json.dumps(self.runner))
+        with self.assertRaises(FileNotFoundError):
+            m.registered_runner(self.install, None)
+
+    def test_user_inactive_service_timer_and_actual_lock_copy(self):
+        self.quiet_patch.stop()
+        identity = dict(mode='user', owner='synthetic', uid=1000, gid=1000, root=str(self.install), name=self.runner['name'], revision=self.runner['revision'])
+        service = SimpleNamespace(returncode=0, stdout='LoadState=loaded\nActiveState=inactive\nMainPID=0\nWorkingDirectory='+str(self.install)+'\nUser=\n')
+        timer = SimpleNamespace(returncode=0, stdout='LoadState=loaded\nActiveState=inactive\n')
+        with patch.object(m, 'registered_runner', return_value=identity), patch.object(m, 'user_manager_prefix', return_value=['/usr/bin/systemctl', '--user']), patch.object(m.subprocess, 'run', side_effect=[service, timer, service, timer]):
+            result = m.snapshot(self.install, self.target, apply=True)
+        self.assertEqual(result['status'], 'FORENSIC_COPY_ONLY')
+        self.assertFalse(result['recoverySnapshotVerified'])
 
     def test_source_race_retains_private_partial_never_promotes(self):
         original = m.copy_entry
