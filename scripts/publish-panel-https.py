@@ -72,6 +72,10 @@ def proxy_content(active):
     proxy_buffering off;
     proxy_cookie_flags ~ secure httponly samesite=lax;
     add_header Cache-Control "no-store" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "no-referrer" always;
 }
 '''
 
