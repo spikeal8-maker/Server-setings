@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-02",
+  "host": "admins-MS-7D22",
+  "domain": "1panel.asa-lab.ru",
+  "public_ipv4": "94.29.44.211",
+  "website_id": 8,
+  "certificate_id": 8,
+  "certificate_expires": "2027-01-31T09:41:54Z",
+  "auto_renew_configured": true,
+  "future_renewal_observed": false,
+  "tls_observed": "TLSv1.3",
+  "ca_hostname_validation": true,
+  "http_redirect": 301,
+  "https_private_entrance_http": 200,
+  "chrome_login_form_visible": true,
+  "unauthenticated_settings_api_code": 401,
+  "hsts": "max-age=31536000",
+  "direct_public_19192": "TimeoutError from D2",
+  "firewall_ssh_tailscale_changes": false,
+  "asa_data_or_container_restart": false,
+  "nginx_changes": "official API configuration validation and reload",
+  "entrance_preserved": true,
+  "credentials_or_entrance_in_repository": false,
+  "websocket_headers_configured": true,
+  "authenticated_websocket_tested": false,
+  "browser_authentication_tested": false,
+  "independent_external_network_tested": false,
+  "reviewed_deployed_source": "061d8d6",
+  "tests": {
+    "focused_publisher": 7,
+    "result": "PASS"
+  }
+}
