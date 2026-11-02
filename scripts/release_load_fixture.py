@@ -369,8 +369,15 @@ class HostAdapter:
         need(path.startswith('/') and not path.startswith('//') and '?' not in path, 'API_PATH_INVALID')
         need(method in (None, 'GET', 'POST', 'PUT'), 'API_METHOD_INVALID')
         if method == 'PUT':
-            need(re.fullmatch(r'/api/sharing/course/' + UUID.pattern[:-2] + r'/visibility', path)
-                 and body in ({'visibility': 'private'}, {'visibility': 'public'}), 'API_METHOD_INVALID')
+            visibility = re.fullmatch(r'/api/sharing/course/' + UUID.pattern[:-2] + r'/visibility', path) \
+                and body in ({'visibility': 'private'}, {'visibility': 'public'})
+            ai = re.fullmatch(r'/api/ai/classrooms/' + UUID.pattern[:-2] + r'/access', path) \
+                and isinstance(body, dict) and set(body) == {'kind', 'mode', 'minimumRating', 'requestId', 'expectedRevision'} \
+                and body['kind'] == 'classroom' and body['mode'] in ('allow', 'deny') \
+                and type(body['minimumRating']) is int and 0 <= body['minimumRating'] <= 100 \
+                and type(body['expectedRevision']) is int and body['expectedRevision'] == (0 if body['mode'] == 'allow' else 1) \
+                and isinstance(body['requestId'], str) and UUID.fullmatch(body['requestId'])
+            need(visibility or ai, 'API_METHOD_INVALID')
         suffix = ''
         if revision_id is not None:
             need(re.fullmatch(r'/api/public-projects/' + UUID.pattern[:-2] + r'/artifact', path)

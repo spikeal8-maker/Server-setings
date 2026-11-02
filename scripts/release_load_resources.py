@@ -19,10 +19,29 @@ import uuid
 from release_load_fixture import (FixtureError, HostAdapter, PrivateStore, ident,
                                   need, parameters, validate)
 
-STAGES = {'project', 'course', 'section', 'lesson', 'publish', 'run', 'public', 'positives', 'cleanup'}
+STAGES = {'project', 'course', 'section', 'lesson', 'publish', 'run', 'public', 'positives', 'cleanup', 'ai-access', 'ai-positives'}
 META_KEYS = {'version', 'state', 'binding', 'pending', 'publicationId', 'requestIds',
              'classProjectId', 'courseId', 'sectionId', 'sourceLessonId', 'versionId',
-             'versionNumber', 'draftRevision', 'runId', 'runLessonId', 'visibility', 'cleanup'}
+             'versionNumber', 'draftRevision', 'runId', 'runLessonId', 'visibility', 'cleanup', 'aiAccess'}
+
+
+def validate_ai(a):
+    need(isinstance(a, dict) and set(a) <= {'state', 'priorMode', 'priorRevision', 'minimumRating', 'requestIds', 'allowRevision', 'restoreRevision', 'cleanup'}
+         and a.get('state') in ('intent', 'enabled', 'restored', 'unknown')
+         and a.get('priorMode') == 'deny' and type(a.get('priorRevision')) is int and a['priorRevision'] == 0
+         and type(a.get('minimumRating')) is int and 0 <= a['minimumRating'] <= 100, 'RESOURCE_AI_INTENT_INVALID')
+    need(isinstance(a.get('requestIds'), dict) and set(a['requestIds']) == {'allow', 'restore'}, 'RESOURCE_AI_REQUEST_INVALID')
+    for value in a['requestIds'].values():
+        ident(value)
+    need(len(set(a['requestIds'].values())) == 2, 'RESOURCE_AI_REQUEST_INVALID')
+    for key, revision in (('allowRevision', 1), ('restoreRevision', 2)):
+        if key in a:
+            need(type(a[key]) is int and a[key] == revision, 'RESOURCE_AI_REVISION_INVALID')
+    if 'cleanup' in a:
+        need(a['cleanup'] in ('DENY_VERIFIED', 'DENY_OBSERVED_INFLIGHT_UNKNOWN',
+                              'UNKNOWN_OPERATOR_AI_CLEANUP_REQUIRED', 'REVISION_CHANGED_OPERATOR_REQUIRED'), 'RESOURCE_AI_CLEANUP_INVALID')
+    need(a['state'] != 'enabled' or a.get('allowRevision') == 1, 'RESOURCE_AI_INTENT_INVALID')
+    return a
 
 
 def title(f, kind):
@@ -59,14 +78,16 @@ def validate_resources(f):
     if 'cleanup' in m:
         need(m['cleanup'] in ('PRIVATE_OBSERVED_INFLIGHT_UNKNOWN', 'PRIVATE_VERIFIED',
                               'UNKNOWN_OPERATOR_CLEANUP_REQUIRED', 'NOT_CREATED_VERIFIED'), 'RESOURCE_CLEANUP_INVALID')
+    if 'aiAccess' in m:
+        validate_ai(m['aiAccess'])
     return m
 
 
 class Calls:
     def __init__(self, f, adapter, *, cleanup=False):
         self.f, self.adapter = f, adapter
-        self.left = 20 if cleanup else 140
-        self.deadline = time.monotonic() + (120 if cleanup else 300)
+        self.left = 20 if cleanup else 260
+        self.deadline = time.monotonic() + (120 if cleanup else 600)
 
     def __call__(self, path, body=None, *, user='teacher', **kwargs):
         need(self.left > 0 and time.monotonic() < self.deadline, 'RESOURCE_REQUEST_BUDGET_EXCEEDED')
@@ -128,9 +149,9 @@ def owned_course(f, call, *, allow_missing=False):
     return row
 
 
-def cleanup_visibility(f, adapter, *, settled=False):
+def cleanup_visibility(f, adapter, *, settled=False, call=None):
     validate_resources(f)
-    call = Calls(f, adapter, cleanup=True)
+    call = call or Calls(f, adapter, cleanup=True)
     teacher_identity(f, call)
     row = owned_course(f, call, allow_missing=True)
     if row is None:
@@ -142,6 +163,128 @@ def cleanup_visibility(f, adapter, *, settled=False):
     after = owned_course(f, call)
     need(after['visibility'] == 'private', 'RESOURCE_PRIVATE_READBACK_FAILED')
     return 'PRIVATE_VERIFIED' if settled else 'PRIVATE_OBSERVED_INFLIGHT_UNKNOWN'
+
+
+def ai_policy(f, call):
+    result = call('/api/ai/classrooms/' + ident(f['resources']['classroomId']) + '/access')
+    need(result.get('classroomId') == f['resources']['classroomId'] and result.get('readOnly') is False
+         and result.get('mode') in ('deny', 'allow', 'rating')
+         and type(result.get('revision')) is int and 0 <= result['revision'] < 10**15
+         and type(result.get('minimumRating')) is int and 0 <= result['minimumRating'] <= 100, 'RESOURCE_AI_POLICY_INVALID')
+    rows = result.get('students')
+    need(isinstance(rows, list) and len(rows) == 100 and all(isinstance(r, dict) for r in rows)
+         and {r.get('seatId') for r in rows} == {s['seat'] for s in f['seats']}
+         and all(r.get('override') == 'inherit' and r.get('status') in ('issued', 'active')
+                 and type(r.get('canGenerate')) is bool for r in rows), 'RESOURCE_AI_ROSTER_CHANGED')
+    # Retain only the closed scalar policy; never persist names/ratings/PII.
+    return {k: result[k] for k in ('mode', 'minimumRating', 'revision')} | {
+        'allAllowed': all(r['canGenerate'] for r in rows),
+        'allDenied': all(not r['canGenerate'] for r in rows)}
+
+
+def enable_ai(f, call, persist):
+    need('aiAccess' not in f['mixedResources'], 'RESOURCE_AI_NO_AUTOMATIC_REPLAY')
+    own_class(f, call)
+    before = ai_policy(f, call)
+    need(before['mode'] == 'deny' and before['revision'] == 0 and before['allDenied'], 'RESOURCE_AI_NOT_PRISTINE_DENY')
+    candidate = copy.deepcopy(f)
+    candidate['mixedResources'].update(pending='ai-access')
+    candidate['mixedResources']['aiAccess'] = {'state': 'intent', 'priorMode': 'deny', 'priorRevision': 0, 'minimumRating': before['minimumRating'],
+                                               'requestIds': {k: str(uuid.uuid4()) for k in ('allow', 'restore')}}
+    persist(candidate)  # Both request IDs durably precede the first policy PUT.
+    a = f['mixedResources']['aiAccess']
+    result = call('/api/ai/classrooms/' + f['resources']['classroomId'] + '/access', {
+        'kind': 'classroom', 'mode': 'allow', 'minimumRating': a['minimumRating'],
+        'requestId': a['requestIds']['allow'], 'expectedRevision': 0}, method='PUT')
+    need(set(result) == {'saved', 'revision'} and result.get('saved') is True
+         and type(result.get('revision')) is int and result['revision'] == 1, 'RESOURCE_AI_ALLOW_RECEIPT_INVALID')
+    candidate = copy.deepcopy(f)
+    candidate['mixedResources']['aiAccess']['allowRevision'] = 1
+    candidate['mixedResources']['pending'] = 'ai-positives'
+    persist(candidate)  # Valid ownership proof goes into memory before disk I/O.
+    after = ai_policy(f, call)
+    need(after == {'mode': 'allow', 'revision': 1, 'minimumRating': a['minimumRating'],
+                   'allAllowed': True, 'allDenied': False}, 'RESOURCE_AI_ALLOW_READBACK_FAILED')
+    for index, seat in enumerate(f['seats']):
+        scopes = call('/api/ai/scopes', user=index)
+        rows = scopes.get('items')
+        need(scopes.get('personal') is False and isinstance(rows, list) and len(rows) == 1
+             and rows[0].get('seatId') == seat['seat'] and rows[0].get('classroomId') == f['resources']['classroomId']
+             and rows[0].get('canGenerate') is True and rows[0].get('reason') is None
+             and rows[0].get('minimumRating') == a['minimumRating'], 'RESOURCE_AI_LEARNER_NOT_ALLOWED')
+    need(ai_policy(f, call) == after, 'RESOURCE_AI_POLICY_CHANGED_DURING_PROOF')
+    candidate = copy.deepcopy(f)
+    candidate['mixedResources']['aiAccess']['state'] = 'enabled'
+    persist(candidate)
+
+
+def cleanup_ai(f, adapter, *, settled=False, call=None):
+    a = copy.deepcopy(f['mixedResources'].get('aiAccess'))
+    if a is None:
+        return None
+    validate_ai(a)
+    call = call or Calls(f, adapter, cleanup=True)
+    own_class(f, call)
+    current = ai_policy(f, call)
+    if current['mode'] == 'deny' and current['minimumRating'] == a['minimumRating'] and current['allDenied']:
+        expected = a.get('restoreRevision', 0)
+        if current['revision'] == expected:
+            a.update(state='restored' if settled else 'unknown',
+                     cleanup='DENY_VERIFIED' if settled else 'DENY_OBSERVED_INFLIGHT_UNKNOWN')
+            return a
+    # A matching mode alone cannot prove a lost PUT belonged to this tool.
+    # Only the validated saved:true/revision1 receipt authorizes restoring it.
+    if a.get('allowRevision') != 1 or current != {
+            'mode': 'allow', 'revision': 1, 'minimumRating': a['minimumRating'], 'allAllowed': True, 'allDenied': False}:
+        a.update(state='unknown', cleanup='REVISION_CHANGED_OPERATOR_REQUIRED' if current['revision'] > 1
+                 else 'UNKNOWN_OPERATOR_AI_CLEANUP_REQUIRED')
+        return a
+    result = call('/api/ai/classrooms/' + f['resources']['classroomId'] + '/access', {
+        'kind': 'classroom', 'mode': 'deny', 'minimumRating': a['minimumRating'],
+        'expectedRevision': 1, 'requestId': a['requestIds']['restore']}, method='PUT')
+    need(set(result) == {'saved', 'revision'} and result.get('saved') is True
+         and type(result.get('revision')) is int and result['revision'] == 2, 'RESOURCE_AI_RESTORE_RECEIPT_INVALID')
+    a['restoreRevision'] = 2
+    after = ai_policy(f, call)
+    need(after == {'mode': 'deny', 'revision': 2, 'minimumRating': a['minimumRating'],
+                   'allAllowed': False, 'allDenied': True}, 'RESOURCE_AI_DENY_READBACK_FAILED')
+    a.update(state='restored', cleanup='DENY_VERIFIED')
+    return a
+
+
+def withdraw(f, adapter, *, settled=False):
+    # Independent best effort: neither policy failure nor private storage I/O
+    # may prevent the other owned-resource cleanup from being attempted.
+    call = Calls(f, adapter, cleanup=True)
+    try:
+        ai = cleanup_ai(f, adapter, settled=settled, call=call)
+    except BaseException:
+        ai = copy.deepcopy(f.get('mixedResources', {}).get('aiAccess'))
+        if ai is not None:
+            ai.update(state='unknown', cleanup='UNKNOWN_OPERATOR_AI_CLEANUP_REQUIRED')
+    try:
+        visibility = cleanup_visibility(f, adapter, settled=settled, call=call)
+    except BaseException:
+        visibility = 'UNKNOWN_OPERATOR_CLEANUP_REQUIRED'
+    return ai, visibility
+
+
+def partial(recovery, f, store, adapter):
+    ai, outcome = withdraw(recovery, adapter, settled=False)
+    failed = copy.deepcopy(recovery)
+    if 'mixedResources' in failed:
+        failed['mixedResources'].update(state='partial', visibility='unknown', cleanup=outcome)
+        if ai is not None:
+            failed['mixedResources']['aiAccess'] = ai
+        failed['resources'] = {'classroomId': failed['resources']['classroomId']}
+        failed['resourceEvidence'] = 'WITHDRAWN_FROM_MIXED_TEST_PARTIAL_CLEANUP'
+    f.clear()
+    f.update(failed)
+    try:
+        store.save(copy.deepcopy(failed))
+    except BaseException:
+        raise FixtureError('RESOURCE_PARTIAL_RECEIPT_FAILED') from None
+    raise FixtureError('RESOURCE_PARTIAL_RETAINED') from None
 
 
 def verify_publication(call, publication_id):
@@ -259,6 +402,7 @@ def build(f, store, adapter, publication_id):
             need(run_lesson is None or current == run_lesson, 'RESOURCE_LEARNER_LESSON_MISMATCH')
             run_lesson = current
         receipt(runLessonId=run_lesson)
+        enable_ai(f, call, persist)
         candidate = copy.deepcopy(f)
         m = candidate['mixedResources']
         candidate['resources'] = {'classroomId': cid, 'classProjectId': m['classProjectId'],
@@ -271,30 +415,48 @@ def build(f, store, adapter, publication_id):
     except BaseException:
         # Reuse the reviewed core repair rule: cleanup first, independently of
         # receipt disk failure. No retries of unknown POSTs and no TTL extension.
-        try:
-            outcome = cleanup_visibility(recovery, adapter, settled=False)
-        except BaseException:
-            outcome = 'UNKNOWN_OPERATOR_CLEANUP_REQUIRED'
-        failed = copy.deepcopy(recovery)
-        if 'mixedResources' in failed:
-            failed['mixedResources'].update(state='partial', visibility='unknown', cleanup=outcome)
+        partial(recovery, f, store, adapter)
+
+
+def enable_existing_ai(f, store, adapter):
+    m = validate_resources(f)
+    need(m['state'] == 'ready' and m['pending'] is None and 'aiAccess' not in m
+         and len(f['seats']) == 100 and all('token' in s for s in f['seats']), 'RESOURCE_AI_NO_AUTOMATIC_REPLAY')
+    recovery = copy.deepcopy(f)
+
+    def persist(candidate):
+        nonlocal recovery
+        validate_resources(candidate)
+        recovery = copy.deepcopy(candidate)
         f.clear()
-        f.update(failed)
-        try:
-            store.save(copy.deepcopy(failed))
-        except BaseException:
-            raise FixtureError('RESOURCE_PARTIAL_RECEIPT_FAILED') from None
-        raise FixtureError('RESOURCE_PARTIAL_RETAINED') from None
+        f.update(candidate)
+        store.save(copy.deepcopy(candidate))
+
+    try:
+        enable_ai(f, Calls(f, adapter), persist)
+        candidate = copy.deepcopy(f)
+        candidate['mixedResources']['pending'] = None
+        persist(candidate)
+    except BaseException:
+        if 'aiAccess' not in recovery['mixedResources']:
+            raise FixtureError('RESOURCE_AI_PREFLIGHT_FAILED') from None
+        partial(recovery, f, store, adapter)
 
 
 def cleanup(f, store, adapter, *, attest_no_inflight=False):
     m = validate_resources(f)
+    need(datetime.now(timezone.utc) < datetime.fromisoformat(f['expiresAt']), 'RESOURCE_SESSION_EXPIRED')
     need(m['pending'] is None or attest_no_inflight, 'RESOURCE_INFLIGHT_NOT_SETTLED')
     # Cleanup write intent is independent of the ability to persist a receipt.
-    outcome = cleanup_visibility(f, adapter, settled=True)
+    ai, outcome = withdraw(f, adapter, settled=True)
     candidate = copy.deepcopy(f)
-    candidate['mixedResources'].update(state='cleaned', pending=None, cleanup=outcome,
-                                        visibility='not_created' if outcome == 'NOT_CREATED_VERIFIED' else 'private')
+    complete = outcome in ('PRIVATE_VERIFIED', 'NOT_CREATED_VERIFIED') and (ai is None or ai.get('cleanup') == 'DENY_VERIFIED')
+    candidate['mixedResources'].update(state='cleaned' if complete else 'partial',
+                                      pending=None if complete else m['pending'] or 'cleanup', cleanup=outcome,
+                                      visibility='not_created' if outcome == 'NOT_CREATED_VERIFIED' else
+                                      'private' if outcome == 'PRIVATE_VERIFIED' else 'unknown')
+    if ai is not None:
+        candidate['mixedResources']['aiAccess'] = ai
     candidate['resourceEvidence'] = 'WITHDRAWN_FROM_MIXED_TEST_COURSE_PRIVATE'
     # Keep every created ID in the private intent, but make accidental mixed
     # reuse fail its fixture preflight after the public prerequisite is hidden.
@@ -303,13 +465,14 @@ def cleanup(f, store, adapter, *, attest_no_inflight=False):
     f.clear()
     f.update(candidate)
     store.save(copy.deepcopy(candidate))
+    need(complete, 'RESOURCE_CLEANUP_OPERATOR_REQUIRED')
 
 
 def verify_source(root, revision):
     contract = json.loads((Path(__file__).resolve().parents[1] / 'profiles/school-mixed-resource-contract.json').read_text())
     need(contract.get('version') == 1 and contract.get('lessonKind') == 'material' and contract.get('dueAt') is None
          and contract.get('writes') == 'owned-synthetic-api-only'
-         and isinstance(contract.get('sourceFiles'), dict) and len(contract['sourceFiles']) == 20, 'RESOURCE_SOURCE_CONTRACT_INVALID')
+         and isinstance(contract.get('sourceFiles'), dict) and len(contract['sourceFiles']) == 23, 'RESOURCE_SOURCE_CONTRACT_INVALID')
     for path, expected in contract['sourceFiles'].items():
         need(not Path(path).is_absolute() and '..' not in Path(path).parts and re.fullmatch('[a-f0-9]{64}', expected), 'RESOURCE_SOURCE_CONTRACT_INVALID')
         r = subprocess.run(['git', '-C', str(root), 'show', revision + ':' + path], capture_output=True, timeout=10)
@@ -318,7 +481,7 @@ def verify_source(root, revision):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('build', 'cleanup'), nargs='?', default='build')
+    p.add_argument('action', choices=('build', 'ai-enable', 'cleanup'), nargs='?', default='build')
     p.add_argument('--apply', action='store_true')
     for key in ('origin', 'revision', 'label'):
         p.add_argument('--' + key, required=True)
@@ -333,8 +496,10 @@ def main(argv=None):
         parameters(a.label, a.revision, a.schema, a.origin)
         if not a.apply:
             print(json.dumps({'state': 'PLAN_ONLY', 'action': a.action, 'createsPublicSyntheticCourse': a.action == 'build',
-                              'publication': 'EXPLICIT_EXISTING_PUBLIC_READ_ONLY', 'maximumCalls': 160 if a.action == 'build' else 20,
-                              'maximumWrites': 8 if a.action == 'build' else 1,
+                              'publication': 'EXPLICIT_EXISTING_PUBLIC_READ_ONLY',
+                              'allowsOwnSyntheticClassAi': a.action in ('build', 'ai-enable'),
+                              'maximumCalls': 280 if a.action in ('build', 'ai-enable') else 20,
+                              'maximumWrites': 10 if a.action == 'build' else 3 if a.action == 'ai-enable' else 2,
                               'fixtureReads': 0, 'networkRequests': 0, 'releaseAccepted': False}))
             return 0
         need(os.name == 'posix' and os.geteuid() == 0 and a.canonical_root and a.fixture, 'RESOURCE_SERVER_ROOT_REQUIRED')
@@ -346,6 +511,8 @@ def main(argv=None):
             adapter = HostAdapter(a.canonical_root, f)
             if a.action == 'build':
                 build(f, store, adapter, ident(a.publication))
+            elif a.action == 'ai-enable':
+                enable_existing_ai(f, store, adapter)
             else:
                 cleanup(f, store, adapter, attest_no_inflight=a.attest_no_inflight)
         print(json.dumps({'state': f['mixedResources']['state'], 'fixture': str(store.path), 'releaseAccepted': False}))
