@@ -444,6 +444,9 @@ class Manager:
             record = load(self.journal) if self.journal.exists() else None
             if record and (record.get('boot_id') != boot_id() or time.monotonic() - record.get('heartbeat_mono', 0) > (45 if self.profiles()['armed'] else 300)):
                 data = self.profiles()
-                data['armed'] = False
-                save(self.config / 'profiles.json', data)
+                if record.get('boot_id') == boot_id():
+                    data['armed'] = False  # stale process in this boot
+                    save(self.config / 'profiles.json', data)
+                # Reboot clears kernel ownership. Preserve explicit armed
+                # intent regardless of timer/network-online service ordering.
                 self.rollback()

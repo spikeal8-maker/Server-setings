@@ -266,6 +266,22 @@ class RuntimeNetns(unittest.TestCase):
         self.assertIsNone(process_identity(record['pid']))
         self.assertFalse(pidfile.exists())
 
+    def test_old_boot_watchdog_before_manager_preserves_armed_intent_and_resumes(self):
+        self.manager.qualify('router', self.lease)
+        self.manager.arm()
+        old = load(self.manager.journal)
+        self.manager.rollback()  # simulate kernel ownership disappearing at boot
+        old['boot_id'] = 'previous-boot'
+        save(self.manager.journal, old)
+        self.manager.watchdog()
+        self.assertTrue(self.manager.profiles()['armed'])
+        self.assertFalse(self.manager.journal.exists())
+        self.manager.acquire = self.lease
+        self.manager.tick()
+        self.assertEqual(load(self.manager.journal)['phase'], 'standby')
+        self.assertTrue(self.manager.profiles()['armed'])
+        self.manager.disarm()
+
     def test_foreign_route_attributes_preserved_and_whole_journal_retained(self):
         self.manager.prepare({'mode': 'router', 'interface': 'nic0', 'qualified': False}, self.lease)
         before = load(self.manager.journal)['undo']
