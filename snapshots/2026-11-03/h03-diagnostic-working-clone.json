@@ -1,0 +1,119 @@
+{
+  "format": "asa-h03-diagnostic-working-clone-evidence-v1",
+  "documentDate": "2026-11-03",
+  "timezone": "Europe/Moscow",
+  "operationDateUtc": "2026-11-02",
+  "host": {
+    "hostname": "admins-MS-7D22",
+    "canonicalRoot": "/srv/asa-lab",
+    "project": "asa-lab-dev",
+    "entryOrigin": "https://test.asa-lab.ru",
+    "schoolVm100": false
+  },
+  "qualification": "OFFLINE_METADATA_REHEARSAL_ONLY",
+  "source": {
+    "harnessRevision": "0a7dd4abbe8bfd0f1d8bcccfc1c4558dc252435e",
+    "harnessSha256": "5f728cac0fc648bf788757ffaf76bb3a6691570bcbce802f0237b62526fbebf2",
+    "appCoreRevision": "6a98bddd8953eff732ec7d2cbb3de8cdec8abdee",
+    "runtimeClosureFiles": 8,
+    "runtimeClosureSha256": "60e81492d73fd5609b1dfb5e251a5b534b0abc07159cf73058ccfe121a5e1026",
+    "forensicGuardRevision": "6b0eb3d56acd829dc14891924cc63ff5bb163d73",
+    "forensicGuardSha256": "5dd13624af168db3a3d1eb14eb0e9762506eb626dcccd102fe858dd266542e1e",
+    "independentSourceReview": "APPROVE"
+  },
+  "protectedSnapshot": {
+    "path": "/var/backups/asa-forensics/h03-host-20261102-909",
+    "manifestSha256": "eccb0bf480fd636f1d527da4a4b78e024668d2f4e34dbc8e6f600d25481889d5",
+    "unchangedAfterRehearsal": true,
+    "recoverySnapshotVerified": false
+  },
+  "stage": {
+    "operationId": "53e45a0e391242f0af8b68058a6ab1aa",
+    "files": 10,
+    "bytes": 259164,
+    "outsideApplication": true
+  },
+  "linuxTests": {
+    "operationId": "37678c902dce4e66bf6f8595b6dbf49f",
+    "run": 15,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "plan": {
+    "operationId": "028823d2b45645afb4237dc86a83f67a",
+    "readOnly": true,
+    "files": 31,
+    "records": 607,
+    "successors": 1
+  },
+  "workingClone": {
+    "operationId": "11f9e2a463fb419a851dd9c5739dc476",
+    "path": "/var/backups/asa-rehearsals/h03-909-0a7dd4abbe8b-20261103",
+    "status": "OFFLINE_REHEARSAL_PASSED",
+    "startedAtUtc": "2026-11-02T22:28:05.691713Z",
+    "completedAtUtc": "2026-11-02T22:28:30.289373Z",
+    "durationSeconds": 24.592,
+    "negativeChallenges": 3,
+    "files": 31,
+    "records": 607,
+    "successors": 1,
+    "indexedRows": 156886,
+    "publishedRows": 150787,
+    "unpublishedRows": 6099,
+    "activeSegmentsVerified": 854,
+    "retiredSegmentsVerified": 535,
+    "allowedStateKeys": [
+      "retired:metadata",
+      "retired:successor-recovery:v1"
+    ],
+    "allOtherTablesSchemaAndSourceFilesPreserved": true,
+    "coldValidation": "INDEPENDENT_READONLY_REOPEN_AND_MEMORY_DATABASE",
+    "fullCollectorStartup": false,
+    "originalMappingRecovered": false
+  },
+  "fixedRuntimeGuard": {
+    "revision": "c3a362f32f8f5efdf63257517a28b8f8f1bf1791",
+    "sha256": "c82a304985a775a14861c8f76f40816487e15b51fbb51be82f1d7864bb2c1335",
+    "independentSourceReview": "APPROVE",
+    "linuxSyntheticOperationId": "32974a9574f4436caceb1a9936d52192",
+    "linuxTests": {
+      "run": 29,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "profiles": [
+      "EXACT_GIT_BLOB_LF",
+      "EXACT_ATTRIBUTES_PS1_CRLF"
+    ],
+    "perFileLengthAndSha256": true,
+    "arbitraryFutureRuntimeSupported": false
+  },
+  "ingress": {
+    "readerAccessOperationId": "bc102afe15614e87972cbf69fd19c562",
+    "uid": 1000,
+    "gid": 1000,
+    "accessAndErrorFilesReadable": true,
+    "journalAccessTested": false,
+    "currentlyCollected": false,
+    "candidateOperationId": "360a43b147724ca180239aca325890dc",
+    "candidatePath": "/var/lib/asa-stabilization-909/h03-collector-proxy-candidate-20261103.json",
+    "source": "ingress",
+    "directory": "/opt/1panel/www/sites/test.asa-lab.ru/log",
+    "rotationsIncluded": true,
+    "sourceConfigSha256": "7b03afcb040f9b0c68a16cb20f8e5c6bf41b610c3bc12f74fd63aec59dca0514",
+    "candidateSha256": "0ec332468f1a2a3429a7dd3ec26c82f2f52a5858e314eba5b38828efd69c06fe",
+    "activated": false
+  },
+  "liveApplied": false,
+  "historyHealthy": false,
+  "coverageComplete": false,
+  "serviceChanged": false,
+  "applicationUpdated": false,
+  "schoolUpdated": false,
+  "businessDataChanged": false,
+  "pupil100Acceptance": "NOT_RUN",
+  "pupil5000Capacity": "NOT_MEASURED",
+  "secretsOrPersonalDataIncluded": false
+}
