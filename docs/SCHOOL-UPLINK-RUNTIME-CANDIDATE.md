@@ -1,105 +1,121 @@
-# Школьный PVE: кандидат IPv4 failover manager
+# Школьный PVE: IPv4 uplink runtime, source checkpoint
 
-SOURCE CANDIDATE, NOT INSTALLED / NOT ARMED. Домашний сервер и школьная сеть
-этим срезом не изменялись. Runtime требует независимого review и namespace CI;
-отсутствующие WiFi/SIM/USB устройства не объявляются подключёнными.
+Runtime source проверен в изолированных namespaces; на физическом оборудовании
+не квалифицирован и этим исполнителем НЕ установлен/НЕ armed. WiFi/USB/SIM
+оборудование отсутствует. Main convergence выполнен один раз с phase1 main0378b6d.
 
-## Контракт и управление
+## Проверки и границы доказательства
 
-Новые файлы только: `scripts/school_uplink_runtime`, `school-uplink-runtime.py`,
-`asa-school-dhcp-hook`, `units/asa-school-uplink*`, отдельные tests/workflow.
-Phase1 CLI/installer/setup files в этом срезе не меняются. Его arm пока STOP.
-Интеграция dispatch/status допускается отдельным handoff после review phase1.
+- Код feeb1f22366557871e7a033fec0a49bb93b5a460: 14/14 namespace tests PASS,
+  22.045s, существующий WSL ASA-Lab-Ubuntu-Repro-20261018. NET+PID+MOUNT изолированы,
+  /run — private tmpfs; Docker не используется, host systemd не вызывается.
+- Предыдущий код be7a0f6: контроллер независимо выполнил 13/13 на настоящем PVE,
+  Python3.13/kernel7.0.2-6-pve, 20.206s. Interfaces/resolver hashes, main routes и
+  RPDB до/после точно совпали. Это namespace proof, НЕ переключение реального uplink.
+- Installer contract tests 7/7 и phase1 compatibility 12/12 PASS; Python compile,
+  YAML parse и diff check PASS. Plan installer не меняет систему.
+- Exact-head GitHub CI и independent review проверяются по PR60; до их завершения
+  кандидат не объявляется принятым для live apply. Реальная hardware qualification,
+  radio/carrier/SIM, owner arm и физический reboot не проверялись.
 
-Исходный профиль `/etc/asa-school-internet/profiles.json`: schema1, armed:false,
-one-per-mode router/wifi/modem, прежние exact fields. Config directory root0700,
-file root0600. Runtime берёт общий `profile.lock`. Qualification, lease, journal
-и heartbeat находятся только в `/var/lib/asa-school-internet` root0700/0600.
-Private profile digest включает секреты и никогда не выводится/не публикуется.
-`qualified:false` старого schema не является доказательством; runtime использует
-своё реальное qualification proof, profile hash и MAC. `armed` — authoritative
-kill switch. Только явный runtime arm меняет его на true; disarm возвращает false.
+## Owner CLI и dormant install
 
-План: `school-uplink-runtime.py qualify --mode router` не применяет изменений.
-После установки/review оператор использует `qualify --mode <mode> --apply`,
-затем отдельный `arm --apply`. До этого автономный failover запрещён. Commands
-status/qualify/arm/disarm/recover/watchdog/run требуют root и exact host pve.
-Установщик этого среза не запускается и никакие units автоматически не включаются.
-Для будущего install module должен находиться в `/usr/local/lib/asa-school-uplink`,
-CLI рядом с ним с wrapper в `/usr/local/sbin/asa-school-uplink-runtime`, DHCP hook
-в `/usr/local/libexec/asa-school-dhcp-hook`. Units требуют отдельной установки.
+`install-school-uplink-runtime.py` без флага выводит план. После exact-SHA review:
 
-## Сеть и реальные probes
+```sh
+python3 scripts/install-school-uplink-runtime.py --source-sha <reviewed-40-character-SHA> --apply
+```
 
-Main table сохраняет только исходные default via172.23.104.1 и connected
-172.23.104.0/23 vmbr0 source172.23.104.170. Не переписываются primary address,
-ifupdown2/interfaces, bridge, Docker, SSH, UFW, DNS upstream services или NetworkManager.
-CLI требует уже существующий loose rp_filter2 и не меняет sysctl.
+Вход — root-owned trusted staged source на exact host pve. Controller должен
+сверить file hashes с Git blobs выбранного SHA; receipt сохраняет фактические
+hashes и requested_reviewed_sha (label сам по себе не является аттестацией).
+Installer проверяет неизменённый deployed phase1 c6e3aee source SHA2561dca342…8c67
+и точный старый wrapper, копирует новый versioned bundle в /opt/server-settings,
+использует compare-before-switch owner wrapper и отказывается от чужих файлов,
+unit fragments/drop-ins. Старый c6 source не переписывается. Private step receipts
+сохраняют original wrapper и последнюю завершённую стадию при частичном сбое.
 
-При квалификации свободный не enslaved интерфейс получает DHCP address с
-noprefixroute. Tables21090/21091 и priorities10000/10005/10010/10020 должны быть
-пусты до начала. Source172.23.104.170/32 закрепляется за management table21090;
-backup source — за21091. При failover main suppress_prefixlength0 сохраняет все
-specific routes, а unbound default выбирается через backup table21091.
-Primary main default никогда не заменяется. Это failover IPv4 самого PVE;
-не доказательство маршрутизации всех гостей через PVE и не IPv6 failover.
+Разрешено только additive wireless-regdb=2026.05.30-1~deb13u1: no upgrades/removals,
+изменившийся apt plan блокирует применение. Никаких country/radio reload.
+MM/WPA stock units остаются masked. Включается только новый watchdog timer;
+manager service не включается/не запускается, profiles не создаются/не armed.
 
-HTTPS probes: реальные CA-verified TLS к one.one.one.one/1.1.1.1 и
-dns.google/8.8.8.8, с bind на точный IPv4 source и `ip route get ... from ...`
-проверкой device/table. FRP/guest readiness не используется как Internet oracle.
-Перед первым qualification обязательны также management-source TLS к BMC
-172.23.104.234 с explicit SHA256 leaf pin9fed04…0c997 (self-signed pin, не CA)
-и SSH banner TCP22 к LAN peer172.23.104.191. Уже qualified backup не блокируется
-исчезновением BMC/LAN во время аварии.
+Owner wrapper `asa-school-internet` даёт menu/setup/status/qualify/arm/disarm.
+Setup сохраняет private профиль и оставляет сеть выключенной; пароль скрыт.
+Ровно один подтверждённый cable carrier свободного DOWN nic0/nic2/nic3 может
+предлагаться автоматически; неоднозначность требует выбора из безопасного списка.
+Qualify требует подключённого оборудования и --apply; arm — отдельное явное
+действие после реального qualification. Arm делает enable--now только own manager,
+а disarm disable--now. Recover при shutdown очищает свои ресурсы, сохраняя armed
+intent; новый boot заново проверяет previously-qualified device/lease/TLS/DNS.
+Watchdog oldboot cleanup также сохраняет intent независимо от порядка запуска.
+Обычный stale daemon в текущем boot disarmится и откатывается.
 
-Три плохих primary samples переключают на проверенный backup; пять хороших и
-minimum60s hold возвращают primary. Сбой выбранного backup допускает только
-другие previously-qualified неизменённые profiles/devices; новые не enrollятся.
-Проверяется свежесть DHCP lease. Изменение адреса/маршрута/DNS lease требует
-повторной квалификации, одинаковая renewal продлевает expiry.
+## Config, policy и probes
 
-## DHCP, WiFi и модем
+/etc/asa-school-internet root0700, profiles.json root0600, schema1/armed boolean,
+one-per-mode router/wifi/modem. Поле qualified:false legacy не принимается как
+proof. Реальные private qualification hash/MAC/boot proof, leases и журнал —
+/var/lib/asa-school-internet root0700/0600, без публикации credential digests.
+Shared profile.lock сериализует операции. armed=false — authoritative kill switch.
 
-dhclient запускается с собственным `-sf`: stock route/resolvconf scripts не
-запускаются вообще. Hook только валидирует и сохраняет private proposal;
-никаких ip/resolver команд из DHCP environment. Отбрасываются primary overlap,
-чужой интерфейс/master, malformed/injected IP/mask/router/DNS, слишком короткие
-lease и более одного gateway. No primary DHCP/interface takeover.
+Primary vmbr0 source172.23.104.170/23, connected172.23.104.0/23 и main default via
+172.23.104.1 не переписываются. Interfaces file проверяется по исходному hash.
+Пустые собственные tables21090/21091, priorities10000/10005/10010/10020 и source
+management pin сохраняют SSH/LAN replies. Global main suppress_prefixlength0 и
+backup default policy включаются только после failure hysteresis. Main specifics
+сохраняются. Это IPv4 failover PVE host, НЕ доказательство guest routing/IPv6 failover.
 
-WiFi автоматически выбирает ровно один свободный wireless interface;
-wpa_supplicant запускается напрямую с private hex-SSID/derived-PSK config,
-без пароля в argv и без unmask/DBus activation stock services. Router использует
-только nic0/nic2/nic3. Для modem автоматический путь ограничен USB Ethernet/
-HiLink/tether (rndis_host/cdc_ether/cdc_ncm) с DHCP. Наличие APN не означает
-qualify; APN не отправляется в modem. Raw serial/PPP/MBIM/locked SIM требуют
-индивидуальной настройки, PIN не угадывается, ModemManager не unmaskится.
+Source-bound CA-verified HTTPS к one.one.one.one@1.1.1.1 и dns.google@8.8.8.8
+с ip route get proof device/table. Оба должны пройти; corporate filtering одного
+endpoint может помешать qualification/availability — явное ограничение политики.
+FRP/гостевое приложение не является Internet oracle. Первый qualify дополнительно
+требует source-bound TLS BMC172.23.104.234 с explicit self-signed leaf pin9fed04…0c997
+и SSH banner LAN peer172.23.104.191. После qualification исчезновение LAN/BMC
+не блокирует нужный failover на ранее проверенное оборудование.
 
-## DNS и восстановление
+Три плохих primary samples включают backup; пять хороших и minimum60s hold
+возвращают primary. Только previously-qualified неизменённые profile/MAC допускают
+авторотацию. Нормальные DHCP IP/gateway/DNS changes, EXPIRE и same-MAC USB replug
+вызывают owned rollback/reacquire/TLS+DNS reprobe, без нового human/BMC enrollment.
+Пока qualified device недоступен, armed intent ждёт его, не переписывая primary.
+Lease/watchdog/hold используют boot-bound monotonic time, не wall-clock expiry.
 
-Исходный resolver — regular root0644, единственный nameserver10.167.146.13.
-Перед сменой backup resolver проверяется source-bound DNS query. Сохраняются
-точные bytes/mode/uid/gid/inode, write-ahead intent и owned replacement. Restore
-выполняется только по совпадению owned state; foreign bytes/inode не затираются.
-Ограничение: filesystem compare+replace не является kernel atomic CAS против
-постороннего root writer, игнорирующего lock. Это требует отдельной оценки при
-live review; нельзя заявлять исключение всех внешних гонок resolver.
+## DHCP, WiFi, IPv6 и lifecycle
 
-Журнал inverse operations записывается до ip-команды; cleanup не flushит main,
-таблицы/тома/интерфейсы других проектов. PID-file intents проверяют process
-identity и command marker; daemon cleanup не использует killall. Watchdog
-откатывает stale armed45s или unarmed qualification300s. Foreign routing/DNS
-conflicts — STOP/owner action, а не автоматический repair primary.
+DHCP -sf полностью заменяет stock dhclient-script: hook только сохраняет validated
+private proposal. Shell/IP/mask/router/DNS injection, primary subnet overlap,
+foreign interfaces/master и unsafe lease отвергаются. Stock routes/resolv hooks
+не запускаются. Никакого NetworkManager takeover/ifreload-all/global sysctl.
 
-## Доказательство
+Только свободный DOWN не enslaved backup. До UP/association его собственные
+accept_ra/autoconf/disable_ipv6 journalled и fenced; global/primary IPv6 не меняется.
+Foreign/global IPv6 на выбранном интерфейсе блокирует takeover. Настройки этого
+же name+ifindex+MAC+boot восстанавливаются при cleanup; replacement device не трогается.
 
-CI `School uplink runtime isolated namespaces` запускает root tests внутри
-`unshare --net --mount-proc`; peer находится во втором disposable namespace.
-Тесты используют настоящие ip rules/routes, TLS и DNS server: failover/failback,
-management source pin, exact DNS restoration, foreign DNS preservation,
-crash after partial route transaction, rogue DHCP rejection и WiFi injection.
-DHCP input моделируется validated lease: это не hardware driver/carrier/SIM
-qualification и не полноценный wire-level DHCP server test. No host network touched.
+WiFi — WPA2-Personal, hex SSID/derived PSK private config, без argv password;
+WPA3-only не поддерживается и не обещается. USB modem — HiLink/Ethernet tether
+через rndis_host/cdc_ether/cdc_ncm+DHCP; APN optional, настраивается в устройстве.
+APN presence не квалифицирует modem. Raw PPP/MBIM/locked SIM — individual setup,
+PIN не угадывается; MM не unmaskится.
 
-До зелёного exact-SHA CI / independent review все эти результаты PENDING.
-Production apply, BMC leaf pin refresh, actual hardware qualification и owner
-arm являются отдельными действиями. Current installed phase1 остаётся dormant.
+До первого network effect требуется active/enabled scheduled независимый timer,
+точные unit contents/fragments, отсутствие drop-ins. Write-ahead inverses до ip
+команд; failed delete сохраняет undo/journal. Полные numeric rule/route attributes
+проверяются до rollback, foreign state не удаляется. Process ownership — boot_id,
+stable PID/starttime/executable и pidfd; stopped-child/PDEATHSIG barrier позволяет
+journal ownership ДО exec, умаска0077/вывод devnull защищают файлы/логи.
+
+DNS — regular root0644 с исходным sole nameserver10.167.146.13. Backup resolver
+проверяется source-bound DNS query с проверкой ответа. Exact bytes/mode/uid/gid,
+original/owned inode и write-ahead intent обеспечивают restore/retry после crash.
+Foreign observed content не переписывается; already-restored exact original bytes
+не требуют повторной записи. Ограничение: compare+replace не kernel atomic CAS
+против внешнего root writer, игнорирующего lock; требуется review known-writers
+перед live arm. DNS conflict — owner action, не первичная сетевая «починка».
+
+Namespace suite включает реальные routes/TLS/DNS, management source pin,
+failover/failback, renewal/expiry/replug, SIGKILL+independent watcher cleanup,
+oldboot ordering/resume, PIDFD lifecycle, stale PID/reboot negatives, foreign
+route/ifindex/ancestor guards, DNS CAS и rogue DHCP/WiFi input. DHCP lease acquisition
+моделируется, wire-level DHCP/radio/SIM остаются обязательной физической приёмкой.

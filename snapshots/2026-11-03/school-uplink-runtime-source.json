@@ -5,9 +5,25 @@
   "scope": "IPv4 PVE host uplink only",
   "runtime_profiles": "private-only",
   "actual_hardware_qualification": false,
-  "namespace_ci": "PENDING",
+  "namespace_ci": "PENDING_EXACT_HEAD",
   "independent_review": "PENDING",
   "existing_primary_network_changed": false,
   "phase1_files_changed": false,
-  "credentials_included": false
+  "credentials_included": false,
+  "code_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
+  "phase1_integrated_main": "0378b6d353eb85ae00e10d87f704765d74569c01",
+  "namespace_local": {
+    "runner": "existing WSL; isolated NET/PID/MOUNT/private-run",
+    "tests": 14,
+    "seconds": 22.045,
+    "status": "PASS"
+  },
+  "namespace_pve_controller_report": {
+    "code_sha": "be7a0f6126f8cbf6687d51e7632497acb9da63f0",
+    "tests": 13,
+    "seconds": 20.206,
+    "host_network_hashes_unchanged": true
+  },
+  "installer_contract_tests": 7,
+  "phase1_compatibility_tests": 12
 }
