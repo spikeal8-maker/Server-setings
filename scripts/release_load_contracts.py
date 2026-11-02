@@ -163,6 +163,7 @@ def previous_step(previous, binding, workload, users, now):
             and previous.get('aiBudgets') == {'firstTokenMs': workload['aiFirstTokenMs'], 'totalMs': workload['aiTotalMs'], 'firstByteMs': workload['maxP95Ms']}
             and previous.get('aiWorkloadState') == ('PASS' if ai else 'NOT_RUN'), 'previous AI budgets/state inconsistent')
     for row in ai:
+        require(row.get('emptyWorkingFilesVerified') is True, 'previous own working-files evidence missing')
         limits = {'ms': workload['aiTotalMs']}
         if row['kind'] == 'text':
             limits.update(firstByteMs=workload['maxP95Ms'], firstTokenMs=workload['aiFirstTokenMs'])
@@ -344,6 +345,8 @@ READS = {
     'knowledge-course': (0, '/api/gallery/knowledge/{publicCourseId}', {'title': 'string', 'versionNumber': 'int', 'sections': 'list'}),
     'collections': (0, '/api/collections', {'items': 'list'}),
     'games': (0, '/api/games/access?game=chess', {'granted': 'bool', 'reason': 'string'}),
+    'chess-network-access': (0, '/api/games/chess/access', {'player.playerId': 'string', 'player.displayAlias': 'string', 'allowed': 'bool', 'reason': 'string', 'scopes': 'list'}),
+    'chess-network-history': (0, '/api/games/chess/history?limit=10', {'matches': 'list', 'invites': 'list'}),
     'ai-status': (0, '/api/ai/status', {'enabled': 'bool', 'provider': 'string', 'availableModels': 'list'}),
     'classrooms': ('teacher', '/api/classrooms', {'items': 'list', 'meta.total': 'int'}),
     'classroom': ('teacher', '/api/classrooms/{classroomId}', {'classroom.id': 'string', 'classroom.title': 'string'}),

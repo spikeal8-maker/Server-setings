@@ -8,7 +8,7 @@
 
 `mixed` добавляет детерминированную смесь чтения пяти групп: модули/игры, обучение/задания/результаты, база знаний/опубликованный курс, коллекции/публичные проекты, AI status. Перед волной выполняются отдельные чтения Teacher/Admin и отрицательные проверки доступа к admin. Fixture содержит отдельного синтетического преподавателя с educator и content_author capabilities и отдельного краткоживущего platform-admin. Их права не выдаются существующим пользователям этим инструментом.
 
-Полная матрица маршрутов, ролей, семейств и API-проверок находится в [school-route-inventory.json](../profiles/school-route-inventory.json); настройки — в [school-release-load-settings.json](../profiles/school-release-load-settings.json). Здесь64 route entries: включая aliases, standalone/hash editors, вложенные шахматные и admin страницы. HTML200 не считается работающей страницей. Маршрут получает только `HTTP_DATA_CONTRACT_VERIFIED`, если проверены его обязательные API; login/signup forms, help и прочие браузерные действия остаются NOT_RUN.
+Полная матрица маршрутов, ролей, семейств и API-проверок находится в [school-route-inventory.json](../profiles/school-route-inventory.json); настройки — в [school-release-load-settings.json](../profiles/school-release-load-settings.json). Здесь 65 route entries: включая aliases, standalone/hash editors, вложенные шахматные и admin страницы. HTML200 не считается работающей страницей. Маршрут получает только `HTTP_DATA_CONTRACT_VERIFIED`, если проверены его обязательные API; login/signup forms, help и прочие браузерные действия остаются NOT_RUN.
 
 Матрица закрепляет канонические Git blob SHA256 исходников ASA. Mixed apply требует чистый checkout ровно той ревизии, которую сообщает runtime. Любое изменение закреплённого файла останавливает проверку до сетевой нагрузки. Перед новым кандидатом матрицу должен актуализировать автор и проверить независимый reviewer; обход проверки или переписывание хешей без просмотра diff не является актуализацией покрытия.
 
@@ -65,18 +65,58 @@ SSE, local-only AI, запрет платного fallback, владение QA 
 перепривязки хешей. Несекретная квитанция:
 [`school-source-inventory-alignment.json`](../snapshots/2026-11-02/school-source-inventory-alignment.json).
 
+### Сведение с canonical и контракт кандидата 53a83e53 — 02.11.2026
+
+Текущие декларации сверены с чистым Git checkout приложения
+`53a83e53d2ef40901a698082b215a314603e8d97` (programme `854b6b97` + canonical
+`c3399eb4`). Инфраструктура включает frozen main
+`05ea148c007cf2c2b56729294599c2d611a3c14a`: добавления 1Panel/SSH сохранены,
+обе части конфликта таблицы проверок сохранены полностью. Это сведение исходников,
+без применения настроек, обновления сервера или изменения рабочих данных.
+
+Все 11 fixture pins и 23 mixed-resource pins совпали без изменения хешей.
+Старые 32 route pins сохранены; из них после просмотра причинного diff изменены
+семь: navigation, AI chat/image controllers, chat/image services, Ollama adapter и
+app.module. Сохранены SSE heartbeat, worker diagnostics, `queuePaused`, required
+log coverage и защищённая runtime telemetry. Ещё 12 pins охватывают сетевые
+шахматы, working files и SQL 0294/0296/0298/0300; всего 44 route pins.
+
+Изменения API и границы проверки:
+
+| Изменение приложения | Проверка и ограничение |
+|---|---|
+| Новая `/#/chess/:projectId/network`, роли Seat/Teacher/Admin | Два обычных GET: `/api/games/chess/access` и `/history?limit=10`, с фактической сессией QA ученика. Проверяются UUID игрока, закрытые policy scopes/reason, пустая собственная история. Teacher deny наблюдается без изменения policy. Приглашения, ходы, сетевой матч и браузер остаются NOT_RUN |
+| Частные working-files list/read/restore | Каждый собственный только что созданный AI thread проходит GET списка и проверку `items=[]` до обращения к модели. Чужие/заполненные или некорректные ответы и HTTP 429 останавливают работу. Файлы не создаются, не читаются по имени и не восстанавливаются; эти действия NOT_RUN |
+| Native image file binding 0298 | Отдельный wrapper и trigger добавляют запись в точный HTML placeholder. Прежние прямые image POST/get/cancel/PNG-download не изменены; тест использует их. Реальная вставка картинки в HTML NOT_RUN |
+| Polza, document/file tools, новые activity events | Explicit `model=ollama-local` по-прежнему выбирает локальный adapter; прежний fail-closed preflight и запрет платного fallback сохранены. Документные вложения, file tools и платные провайдеры этим workload не проверяются |
+| Канонические SQL 0294–0299 и fair queue 0300 | Canonical history сохранена, очередь перенесена в 0300. Максимальная схема исходников — 300; прежняя репетиция 286→294 не подтверждает обновление 286→300 |
+
+Все исходные 64 route entries с ролями, checks и ограничениями сохранены побайтно
+на уровне нормализованного JSON (отдельная regression digest). Новая запись
+требует оба network GET; каждая браузерная запись по-прежнему NOT_RUN. Пять групп
+mixed wave сохранены, к группе модулей/игр добавлены два network GET. AI receipt
+для перехода 20→50→100 требует также `emptyWorkingFilesVerified=true`.
+
+Проверка реальными source readers: PASS для 11/44/23 pins и 65 routes на точном
+чистом checkout. Офлайн workload suite: 85 tests, 84 PASS и один POSIX skip на
+Windows; 11 тестов добавлений canonical 1Panel/ACL также PASS. Полный Linux suite
+должен пройти CI на точном infra SHA: локальный Windows запуск не принят из-за
+POSIX-модулей, permissions/symlink/procfd, разделителей путей и locale decoding.
+Фактическая нагрузка, обновление 286→300 и fresh-host приёмка остаются NOT_RUN.
+Доказательства: [snapshot](../snapshots/2026-11-02/school-canonical-convergence-source.json).
+
 ## Запуск и ограничение воздействия
 
 Без `--apply` выполняется только plan: нет чтения fixture/source и нет сети. Пример:
 
 ```sh
-python3 scripts/asa-release-load.py --origin https://school.example --revision FULL_40_HEX_SHA --schema 287 --users 20 --profile core
+python3 scripts/asa-release-load.py --origin https://school.example --revision FULL_40_HEX_SHA --schema 300 --users 20 --profile core
 ```
 
 Фактический запуск выполняет оператор на утверждённом хосте с приватным JSON fixture (0600, regular file, без symlink/hardlink), новым путём отчёта и явным `--apply`. Поля: `authorizedSyntheticFixture:true`, точный HTTPS `origin`, `seats:[{seat:UUID,token:SESSION}]`. Для mixed нужны `roles.teacher/admin:{accountId:UUID,token:SESSION}`, `resources:{classroomId,classProjectId,publicationId,publicCourseId,courseRunId,lessonId}` и `expectedRequiredLogSourceIds` — полный операторский набор обязательных подключённых источников. Документы ресурсов должны принадлежать этой QA-когорте. Реальные токены нельзя помещать в Git, CI, командную строку или примеры отчётов. Windows permission bits не доказывают NTFS ACL: live fixture следует использовать на Linux с0600 или отдельно проверенной приватной ACL.
 
 ```sh
-python3 scripts/asa-release-load.py --origin https://school.example --revision FULL_40_HEX_SHA --schema 287 --users 20 --profile mixed --source-root /private/asa-source --fixture /private/qa-fixture.json --output /private/mixed20.json --apply
+python3 scripts/asa-release-load.py --origin https://school.example --revision FULL_40_HEX_SHA --schema 300 --users 20 --profile mixed --source-root /private/asa-source --fixture /private/qa-fixture.json --output /private/mixed20.json --apply
 ```
 
 Далее50 требует `--previous-receipt /private/mixed20.json`, а100 — успешный50. Формат v3 связывает отчёт с каноническим HTTPS origin, ревизией/schema, SHA256 всей QA-когорты (seat/account IDs, resources и документы, без токенов), source inventory и точными параметрами нагрузки. На всех ступенях используют одинаковый полный fixture; токены можно обновлять без смены IDs. Profile/pace/latency/AI counts/AI budgets/deadline должны совпадать:50 с одним изображением не разрешает100 с десятью.

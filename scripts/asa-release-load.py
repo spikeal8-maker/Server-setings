@@ -363,6 +363,23 @@ class Runner(LocalAiWorkload):
             require(bool(data['sections']) and data['versionNumber'] > 0, 'published course outline is empty')
         elif key == 'games':
             require(data['granted'] is True, 'synthetic pupil games admission is disabled')
+        elif key == 'chess-network-access':
+            player = data['player']['playerId']
+            try:
+                identity = uuid.UUID(player)
+            except ValueError:
+                raise ContractError('invalid chess network player identity') from None
+            require(str(identity) == player and identity.version is not None,
+                    'invalid chess network player identity')
+            scopes = data['scopes']
+            require(all(isinstance(scope, str) and scope in ('classroom', 'school', 'platform') for scope in scopes)
+                    and len(set(scopes)) == len(scopes)
+                    and ((data['allowed'] and data['reason'] == 'allowed' and bool(scopes))
+                         or (not data['allowed'] and data['reason'] in ('teacher_restricted', 'access_unavailable')
+                             and not scopes)), 'invalid chess network access policy')
+        elif key == 'chess-network-history':
+            require(data['matches'] == [] and data['invites'] == [] and 'nextCursor' in data
+                    and data['nextCursor'] is None, 'new QA pupil chess history is not empty')
         elif key == 'admin-operations':
             require(data['build']['revision'] == self.revision and int(data['migration']['version']) == self.schema
                     and data['services'] == {'api': 'responding', 'database': 'responding'}, 'admin operations provenance mismatch')
@@ -375,7 +392,7 @@ class Runner(LocalAiWorkload):
     def mixed_pupil(self, user, barrier):
         barrier.wait(timeout=60)
         started = time.monotonic()
-        groups = [('modules', 'games'), ('learning', 'assignments', 'results'), ('knowledge', 'knowledge-course'),
+        groups = [('modules', 'games', 'chess-network-access', 'chess-network-history'), ('learning', 'assignments', 'results'), ('knowledge', 'knowledge-course'),
                   ('collections', 'public-list', 'publication'), ('ai-status', 'modules')]
         keys = groups[user % len(groups)]
         result = {'user': user + 1, 'module': 'mixed-portal', 'checks': keys, 'ok': False}

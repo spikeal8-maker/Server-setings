@@ -54,6 +54,13 @@ class SseDecoder:
 
 
 class LocalAiWorkload:
+    def verify_empty_working_files(self, user, thread):
+        # The thread was just acknowledged by createThread for this same actor.
+        # Never adopt a supplied/foreign thread or create/restore a working file.
+        data = self.call(user, f'/api/ai/threads/{thread}/working-files', label='ai-working-files-empty')
+        contract(data, {'items': 'list'})
+        require(data['items'] == [], 'new own AI thread working files are not empty')
+
     def prepare_local_ai(self):
         # Fail closed even when local is merely one selectable model but a paid default is active.
         for user in range(max(self.ai_texts, self.ai_images)):
@@ -80,6 +87,8 @@ class LocalAiWorkload:
             with self.lock:
                 self.inflight[f'ai-text:{user}'] = {'user': user + 1, 'kind': 'text', 'threadId': thread, 'requestId': request_id}
             self.checkpoint(True)
+            self.verify_empty_working_files(user, thread)
+            row['emptyWorkingFilesVerified'] = True
             # Revalidate immediately before this explicitly local request.
             local_ai(self.call(user, '/api/ai/status', label='local-ai-selection'))
             body = {'message': f'Учебная проверка {user+1}. В двух предложениях объясни переменную и вычисли {user+11}+7. Не используй инструменты.',
@@ -162,6 +171,8 @@ class LocalAiWorkload:
             with self.lock:
                 self.inflight[f'ai-image:{user}'] = {'user': user + 1, 'kind': 'image', 'threadId': thread, 'requestId': request_id}
             self.checkpoint(True)
+            self.verify_empty_working_files(user, thread)
+            row['emptyWorkingFilesVerified'] = True
             path = f'/api/ai/threads/{thread}/image-generations'
             local_ai(self.call(user, '/api/ai/status', label='local-image-selection'))
             first = submit(request_id, 'image-admit')

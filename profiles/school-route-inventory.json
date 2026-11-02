@@ -1,9 +1,9 @@
 {
   "format": "asa-portal-route-inventory-v1",
-  "sourceRevision": "0489c430d1e9d06631c970c29e30ea2229c2c9f0",
+  "sourceRevision": "53a83e53d2ef40901a698082b215a314603e8d97",
   "sourceFiles": {
     "apps/web/src/App.tsx": "d05b8afe3de64d7959e27540b725aa69f16e35a1eca0708ed7adb990cf777bf0",
-    "apps/web/src/creator-portal/navigation.ts": "d25f6c24d4e9d5adaedd82ddbb58cd3cc7814e67670a4c0e5aebe434fe7f19fe",
+    "apps/web/src/creator-portal/navigation.ts": "737912bb38ae308827fab25b9b2ce77420f623503c75d5308b6cd39a7fe80245",
     "apps/web/src/admin/admin-navigation.ts": "1c15fd955bf7adcec987f7cf0cce95b4c368991efbfbf69583b0a14e773d7f24",
     "apps/web/src/admin/ai-admin-navigation.ts": "fcb540a49f1e9063936e8f82b4792e78c846c0e8feabdc595e2b88b1e4320f06",
     "apps/web/src/api.ts": "8b63f517fda99586fb5c45e996981f47cdda90cf64ba1a9bfa74e489cdf75614",
@@ -21,19 +21,31 @@
     "apps/api/src/account-c1.controller.ts": "a57a7cbf4f78c293db389fd0c50cf0229ec0016bd6ca7d11f0967c93c50fc282",
     "apps/api/src/admin.controller.ts": "a62fe4d1d7a2083636590852fd621887e76c8ae51973abf782a039564f751b4b",
     "apps/api/src/ai-admin.controller.ts": "49c764c5e2f81b41984dc48fc19035ac6924136eb32b608eef1828e23e7f2f82",
-    "apps/api/src/ai-chat.controller.ts": "e9823158195c6013817554fe70d9edfffa54cf4f44eeeab925031386bbd69630",
-    "apps/api/src/ai-image.controller.ts": "8392d0cb942c19ff58fa34e6cbbbe3e46e18a1437dca127a844510e2b0cc0d3d",
+    "apps/api/src/ai-chat.controller.ts": "4fe4b7d75aeb6e11ca3fb95d76979bd6bd30d34330063957f5db3bb40d380416",
+    "apps/api/src/ai-image.controller.ts": "187990013dfe67f3de6bd63599715b37470f649ce418f8e943db443e196388c1",
     "packages/contracts/src/ai-image-generation.ts": "0370cc0d0a6e41b8ef1c5a513bc919f075febdd8c4a0f55243e0167845e41e55",
     "apps/api/src/course-preview.ts": "9924513948e4fdedff13346d2d3001ae276a52a5929c87f3f1b561d0b6ebd492",
     "apps/api/src/admin-logs.service.ts": "7c7937a5586037f9ac3c23ca994b09710b45c6acbc197c5f96858fea07a3a9a8",
     "apps/api/src/admin-control-plane.service.ts": "d45defc82ca8ffab4fa1b6276739085080c68881e9b5a37761b95cbe8419d8c5",
     "packages/observability/src/runtime-metrics.ts": "517d6e13765215674b9f2febf4f6bbc224d5d8787923030e0df331b46a1e2023",
-    "apps/api/src/ai-chat.service.ts": "336b4b103a3d0999c12bad4587862dcc81c7f547d42f3f9352b2fbdfc191d700",
-    "apps/api/src/ai-image.service.ts": "a72d4895612a9323cadbbd05577bb1445277986b33ceba60dfb33759a6955caf",
+    "apps/api/src/ai-chat.service.ts": "70097a57c49144d0bb82c784e013889cd280e2932e4b63c6a08aa318d2f3f7cc",
+    "apps/api/src/ai-image.service.ts": "5c8181b015ff6f5a4724ca31db3534094b30076f29daf692ea987623771544b1",
     "packages/contracts/src/public-project-display-artifact.ts": "05b69c12c2499247468022309bdc04c3cd30661bf2c5e66ab4c6c65bdcdcbac6",
-    "apps/api/src/ai-ollama.ts": "939ad5bad1a640e4a825b03c6b4037295b88c3440788447253a49f168dc56f43",
+    "apps/api/src/ai-ollama.ts": "ccde61ead32aab1b4a09631df983c5b44bf7bf212e646b5d6c8b1904e1cb09fd",
     "apps/api/src/ai-image-comfyui.ts": "a2fb1396e2fc292d43207e8dc24d3a8d2bfb309c03408b179fd64ca576ebb8af",
-    "apps/api/src/app.module.ts": "de1ca10f39133c3fdf90fba29289f1d2b5073e27234d13ac0cee6d69bf56d759"
+    "apps/api/src/app.module.ts": "8e84ef7b640538d0ae3637437cd834dfcc4dbc8df21c0c8bf1369a3cfebef476",
+    "apps/web/src/chess/chess-navigation.ts": "b15592e54e23df372981d805d56d57822325d1f823d5fafe7bf4daf423f2fd86",
+    "apps/web/src/chess/ChessModuleExperience.tsx": "7d1b68cd71a5296e3c2fa72d48b6b5fb551bd9ed4a38b32298c79cc03bf3106f",
+    "apps/web/src/chess/chess-network-api.ts": "215db9bdee98b6fd0c2252bc87c517a7f42df336d1aace5c8daeaa9196a53ba2",
+    "apps/api/src/chess-network.controller.ts": "aa384b04f14ad82be04d0627a9e275bd55e8cf564cce7c405d206a12e4dac214",
+    "contexts/games/application/chess-network.ts": "b892577a8b4816d44fffc3bcfd1e4d85dc602b2c81cae23c680bea4ffe08f694",
+    "contexts/games/infrastructure/pg-chess-network.ts": "0b3a712c1c25b893c6953519567b265293539dc8923ef71153f875993b2823d7",
+    "packages/contracts/src/chess-network.ts": "3400862e4a74ba14257dd9697cf82c0707ce36c7f7469a6c5b6ec0a875fd785a",
+    "migrations/0294_games_chess_network.sql": "04bdaf9176c814494b4d136e228b3d2e83d033a371ee3a8c82dc1be9ac01f129",
+    "apps/api/src/ai-working-files.ts": "f899a046eace3a78ec24010309644642f1dbc19a36758cd7cab34e69c0989663",
+    "migrations/0296_ai_working_files.sql": "25c78c0b59acfe665b1d5f930f110198fc68b0f14904c724db0fe3f354ee50d3",
+    "migrations/0298_ai_image_file_binding.sql": "c42c970943bf6b89fcd341cd656bf1b36d1ed4114b27d72719c15ee5fe394a30",
+    "migrations/0300_ai_image_durable_queue.sql": "0ea57787d707326f9222fb906bc7d826a91d417c3efdeeb6251c6a3156b6cd26"
   },
   "routes": [
     {
@@ -591,6 +603,21 @@
         "modules"
       ],
       "notRunReason": "Chess navigation, online concurrency, engine analysis and rules require separate browser/engine acceptance"
+    },
+    {
+      "id": "chess-network",
+      "route": "/#/chess/:projectId/network",
+      "roles": [
+        "Seat",
+        "Teacher",
+        "Admin"
+      ],
+      "source": "creator-portal/navigation.ts / chess/chess-navigation.ts / ChessModuleExperience.tsx / chess-network.controller.ts",
+      "checks": [
+        "chess-network-access",
+        "chess-network-history"
+      ],
+      "notRunReason": "Own access policy and empty QA history only; teacher restrictions are observed without changing policy. Network invitations, live matches, moves and browser interaction NOT_RUN."
     },
     {
       "id": "chess-puzzles",

@@ -287,11 +287,15 @@ class MixedResourcesTests(unittest.TestCase):
 
     def test_pinned_routes_keep_sse_and_exact_count_while_alignment_is_finite(self):
         catalog = route_inventory()
-        self.assertEqual(len(catalog['routes']), 64)
-        self.assertEqual(len(catalog['sourceFiles']), 32)
-        self.assertEqual(catalog['sourceFiles']['apps/api/src/app.module.ts'], 'de1ca10f39133c3fdf90fba29289f1d2b5073e27234d13ac0cee6d69bf56d759')
-        self.assertEqual(catalog['sourceFiles']['apps/api/src/ai-chat.controller.ts'], 'e9823158195c6013817554fe70d9edfffa54cf4f44eeeab925031386bbd69630')
+        self.assertEqual(len(catalog['routes']), 65)
+        self.assertEqual(len(catalog['sourceFiles']), 44)
+        self.assertEqual(catalog['sourceFiles']['apps/api/src/app.module.ts'], '8e84ef7b640538d0ae3637437cd834dfcc4dbc8df21c0c8bf1369a3cfebef476')
+        self.assertEqual(catalog['sourceFiles']['apps/api/src/ai-chat.controller.ts'], '4fe4b7d75aeb6e11ca3fb95d76979bd6bd30d34330063957f5db3bb40d380416')
         self.assertEqual(catalog['sourceFiles']['apps/api/src/public-projects.controller.ts'], 'b51de767636a771d89fc145c12b65805b4a0f23123bf902afa3c031e9b552d78')
+        for path in ('apps/api/src/chess-network.controller.ts', 'apps/api/src/ai-working-files.ts',
+                     'migrations/0294_games_chess_network.sql', 'migrations/0296_ai_working_files.sql',
+                     'migrations/0298_ai_image_file_binding.sql', 'migrations/0300_ai_image_durable_queue.sql'):
+            self.assertIn(path, catalog['sourceFiles'])
 
     def test_host_transport_only_adds_explicit_course_visibility_and_public_revision_query(self):
         class Response:

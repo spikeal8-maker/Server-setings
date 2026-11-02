@@ -60,8 +60,8 @@ def completed_receipt(users=20, profile='core', ai_texts=0, ai_images=0):
                        'ms': 1.0, 'status': 403 if label=='isolation-denial' else 200,
                        'ok': True, 'expectedNegative': label=='isolation-denial', 'error': None}
                       for label, count in counts.items() for i in range(count)]
-    runner.ai_results = ([{'kind':'text','ok':True,'ms':20,'firstByteMs':1,'firstTokenMs':2}]*ai_texts
-                        + [{'kind':'image','ok':True,'ms':30,'admitMs':1}]*ai_images)
+    runner.ai_results = ([{'kind':'text','ok':True,'ms':20,'firstByteMs':1,'firstTokenMs':2,'emptyWorkingFilesVerified':True}]*ai_texts
+                        + [{'kind':'image','ok':True,'ms':30,'admitMs':1,'emptyWorkingFilesVerified':True}]*ai_images)
     report = runner.report()
     assert report['passed']
     return report, binding, workload
@@ -232,6 +232,122 @@ class Release100Safety(unittest.TestCase):
         self.assertEqual(next(r for r in coverage if r['id']=='home')['http'], 'NOT_RUN')
         self.assertEqual(next(r for r in coverage if r['id']=='join-class')['http'], 'NOT_RUN')
 
+    def test_network_route_requires_both_own_reads_and_keeps_gameplay_not_run(self):
+        catalog = contracts.route_inventory()
+        self.assertEqual(len(catalog['routes']), 65)
+        # All 64 approved routes retain their exact roles, checks and limitations.
+        legacy = [r for r in catalog['routes'] if r['id'] != 'chess-network']
+        self.assertEqual(contracts.digest(legacy), '7f9713065aa046f5d3f53c588b81228c18b730f49a5f3bcc68b925fc77725b01')
+        row = next(r for r in catalog['routes'] if r['id'] == 'chess-network')
+        self.assertEqual(row['route'], '/#/chess/:projectId/network')
+        self.assertEqual(row['roles'], ['Seat', 'Teacher', 'Admin'])
+        for checks, expected in [({'chess-network-access'}, 'NOT_RUN'),
+                                 ({'chess-network-access', 'chess-network-history'}, 'DATA_CONTRACT_VERIFIED')]:
+            result = next(r for r in contracts.coverage(catalog, checks) if r['id'] == 'chess-network')
+            self.assertEqual(result['http'], expected)
+            self.assertEqual(result['browser'], 'NOT_RUN')
+
+    def test_network_access_reads_actual_pupil_and_validates_closed_policy(self):
+        runner = gate.Runner(fixture(20), 'a'*40, 20, schema=300)
+        valid = {'player': {'playerId': str(uuid.uuid4()), 'displayAlias': 'QA'},
+                 'allowed': True, 'reason': 'allowed', 'scopes': ['classroom']}
+        denied = dict(valid, allowed=False, reason='teacher_restricted', scopes=[])
+        for value in (valid, denied):
+            with mock.patch.object(runner, 'call', return_value=value) as call:
+                runner.probe('chess-network-access', 19)
+                call.assert_called_once_with(19, '/api/games/chess/access', label='portal-chess-network-access')
+        for change in ({'scopes':['external']}, {'scopes':['classroom','classroom']},
+                       {'allowed':False}, {'reason':'private-provider-message'}, {'scopes':[]},
+                       {'player':{'playerId':'not-a-player','displayAlias':'QA'}}):
+            with self.subTest(change=change), mock.patch.object(runner, 'call', return_value=dict(valid, **change)), \
+                    self.assertRaises(contracts.ContractError):
+                runner.probe('chess-network-access', 19)
+
+    def test_network_history_is_empty_own_projection_and_never_mutates(self):
+        runner = gate.Runner(fixture(20), 'a'*40, 20, schema=300)
+        valid = {'matches':[], 'invites':[], 'nextCursor':None}
+        with mock.patch.object(runner, 'call', return_value=valid) as call:
+            runner.probe('chess-network-history', 7)
+            call.assert_called_once_with(7, '/api/games/chess/history?limit=10', label='portal-chess-network-history')
+        for value in ({'matches':[], 'invites':[]}, dict(valid, matches=[{'id':'foreign'}]),
+                      dict(valid, invites=[{'id':'foreign'}]), dict(valid, nextCursor='foreign'), '<html>'):
+            with self.subTest(value=value), mock.patch.object(runner, 'call', return_value=value), \
+                    self.assertRaises(contracts.ContractError):
+                runner.probe('chess-network-history', 7)
+
+    def test_working_files_fault_prevents_image_provider_submission(self):
+        for value in ({'items':[{'name':'foreign-private-file'}]}, {'items':'invalid'}, '429'):
+            runner = gate.Runner(fixture(20), 'a'*40, 20, schema=300, ai_images=1)
+            thread = str(uuid.uuid4())
+            original = runner.call
+            def call(user, path, body=None, **kwargs):
+                self.assertEqual(user, 0)
+                if path == '/api/ai/threads':
+                    self.assertEqual(body, {})
+                    return {'id':thread}
+                self.assertEqual(path, f'/api/ai/threads/{thread}/working-files')
+                self.assertIsNone(body)
+                if value == '429':
+                    return original(user, path, **kwargs)
+                return value
+            def busy(request, timeout):
+                raise urllib.error.HTTPError(request.full_url, 429, 'synthetic', {}, io.BytesIO(b'{"error":{"code":"secret"}}'))
+            with self.subTest(value=value), mock.patch.object(runner, 'call', side_effect=call), \
+                    mock.patch.object(runner.opener, 'open', side_effect=busy):
+                result = runner.ai_image(0, threading.Barrier(1))
+            self.assertFalse(result['ok'])
+            self.assertNotIn('emptyWorkingFilesVerified', result)
+            self.assertTrue(runner.halt_new.is_set())
+            self.assertFalse(runner.inflight)
+            self.assertNotIn('foreign-private-file', json.dumps(result))
+            self.assertNotIn('secret', json.dumps(runner.samples))
+
+    def test_ai_escalation_requires_own_empty_working_files_proof(self):
+        report, binding, workload = completed_receipt(profile='mixed', ai_texts=1, ai_images=1)
+        for index in (0, 1):
+            changed = copy.deepcopy(report)
+            changed['ai'][index].pop('emptyWorkingFilesVerified')
+            with self.assertRaisesRegex(contracts.ContractError, 'working-files'):
+                contracts.previous_step(changed, binding, workload, 50, time.time())
+
+    def test_text_checks_own_empty_working_files_before_local_stream_and_history(self):
+        runner = gate.Runner(fixture(20), 'a'*40, 20, schema=300, ai_texts=1)
+        thread = str(uuid.uuid4())
+        calls = []
+        sent = {}
+        answer = 'A variable stores a value. 18.'
+        def call(user, path, body=None, **kwargs):
+            self.assertEqual(user, 4)
+            calls.append(path)
+            if path == '/api/ai/threads': return {'id':thread}
+            if path == f'/api/ai/threads/{thread}/working-files': return {'items':[]}
+            if path == '/api/ai/status':
+                return {'enabled':True,'provider':'ollama','model':'ollama-local','availableModels':['ollama-local']}
+            self.assertEqual(path, f'/api/ai/threads/{thread}/messages')
+            return {'items':[{'requestId':sent['requestId'],'role':'assistant','content':answer}]}
+        def open_stream(request, timeout):
+            self.assertEqual(calls, ['/api/ai/threads', f'/api/ai/threads/{thread}/working-files', '/api/ai/status'])
+            self.assertEqual(request.full_url, runner.origin + f'/api/ai/threads/{thread}/messages/stream')
+            sent.update(json.loads(request.data))
+            self.assertEqual(sent['model'], 'ollama-local')
+            self.assertEqual(sent['webSearchMode'], 'off')
+            self.assertEqual(sent['nativeImage'], {'mode':'off','size':768})
+            done = {'stopped':False,'messages':[{'requestId':sent['requestId'],'role':'assistant','content':answer}]}
+            chunks = iter([('event: delta\ndata: '+json.dumps({'text':answer})+'\n\nevent: done\ndata: '+json.dumps(done)+'\n\n').encode(), b''])
+            response = mock.MagicMock()
+            response.status = 200
+            response.headers = {'Content-Type':'text/event-stream'}
+            response.read1.side_effect = lambda size: next(chunks)
+            response.__enter__.return_value = response
+            return response
+        with mock.patch.object(runner, 'call', side_effect=call), mock.patch.object(runner.opener, 'open', side_effect=open_stream):
+            result = runner.ai_text(4, threading.Barrier(1))
+        self.assertTrue(result['ok'])
+        self.assertTrue(result['emptyWorkingFilesVerified'])
+        self.assertEqual(result['answerChars'], len(answer))
+        self.assertEqual(result['doneCount'], 1)
+        self.assertFalse(runner.inflight)
+
     def test_hard_deadline_kills_worker_and_preserves_partial_failure(self):
         context = multiprocessing.get_context('spawn'); receive, send = context.Pipe(duplex=False); cancel = context.Event()
         child = context.Process(target=hold_pipe, args=(send,)); child.start(); send.close()
@@ -267,6 +383,7 @@ class Release100Safety(unittest.TestCase):
             calls.append((user,path,body,kwargs.get('label')))
             self.assertEqual(user, 0)
             if path == '/api/ai/threads': return {'id':thread}
+            if path == f'/api/ai/threads/{thread}/working-files': return {'items':[]}
             if path == '/api/ai/status': return {'enabled':True,'provider':'ollama','model':'ollama-local','availableModels':['ollama-local']}
             if path.endswith('/image-generations'):
                 rid=body['requestId']
@@ -284,6 +401,7 @@ class Release100Safety(unittest.TestCase):
         with mock.patch.object(runner,'call',side_effect=call):
             result=runner.ai_image(0,threading.Barrier(1))
         self.assertTrue(result['ok']); self.assertTrue(result['cancelledConfirmed']); self.assertTrue(result['confirmedReplaySameRequestId'])
+        self.assertTrue(result['emptyWorkingFilesVerified'])
         self.assertEqual(len(dispatched),2)
         self.assertEqual(dispatched[0],result['requestId']); self.assertEqual(dispatched[1],result['retryRequestId'])
         self.assertEqual(sum(c[1].endswith('/image') for c in calls),2)
