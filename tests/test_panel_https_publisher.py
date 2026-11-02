@@ -98,11 +98,14 @@ class PublisherTests(unittest.TestCase):
     def test_public_key_cookie_usable_by_browser_login_and_other_cookies_httponly(self):
         content = publisher.proxy_content(True)
         public_key_rule = 'proxy_cookie_flags panel_public_key secure nohttponly samesite=lax;'
+        csrf_rule = 'proxy_cookie_flags pcsrftoken secure nohttponly samesite=lax;'
         default_rule = 'proxy_cookie_flags ~ secure httponly samesite=lax;'
         self.assertIn(public_key_rule, content)
+        self.assertIn(csrf_rule, content)
         self.assertIn(default_rule, content)
         self.assertLess(content.index(public_key_rule), content.index(default_rule))
-        self.assertEqual(content.count('proxy_cookie_flags '), 2)
+        self.assertLess(content.index(csrf_rule), content.index(default_rule))
+        self.assertEqual(content.count('proxy_cookie_flags '), 3)
         self.assertEqual(content.count('location / {'), 1)
         self.assertNotIn('location = /api/v2/core/auth/setting {', content)
         self.assertIn('set $asa_panel_request_cookie $http_cookie;', content)

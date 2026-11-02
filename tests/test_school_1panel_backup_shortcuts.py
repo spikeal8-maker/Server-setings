@@ -10,6 +10,20 @@ spec.loader.exec_module(mod)
 
 
 class QuickCommandsTests(unittest.TestCase):
+    def test_canonical_site_allows_additional_panel_site(self):
+        canonical={"primaryDomain":"x.asa-lab.ru","type":"proxy","alias":"asa-lab-x"}
+        panel={"primaryDomain":"1panel.x.asa-lab.ru","type":"proxy","alias":"asa-school-panel"}
+        mod.require_canonical_site([canonical])
+        mod.require_canonical_site([panel,canonical])
+
+    def test_canonical_site_refuses_missing_duplicate_wrong_type_or_alias(self):
+        canonical={"primaryDomain":"x.asa-lab.ru","type":"proxy","alias":"asa-lab-x"}
+        for sites in ([],[{**canonical,"primaryDomain":"wrong.asa-lab.ru"}],
+                      [canonical,canonical.copy()],[{**canonical,"type":"static"}],
+                      [{**canonical,"alias":"wrong"}]):
+            with self.subTest(sites=sites),self.assertRaisesRegex(mod.ShortcutError,"1PANEL_VM100_IDENTITY_UNVERIFIED"):
+                mod.require_canonical_site(sites)
+
     def test_top_sorted_commands_include_backup_and_recovery(self):
         self.assertEqual(len(mod.COMMANDS),11)
         names=[row[0] for row in mod.COMMANDS]

@@ -62,6 +62,13 @@ def require_host():
         raise ShortcutError("DUPLICATED_QUICK_COMMANDS")
 
 
+def require_canonical_site(sites):
+    canonical=[site for site in sites if site.get("primaryDomain")=="x.asa-lab.ru"]
+    if (len(canonical)!=1 or canonical[0].get("type")!="proxy"
+            or canonical[0].get("alias")!="asa-lab-x"):
+        raise ShortcutError("1PANEL_VM100_IDENTITY_UNVERIFIED")
+
+
 def client():
     spec=importlib.util.spec_from_file_location("official_school_panel",PANELCTL)
     module=importlib.util.module_from_spec(spec)
@@ -70,8 +77,7 @@ def client():
     api=module.PanelAPI(PANEL,key)
     module.require_local_write(api)
     sites=module.websites(api)
-    if len(sites)!=1 or sites[0].get("primaryDomain")!="x.asa-lab.ru":
-        raise ShortcutError("1PANEL_VM100_IDENTITY_UNVERIFIED")
+    require_canonical_site(sites)
     return api
 
 
