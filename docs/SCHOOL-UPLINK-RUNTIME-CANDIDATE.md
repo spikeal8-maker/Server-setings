@@ -2,7 +2,7 @@
 
 Runtime source проверен в изолированных namespaces и установлен контроллером
 в dormant состоянии на PVE. На физическом uplink оборудовании не квалифицирован,
-НЕ armed. WiFi/USB/SIM отсутствует. Main convergence один раз с phase1 main0378b6d.
+НЕ armed. USB WiFi MT7610U/mt76x0u присутствует, но uplink/SSID не настроен; modem/SIM-router не квалифицированы. Main convergence один раз с phase1 main0378b6d.
 
 ## Проверки и границы доказательства
 
@@ -141,3 +141,24 @@ FRP NRestarts1 остался baseline, FRP не перезапускался.
 сетевые изменения. Hardware qualification/arm/реальный reboot остаются отдельной
 будущей приёмкой владельца. GitHub exact-head CI может ещё ожидать runner;
 локальный CI-equivalent фиксируется отдельно, а queued не называется PASS.
+
+## Локальный полный static CI-equivalent
+
+Git source archive494d069 (runtime codefeeb1f2) проверен в disposable WSL
+NET+PID+MOUNT/private-run namespace. 460 tests run: **459 PASS, 1 conditional SKIP**,
+14.789s. Единственный skip: test_real_canonical_dependency_closure_and_import,
+требует ASA_CANONICAL_SOURCE_REPO с pinned ASA runtime checkout; CI по умолчанию
+также не задаёт этот внешний fixture. Он не называется проверенным restore.
+
+Bash syntax, compileall scripts/tests, home-static/home-dynamic/vps plan и
+git diff --check HEAD — PASS. В ephemeral venv установлен exact PyYAML6.0.3
+из offline wheel, без глобальной установки пакетов WSL. Отсутствующий ensurepip
+обойдён venv --without-pip + ephemeral pip wheel, не изменением исходных tests.
+
+Runner исправлен до повторного gate: Windows Git archive с autocrlf=true менял
+Git LF blobs в CRLF (pin fixture закономерно падал), поэтому archive создан с
+core.autocrlf=false и побайтно сверен с Git blobs; temporary Git также не меняет
+line endings. Дополнительный parent shell воспроизводит обычную CI process
+ancestry вместо namespace PID1 для self-admin fixtures. Ни один тест не исключён
+и source pin/guard не ослаблен. GitHub workflows ещё queued, это отдельное
+состояние, а не удалённый CI PASS. Последующие commits — только proof metadata.

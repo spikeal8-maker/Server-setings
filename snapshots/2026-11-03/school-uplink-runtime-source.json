@@ -5,7 +5,7 @@
   "scope": "IPv4 PVE host uplink only",
   "runtime_profiles": "private-only",
   "actual_hardware_qualification": false,
-  "namespace_ci": "PENDING_EXACT_HEAD",
+  "namespace_ci": "GITHUB_QUEUED_NOT_CLAIMED_PASS",
   "independent_review": {
     "source_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
     "status": "PASS",
@@ -52,5 +52,18 @@
   },
   "initial_runtime_base_sha": "d631c25cf02e497ef224f61e532e72036831649e",
   "immutable_deployed_phase1_c6_source_changed": false,
-  "local_full_static_ci_equivalent": "RUNNING_PINNED_PYYAML_6.0.3"
+  "local_full_static_ci_equivalent": {
+    "source_archive_sha": "494d069931579c6cd64d9f044f0bf87f8f17c574",
+    "code_sha": "feeb1f22366557871e7a033fec0a49bb93b5a460",
+    "status": "PASS_WITH_ONE_CONDITIONAL_SKIP",
+    "tests_run": 460,
+    "passed": 459,
+    "skipped": 1,
+    "seconds": 14.789,
+    "skip": "canonical ASA checkout fixture not configured",
+    "dependency": "PyYAML==6.0.3",
+    "bash_compile_three_profiles_git_diff": "PASS",
+    "runner": "existing WSL; ephemeral venv; isolated NET/PID/MOUNT/private-run; exact Git blob archive LF"
+  },
+  "hardware_inventory_note": "USB WiFi MT7610U/mt76x0u present but uplink unconfigured; modem/SIM-router not qualified"
 }
