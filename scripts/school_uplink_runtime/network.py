@@ -81,12 +81,20 @@ def baseline(commands, dns):
     for table in (MANAGEMENT_TABLE, BACKUP_TABLE):
         # iproute2 returns ENOENT for empty/unregistered numeric tables.
         result = commands.call('ip', '-j', '-4', 'route', 'show', 'table', str(table), check=False)
-        require(result.returncode in (0, 2) and (result.stdout.strip() in ('', '[]')), 'POLICY_TABLE_NOT_EMPTY')
+        require(empty_table(result), 'POLICY_TABLE_NOT_EMPTY')
     snap = dns.snapshot()
     import base64
     nameservers = [line.split()[1:] for line in base64.b64decode(snap['data']).decode().splitlines() if line.strip().startswith('nameserver')]
     require(nameservers == [['10.167.146.13']], 'PRIMARY_DNS_CHANGED')
     return {'routes': routes, 'rules': rules, 'dns': snap}
+
+
+def empty_table(result):
+    if result.returncode == 0:
+        return result.stdout.strip() == '[]'
+    # iproute2 can emit the opening JSON '[' before ENOENT. Accept only its
+    # explicit missing-FIB error, never an arbitrary failed/partial dump.
+    return result.returncode == 2 and result.stdout.strip() in ('', '[', '[]') and 'FIB table does not exist' in result.stderr and 'Dump terminated' in result.stderr
 
 
 def route_configuration(rows):

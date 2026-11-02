@@ -132,14 +132,19 @@ class RuntimeNetns(unittest.TestCase):
     def test_partial_route_transaction_recovery(self):
         pid = os.fork()
         if pid == 0:
-            manager = Manager(self.commands, self.config, self.state, self.resolver)
-            original = manager.remember
-            def crash(forward, inverse):
-                original(forward, inverse)
-                if len(manager.record['undo']) == 3:
-                    os._exit(77)
-            manager.remember = crash
-            manager.prepare({'mode': 'router', 'interface': 'nic0', 'qualified': False}, self.lease)
+            try:
+                manager = Manager(self.commands, self.config, self.state, self.resolver)
+                original = manager.remember
+                def crash(forward, inverse):
+                    original(forward, inverse)
+                    if len(manager.record['undo']) == 3:
+                        os._exit(77)
+                manager.remember = crash
+                manager.prepare({'mode': 'router', 'interface': 'nic0', 'qualified': False}, self.lease)
+            except BaseException:
+                import traceback
+                traceback.print_exc()
+                os._exit(78)
             os._exit(99)
         _, status = os.waitpid(pid, 0)
         self.assertEqual(os.waitstatus_to_exitcode(status), 77)

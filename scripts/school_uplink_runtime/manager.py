@@ -6,7 +6,7 @@ import time
 
 from .adapters import profile_digest, select_interface, start_adapter, stop_process
 from .network import (BACKUP_TABLE, MANAGEMENT_TABLE, PRIMARY_DEVICE, PRIMARY_GATEWAY,
-                      PRIMARY_IP, PRIMARY_NETWORK, PROTOCOL, baseline, dns_probe, https_probe, route_configuration, management_gate)
+                      PRIMARY_IP, PRIMARY_NETWORK, PROTOCOL, baseline, dns_probe, https_probe, route_configuration, management_gate, empty_table)
 from .storage import DNSLease, load, lock, private_directory, require, save, Stop
 
 
@@ -241,7 +241,7 @@ class Manager:
         require(not any(r.get('priority') in (10000, 10005, 10010, 10020) for r in remaining), 'POLICY_RULE_CLEANUP_FAILED')
         for table in (MANAGEMENT_TABLE, BACKUP_TABLE):
             result = self.commands.call('ip', '-j', '-4', 'route', 'show', 'table', str(table), check=False)
-            require(result.returncode in (0, 2) and result.stdout.strip() in ('', '[]'), 'POLICY_ROUTE_CLEANUP_FAILED')
+            require(empty_table(result), 'POLICY_ROUTE_CLEANUP_FAILED')
         require(route_configuration(self.commands.query('-4', 'route', 'show', 'table', 'main')) == route_configuration(self.record['baseline']['routes']), 'MAIN_CHANGED_NOT_REWRITTEN')
         self.journal.unlink()
         for pattern in ('wifi.conf', 'dhclient.leases', 'dhcp-*.json', 'lease-*.json'):
