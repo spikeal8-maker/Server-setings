@@ -52,6 +52,10 @@ def main():
     assert not STATE.is_symlink()
     STATE.mkdir(mode=0o700, exist_ok=True)
     assert STATE.stat().st_uid == 0 and STATE.stat().st_mode & 0o077 == 0
+    # Keep this descriptor locked for the lifetime of this standalone CLI process.
+    import fcntl
+    lock_fd = os.open(STATE / '.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)
     for name in ['pending', 'before.json']:
         assert not (STATE / name).is_symlink()
     if a.action == 'confirm':
@@ -69,6 +73,8 @@ def main():
     assert not (STATE / 'pending').exists(), 'Change already pending; inspect first'
     script = Path(__file__).resolve()
     assert script.stat().st_uid == 0 and not script.stat().st_mode & 0o022
+    for parent in script.parents:
+        assert parent.stat().st_uid == 0 and not parent.stat().st_mode & 0o022, 'Untrusted timer script parent'
     run('/usr/sbin/sshd', '-t')
     record = {'existed': TARGET.exists(), 'content': TARGET.read_text() if TARGET.exists() else '',
               'mode': TARGET.stat().st_mode & 0o777 if TARGET.exists() else 0o644}
