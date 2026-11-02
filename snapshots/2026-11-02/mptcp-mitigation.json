@@ -1,0 +1,14 @@
+{
+  "host": "admins-MS-7D22",
+  "before": 1,
+  "after": 0,
+  "persistent_file": "/etc/sysctl.d/90-asa-no-mptcp.conf",
+  "network_restart": false,
+  "ssh_key_sudo_verified": true,
+  "root_mcp_operation": "2e37975464384cbb8e122e1fb681fa59",
+  "root_mcp_status": "success",
+  "post_change_reboot_tested": false,
+  "source_reviewed": "e2facca",
+  "vendor_reference": "https://github.com/1Panel-dev/1Panel/releases/tag/v2.4.2",
+  "production_ready": false
+}
