@@ -90,12 +90,21 @@ class PublicContract(unittest.TestCase):
             self.assertEqual(prefix[-2:], ['/usr/bin/systemctl', '--user'])
             self.assertIn('DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus', prefix)
             self.assertIn('-i', prefix)
-            self.assertEqual(query.call_args.args[0][:3], ['/usr/bin/loginctl', 'show-user', '1000'])
+            query.assert_called_once_with(
+                ['/usr/bin/loginctl', 'show-user', '1000', '--property=Linger',
+                 '--property=RuntimePath', '--property=State'],
+                capture_output=True, text=True, timeout=10)
             for bad in (SimpleNamespace(st_uid=2000, st_mode=stat.S_IFSOCK | 0o777), SimpleNamespace(st_uid=1000, st_mode=stat.S_IFLNK | 0o777)):
                 with patch.object(m.os, 'stat', return_value=bad), self.assertRaisesRegex(m.Blocked, 'USER_BUS_UNTRUSTED'):
                     m.user_manager_prefix(identity)
             with patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stdout='')), self.assertRaisesRegex(m.Blocked, 'USER_MANAGER_UNAVAILABLE'):
                 m.user_manager_prefix(identity)
+            # H03's comma-list adapter returned exit0 with no requested fields.
+            # A successful process exit is never proof of a usable user manager.
+            for stdout in ('', 'Linger=yes\nRuntimePath=/run/user/1000\n',
+                           'RuntimePath=/run/user/1000\nState=active\n', 'Linger=yes\nState=active\n'):
+                with self.subTest(stdout=stdout), patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=stdout)), self.assertRaisesRegex(m.Blocked, 'USER_MANAGER_UNAVAILABLE'):
+                    m.user_manager_prefix(identity)
 
 
 @unittest.skipUnless(os.name == 'posix' and hasattr(os, 'O_NOFOLLOW'), 'Actual fd/flock/modes require Linux; Ubuntu CI runs these')

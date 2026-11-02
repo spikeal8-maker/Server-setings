@@ -197,7 +197,8 @@ def user_manager_prefix(identity):
                 stat.S_ISSOCK(bus.st_mode) and bus.st_uid == uid, 'USER_BUS_UNTRUSTED')
     finally:
         os.close(fd)
-    query = subprocess.run(['/usr/bin/loginctl', 'show-user', str(uid), '--property=Linger,RuntimePath,State'],
+    query = subprocess.run(['/usr/bin/loginctl', 'show-user', str(uid),
+                            '--property=Linger', '--property=RuntimePath', '--property=State'],
                            capture_output=True, text=True, timeout=10)
     values = dict(line.split('=', 1) for line in query.stdout.splitlines() if '=' in line)
     require(query.returncode == 0 and values.get('Linger') == 'yes' and values.get('RuntimePath') == str(runtime)
