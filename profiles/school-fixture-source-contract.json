@@ -1,6 +1,7 @@
 {
   "version": 1,
   "sourceRepository": "spikeal8-maker/asa-lab",
+  "observedSourceRevision": "0489c430d1e9d06631c970c29e30ea2229c2c9f0",
   "sourceFiles": {
     "migrations/0010_account_identity_sessions_v2.sql": "ef016ec5286a25a6465804ddf52886170c11558dc53248a1b5f9a8aa27aabf65",
     "migrations/0021_classroom_roster_studentseat.sql": "282565ce27a3c04f3df66a36c62a18e312bed95dbfbc8537504752fb989ef4dd",

@@ -1,12 +1,12 @@
 {
   "format": "asa-portal-route-inventory-v1",
-  "sourceRevision": "0d693050fc75b9e5e040e00227a654b5f772e87a",
+  "sourceRevision": "0489c430d1e9d06631c970c29e30ea2229c2c9f0",
   "sourceFiles": {
     "apps/web/src/App.tsx": "d05b8afe3de64d7959e27540b725aa69f16e35a1eca0708ed7adb990cf777bf0",
     "apps/web/src/creator-portal/navigation.ts": "d25f6c24d4e9d5adaedd82ddbb58cd3cc7814e67670a4c0e5aebe434fe7f19fe",
     "apps/web/src/admin/admin-navigation.ts": "1c15fd955bf7adcec987f7cf0cce95b4c368991efbfbf69583b0a14e773d7f24",
     "apps/web/src/admin/ai-admin-navigation.ts": "fcb540a49f1e9063936e8f82b4792e78c846c0e8feabdc595e2b88b1e4320f06",
-    "apps/web/src/api.ts": "6552de8d6871294120306103f08004d62b9505bf8f098b75c792535477a57f29",
+    "apps/web/src/api.ts": "8b63f517fda99586fb5c45e996981f47cdda90cf64ba1a9bfa74e489cdf75614",
     "apps/web/src/admin/admin-api.ts": "e22f672b26c3002c3f38f41a7ab93c747f3839a8478b0c88b8541b5f30b07997",
     "apps/api/src/health.controller.ts": "2cfbac4dc32fc701235336d24516bc5f60afae5279ae075c0bef615a3bb7ac29",
     "apps/api/src/projects.controller.ts": "3e96756e218888373849a606301f14a239b2fbe9314606c6bc74af817850c15c",
@@ -30,7 +30,7 @@
     "packages/observability/src/runtime-metrics.ts": "517d6e13765215674b9f2febf4f6bbc224d5d8787923030e0df331b46a1e2023",
     "apps/api/src/ai-chat.service.ts": "336b4b103a3d0999c12bad4587862dcc81c7f547d42f3f9352b2fbdfc191d700",
     "apps/api/src/ai-image.service.ts": "a72d4895612a9323cadbbd05577bb1445277986b33ceba60dfb33759a6955caf",
-    "packages/contracts/src/public-project-display-artifact.ts": "c0b2bf7caf2150e2669dcacce18f0f5151df0f985f70cebbe31b83d026fb0de9",
+    "packages/contracts/src/public-project-display-artifact.ts": "05b69c12c2499247468022309bdc04c3cd30661bf2c5e66ab4c6c65bdcdcbac6",
     "apps/api/src/ai-ollama.ts": "939ad5bad1a640e4a825b03c6b4037295b88c3440788447253a49f168dc56f43",
     "apps/api/src/ai-image-comfyui.ts": "a2fb1396e2fc292d43207e8dc24d3a8d2bfb309c03408b179fd64ca576ebb8af"
   },
