@@ -84,11 +84,11 @@ def validate(profile):
     if mode=='wifi':
         if set(profile)!={'mode','ssid','password','qualified'}:raise Stop('Неизвестные поля Wi-Fi')
         text(profile['ssid'],32);password=text(profile['password'],63)
-        if len(password)<8:raise Stop('Нужен WPA2/WPA3 пароль от8до63символов')
+        if len(password)<8:raise Stop('Нужен WPA2-Personal пароль от8до63символов; WPA3-only пока не поддерживается')
     elif mode=='router':
         if set(profile)!={'mode','interface','qualified'} or profile['interface'] not in NICS:raise Stop('Выберите свободный nic0/nic2/nic3')
     elif mode=='modem':
-        if set(profile)!={'mode','apn','qualified'} or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,99}',profile['apn']):raise Stop('Недопустимый APN')
+        if set(profile)!={'mode','apn','qualified'} or not isinstance(profile['apn'],str) or (profile['apn'] and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,99}',profile['apn'])):raise Stop('Недопустимый APN')
     else:raise Stop('Неизвестный тип профиля')
 
 
@@ -201,8 +201,8 @@ def setup():
     if choice=='1':profile={'mode':'wifi','ssid':input('SSID: '),'password':getpass.getpass('Пароль Wi-Fi (скрыт): '),'qualified':False}
     elif choice=='2':profile={'mode':'router','interface':input('Свободный порт nic0/nic2/nic3: ').strip(),'qualified':False}
     elif choice=='3':
-        print('Модем сейчас не обнаружен. PIN не запрашивается: заблокированная SIM потребует отдельного безопасного подключения.')
-        profile={'mode':'modem','apn':input('APN оператора: ').strip(),'qualified':False}
+        print('USB HiLink/раздача телефона: адрес автоматически по DHCP, APN настраивается в модеме/телефоне. Serial/PPP/MBIM/заблокированная SIM требуют отдельной настройки; PIN не запрашивается.')
+        profile={'mode':'modem','apn':input('APN (необязательно, Enter — пропустить): ').strip(),'qualified':False}
     else:raise Stop('Выбор отменён')
     save(profile);print('Офлайн-профиль сохранён приватно. Сеть не изменена; автопереключение выключено.')
 

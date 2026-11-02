@@ -17,8 +17,24 @@ def require(value, reason):
         raise Stop(reason)
 
 
+def trust(path, missing=False):
+    path = Path(path)
+    require(path.is_absolute() and '..' not in path.parts, 'ABSOLUTE_TRUSTED_PATH')
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        try:
+            s = current.lstat()
+        except FileNotFoundError:
+            require(missing, 'MISSING_TRUSTED_PATH')
+            return
+        require(not stat.S_ISLNK(s.st_mode) and s.st_uid == 0 and not s.st_mode & 0o022, 'UNTRUSTED_PATH_ANCESTOR')
+        require(current == path or stat.S_ISDIR(s.st_mode), 'PARENT_NOT_DIRECTORY')
+
+
 def private_directory(path):
     path = Path(path)
+    trust(path, missing=True)
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     s = path.lstat()
     require(stat.S_ISDIR(s.st_mode) and s.st_uid == 0 and stat.S_IMODE(s.st_mode) == 0o700, 'PRIVATE_DIRECTORY')
@@ -27,6 +43,7 @@ def private_directory(path):
 
 def atomic(path, data, mode=0o600):
     path = Path(path)
+    trust(path, missing=True)
     fd, temporary = tempfile.mkstemp(prefix='.' + path.name, dir=path.parent)
     try:
         os.fchmod(fd, mode)
@@ -51,6 +68,7 @@ def save(path, value):
 
 def load(path):
     path = Path(path)
+    trust(path)
     s = path.lstat()
     require(stat.S_ISREG(s.st_mode) and s.st_uid == 0 and stat.S_IMODE(s.st_mode) == 0o600 and s.st_nlink == 1, 'PRIVATE_FILE')
     return json.loads(path.read_bytes())
@@ -58,6 +76,7 @@ def load(path):
 
 @contextlib.contextmanager
 def lock(path):
+    trust(path, missing=True)
     fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         s = os.fstat(fd)
@@ -79,6 +98,7 @@ class DNSLease:
         self.path = Path(path)
 
     def snapshot(self):
+        trust(self.path)
         fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
         try:
             s = os.fstat(fd)
@@ -101,6 +121,8 @@ class DNSLease:
         # Crash after intent but before replacement: original resolver already OK.
         if current == lease['original']:
             return
+        if all(current[k] == lease['original'][k] for k in ('data', 'uid', 'gid', 'mode')):
+            return  # Crash after restoring original bytes, before journal clear.
         if 'owned' not in lease and current['data'] == lease.get('planned') and current['inode'] != lease['original']['inode']:
             # Write-ahead DNS intent survived a crash after atomic replacement
             # but before its new inode could be journalled. Exact planned bytes

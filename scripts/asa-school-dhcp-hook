@@ -1,10 +1,19 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -I
 """Replacement -sf script: emits a validated private proposal, never routes/DNS."""
 import os
 from pathlib import Path
 import sys
+import stat
 
-sys.path.insert(0, '/usr/local/lib/asa-school-uplink')
+base = Path(__file__).absolute().parent
+for path in [Path(__file__).absolute(), *sorted((base / 'school_uplink_runtime').glob('*.py'))]:
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        info = current.lstat()
+        if stat.S_ISLNK(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+            raise SystemExit(2)
+sys.path.insert(0, str(Path(__file__).absolute().parent))
 from school_uplink_runtime.adapters import dhcp_hook
 
 try:

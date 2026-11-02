@@ -25,7 +25,7 @@ MANAGEMENT_PEER = '172.23.104.191'
 
 class Commands:
     def call(self, *args, check=True):
-        result = subprocess.run(list(args), capture_output=True, text=True, timeout=20)
+        result = subprocess.run(list(args), capture_output=True, text=True, timeout=20, env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C', 'LC_ALL': 'C'})
         require(not check or result.returncode == 0, 'COMMAND_FAILED:' + args[0])
         return result
 
@@ -58,16 +58,25 @@ def lease_from_environment(env, interface):
     require(address not in (network.network_address, network.broadcast_address) and gateway in network and gateway not in (address, network.network_address, network.broadcast_address), 'DHCP_GATEWAY')
     duration = int(env.get('new_dhcp_lease_time', '0'))
     require(60 <= duration <= 604800, 'DHCP_LEASE_TIME')
-    return {'interface': interface, 'address': str(address), 'prefix': network.prefixlen, 'network': str(network), 'gateway': str(gateway), 'dns': list(map(str, servers)), 'expires': time.time() + duration}
+    return {'interface': interface, 'address': str(address), 'prefix': network.prefixlen, 'network': str(network), 'gateway': str(gateway), 'dns': list(map(str, servers)),
+            'expires': time.time() + duration, 'expires_mono': time.monotonic() + duration, 'boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
 
 
 def check_device(commands, interface, sysfs=Path('/sys/class/net')):
     interface_name(interface)
     rows = commands.query('link', 'show', 'dev', interface)
     require(len(rows) == 1 and not rows[0].get('master'), 'INTERFACE_MASTER_OR_MISSING')
+    require('UP' not in rows[0].get('flags', []), 'FREE_DEVICE_MUST_BE_DOWN_NO_TAKEOVER')
     require(not (sysfs / interface / 'master').exists(), 'INTERFACE_MASTER')
-    require(not commands.query('-4', 'address', 'show', 'dev', interface)[0].get('addr_info'), 'INTERFACE_ALREADY_ADDRESSED')
+    require(not addresses(commands, interface), 'INTERFACE_ALREADY_ADDRESSED')
+    ipv6 = [a for row in commands.query('-6', 'address', 'show', 'dev', interface) for a in row.get('addr_info', [])]
+    require(not any(a.get('scope') != 'link' for a in ipv6), 'FOREIGN_IPV6_ADDRESS')
+    require(not any(r.get('dev') == interface and r.get('dst') != 'fe80::/64' for r in commands.query('-6', 'route', 'show', 'table', 'main')), 'FOREIGN_IPV6_ROUTE')
     return {'interface': interface, 'mac': rows[0]['address'], 'ifindex': rows[0]['ifindex'], 'was_up': 'UP' in rows[0].get('flags', [])}
+
+
+def addresses(commands, interface):
+    return [a for row in commands.query('-4', 'address', 'show', 'dev', interface) for a in row.get('addr_info', [])]
 
 
 def baseline(commands, dns):
@@ -144,7 +153,32 @@ def dns_probe(commands, server, source, interface):
         response = sock.recv(4096)
     require(len(response) >= 12, 'DNS_RESPONSE')
     ident, flags, questions, answers, _, _ = struct.unpack('!6H', response[:12])
-    require(ident == transaction and flags & 0x8000 and not flags & 0xF and questions == 1 and answers > 0, 'DNS_RESOLVER_FAILED')
+    require(ident == transaction and flags & 0x8000 and not flags & 0xF and not flags & 0x200 and questions == 1 and 1 <= answers <= 32, 'DNS_RESOLVER_FAILED')
+    question = query[12:]
+    require(response[12:12 + len(question)] == question, 'DNS_QUESTION_MISMATCH')
+    offset, found = 12 + len(question), False
+    for _ in range(answers):
+        while True:
+            require(offset < len(response), 'DNS_TRUNCATED_NAME')
+            length = response[offset]
+            offset += 1
+            if length & 0xC0 == 0xC0:
+                require(offset < len(response) and ((length & 0x3F) << 8 | response[offset]) < len(response), 'DNS_BAD_POINTER')
+                offset += 1
+                break
+            require(length <= 63 and offset + length <= len(response), 'DNS_BAD_LABEL')
+            offset += length
+            if length == 0:
+                break
+        require(offset + 10 <= len(response), 'DNS_TRUNCATED_ANSWER')
+        kind, family, _, size = struct.unpack('!HHIH', response[offset:offset + 10])
+        offset += 10
+        require(offset + size <= len(response), 'DNS_TRUNCATED_RDATA')
+        if kind == 1 and family == 1 and size == 4:
+            value = ipaddress.IPv4Address(response[offset:offset + 4])
+            found |= not (value.is_unspecified or value.is_multicast or value.is_loopback)
+        offset += size
+    require(found, 'DNS_NO_USABLE_IPV4_ANSWER')
     return True
 
 

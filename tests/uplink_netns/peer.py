@@ -18,6 +18,7 @@ ip('link', 'set', 'lo', 'up')
 for interface, address in (('primpeer', '172.23.104.1/23'), ('backpeer', '198.18.0.1/24')):
     ip('addr', 'add', address, 'dev', interface)
     ip('link', 'set', interface, 'up')
+ip('addr', 'add', '198.18.0.254/24', 'dev', 'backpeer')
 for address in ('1.1.1.1/32', '8.8.8.8/32', '172.23.104.234/32', '172.23.104.191/32'):
     ip('addr', 'add', address, 'dev', 'lo')
 
@@ -39,9 +40,9 @@ server.socket = context.wrap_socket(server.socket, server_side=True)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 
 
-def dns():
+def dns(address):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.bind(('198.18.0.1', 53))
+        sock.bind((address, 53))
         while True:
             query, address = sock.recvfrom(4096)
             header = query[:2] + struct.pack('!5H', 0x8180, 1, 1, 0, 0)
@@ -49,7 +50,8 @@ def dns():
             sock.sendto(header + query[12:] + answer, address)
 
 
-threading.Thread(target=dns, daemon=True).start()
+for address in ('198.18.0.1', '198.18.0.254'):
+    threading.Thread(target=dns, args=(address,), daemon=True).start()
 
 
 def ssh_banner():
@@ -68,4 +70,9 @@ print('READY', flush=True)
 for line in sys.stdin:
     if line.strip() in ('up', 'down'):
         ip('link', 'set', 'primpeer', line.strip())
+        print('DONE', flush=True)
+    elif line.strip() == 'back-replug':
+        for address in ('198.18.0.1/24', '198.18.0.254/24'):
+            ip('addr', 'add', address, 'dev', 'backpeer')
+        ip('link', 'set', 'backpeer', 'up')
         print('DONE', flush=True)

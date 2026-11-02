@@ -2,6 +2,9 @@ import hashlib
 import os
 from pathlib import Path
 import signal
+import ctypes
+import shutil
+import select
 import time
 
 from .network import check_device, interface_name, lease_from_environment
@@ -16,30 +19,80 @@ def profile_digest(profile):
 
 def process_identity(pid):
     try:
-        return Path(f'/proc/{int(pid)}/stat').read_text().rsplit(')', 1)[1].split()[19]
+        fields = Path(f'/proc/{int(pid)}/stat').read_text().rsplit(')', 1)[1].split()
+        return None if fields[0] == 'Z' else fields[19]
     except (OSError, ValueError):
         return None
 
 
 def stop_process(record):
-    pidfile = Path(record['pidfile'])
-    if 'pid' not in record:
-        if not pidfile.exists():
+    require('boot_id' in record and 'executable' in record, 'PROCESS_PROOF_INCOMPLETE')
+    if record['boot_id'] != boot_id() or process_identity(record['pid']) != record['start']:
+        return  # Old process is gone; do not signal a reused PID/other boot.
+    require(hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal'), 'PIDFD_REQUIRED')
+    try:
+        fd = os.pidfd_open(record['pid'])
+    except ProcessLookupError:
+        return
+    try:
+        if record['boot_id'] != boot_id() or process_identity(record['pid']) != record['start']:
             return
-        require(pidfile.is_file() and not pidfile.is_symlink() and pidfile.stat().st_uid == 0, 'OWNED_PROCESS_PIDFILE')
-        pid = int(pidfile.read_text().strip())
-        if process_identity(pid) is None:
-            return
-        argv = Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
-        require(record['marker'].encode() in argv and Path(f'/proc/{pid}/exe').resolve().name == record['executable'], 'PROCESS_INTENT_IDENTITY')
-        record = dict(record, pid=pid, start=process_identity(pid))
-    if process_identity(record['pid']) == record['start']:
-        os.kill(record['pid'], signal.SIGTERM)
-        for _ in range(30):
-            if process_identity(record['pid']) != record['start']:
-                return
-            time.sleep(0.1)
-        require(False, 'OWNED_PROCESS_DID_NOT_STOP')
+        executable = os.readlink(f"/proc/{record['pid']}/exe")
+        state = Path(f"/proc/{record['pid']}/stat").read_text().rsplit(')', 1)[1].split()[0]
+        barrier = executable == record.get('barrier_executable') and hashlib.sha256(Path(f"/proc/{record['pid']}/cmdline").read_bytes()).hexdigest() == record.get('barrier_argv')
+        require(executable == record['executable'] or barrier, 'FOREIGN_PROCESS_EXECUTABLE')
+        signal.pidfd_send_signal(fd, signal.SIGTERM)
+        if state == 'T':
+            signal.pidfd_send_signal(fd, signal.SIGCONT)
+        require(bool(select.select([fd], [], [], 3)[0]), 'OWNED_PROCESS_DID_NOT_STOP')
+    finally:
+        os.close(fd)
+
+
+def boot_id():
+    return Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+
+
+def spawn_owned(argv, remember, pidfile=None):
+    """Child cannot exec/link-associate before durable PID/start-time ownership."""
+    executable = shutil.which(argv[0])
+    from .storage import trust
+    require(executable is not None, 'REQUIRED_EXECUTABLE_MISSING')
+    # /usr/sbin may be a distro symlink; resolve it then validate real ancestors.
+    executable = str(Path(executable).resolve())
+    trust(executable)
+    parent = os.getpid()
+    pid = os.fork()
+    if pid == 0:
+        try:
+            libc = ctypes.CDLL(None)
+            if libc.prctl(1, signal.SIGKILL) != 0 or os.getppid() != parent:
+                os._exit(125)
+            os.kill(os.getpid(), signal.SIGSTOP)
+            # Journal now owns the stable PID. It may outlive this CLI process.
+            if libc.prctl(1, 0) != 0:
+                os._exit(125)
+            fd = os.open('/dev/null', os.O_RDWR)
+            os.umask(0o077)
+            for descriptor in (0, 1, 2):
+                os.dup2(fd, descriptor)
+            os.execve(executable, [executable, *argv[1:]], {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C', 'LC_ALL': 'C'})
+        except BaseException:
+            os._exit(125)
+    try:
+        _, status = os.waitpid(pid, os.WUNTRACED)
+        require(os.WIFSTOPPED(status), 'CHILD_START_BARRIER')
+        remember(None, {'pid': pid, 'start': process_identity(pid), 'pidfile': str(pidfile) if pidfile else '', 'boot_id': boot_id(),
+                        'executable': executable, 'barrier_executable': os.readlink('/proc/self/exe'),
+                        'barrier_argv': hashlib.sha256(Path('/proc/self/cmdline').read_bytes()).hexdigest()})
+        os.kill(pid, signal.SIGCONT)
+    except BaseException:
+        try:
+            os.kill(pid, signal.SIGKILL)
+            os.waitpid(pid, 0)
+        except ProcessLookupError:
+            pass
+        raise
 
 
 def select_interface(profile, commands, sysfs=Path('/sys/class/net')):
@@ -73,15 +126,12 @@ def wifi_configuration(ssid, password):
 
 def start_adapter(profile, device, commands, state, remember, hook):
     interface = device['interface']
-    if not device['was_up']:
-        remember(['ip', 'link', 'set', 'dev', interface, 'up'], ['ip', 'link', 'set', 'dev', interface, 'down'])
     if profile['mode'] == 'wifi':
         config = state / 'wifi.conf'
         atomic(config, wifi_configuration(profile['ssid'], profile['password']))
         pidfile = state / 'wifi.pid'
         require(not pidfile.exists(), 'STALE_WIFI_PID')
-        remember(None, {'pidfile': str(pidfile), 'marker': str(config), 'executable': 'wpa_supplicant'})
-        commands.call('wpa_supplicant', '-B', '-i', interface, '-c', str(config), '-P', str(pidfile))
+        spawn_owned(['wpa_supplicant', '-i', interface, '-c', str(config)], remember)
     session = state / f'dhcp-{interface}.json'
     proposal = state / f'lease-{interface}.json'
     if proposal.exists():
@@ -89,13 +139,17 @@ def start_adapter(profile, device, commands, state, remember, hook):
     save(session, {'interface': interface, 'created': time.time()})
     pidfile = state / 'dhclient.pid'
     require(not pidfile.exists(), 'STALE_DHCP_PID')
-    remember(None, {'pidfile': str(pidfile), 'marker': str(pidfile), 'executable': 'dhclient'})
     # -sf replaces dhclient-script entirely: no stock route/resolvconf hook runs.
-    commands.call('dhclient', '-4', '-1', '-sf', str(hook), '-pf', str(pidfile), '-lf', str(state / 'dhclient.leases'), interface)
-    require(proposal.exists(), 'NO_VALID_DHCP_LEASE')
-    lease = load(proposal)
-    require(lease['interface'] == interface and lease['expires'] > time.time() + 30, 'LEASE_EXPIRED')
-    return lease
+    from .storage import trust
+    trust(hook)
+    spawn_owned(['dhclient', '-d', '-4', '-1', '-sf', str(hook), '-pf', str(pidfile), '-lf', str(state / 'dhclient.leases'), interface], remember, pidfile)
+    for _ in range(120):
+        if proposal.exists():
+            lease = load(proposal)
+            if lease.get('interface') == interface and lease.get('expires_mono', 0) > time.monotonic() + 30:
+                return lease
+        time.sleep(0.25)
+    require(False, 'NO_VALID_DHCP_LEASE')
 
 
 def remember_process(pidfile, remember):
