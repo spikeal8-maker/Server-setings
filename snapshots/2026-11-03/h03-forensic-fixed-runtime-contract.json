@@ -38,16 +38,16 @@
       "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
     }
   ],
-  "guardToolSha256Lf": "e983f77a37aa4da6f03caf0d9bc3a449ab24a5f10afd5d3c751e8616f0c34961",
+  "guardToolSha256Lf": "c82a304985a775a14861c8f76f40816487e15b51fbb51be82f1d7864bb2c1335",
   "legacyContractsPreserved": {
     "dfee5badd299d318a8e51ff0cbf88e9656333a5d": 4,
     "3e32de6987665c4d7c1d33ba7ba82019afdf9cdb": 5
   },
   "newContractRequires": [
     "registered revision is exactly 40 lowercase hex characters",
-    "registered scriptDigest equals the closed pinned runtime bundle",
-    "each actual file independently matches its pinned length and SHA256",
-    "all five actual files recompute to that same pinned bundle",
+    "registered scriptDigest selects exactly one of two complete pinned materialization profiles",
+    "each actual file independently matches the selected profile length and SHA256",
+    "all five raw files recompute to the selected registered aggregate without normalization",
     "unchanged canonical identity, owner, unit, path, quiescence and lock guards"
   ],
   "boundaryRedistributionRegression": {
@@ -57,8 +57,16 @@
     "aggregateSha256Unchanged": true,
     "hashCollisionRequired": false,
     "alteredFiles": [
-      {"path": "tools/collect_logs.py", "bytes": 74486, "sha256": "d23cdb795b88d7e73b518d180d272c041257cef67e40fd4d2fec5c56e2c438af"},
-      {"path": "tools/collect-windows-logs.ps1", "bytes": 68641, "sha256": "79a11984579f21c79d3ac50bf3bd3828634fde4fedd1e46232566c10968bd349"}
+      {
+        "path": "tools/collect_logs.py",
+        "bytes": 74486,
+        "sha256": "d23cdb795b88d7e73b518d180d272c041257cef67e40fd4d2fec5c56e2c438af"
+      },
+      {
+        "path": "tools/collect-windows-logs.ps1",
+        "bytes": 68641,
+        "sha256": "79a11984579f21c79d3ac50bf3bd3828634fde4fedd1e46232566c10968bd349"
+      }
     ],
     "fullRegisteredRunnerInMemoryChallenge": {
       "platformFdMetadataSimulated": true,
@@ -68,11 +76,103 @@
       "newRedistributed": "RUNNER_FIXED_FILE_MISMATCH"
     }
   },
-  "windowsFocusedTests": {"run": 27, "passed": 10, "linuxOnlySkipped": 17},
+  "windowsFocusedTests": {
+    "run": 29,
+    "passed": 11,
+    "linuxOnlySkipped": 18
+  },
   "linuxTests": "PENDING_CI",
   "independentReview": "PENDING",
   "applicationHelperRepin": "REQUIRED_SEPARATE_REVIEWED_SLICE",
   "liveChanges": false,
   "liveRecovery": "NOT_RUN",
-  "generalFutureReleaseCompatibility": false
+  "generalFutureReleaseCompatibility": false,
+  "runtimeBundleSha256Meaning": "raw-git-lf-profile; canonical profile listed separately",
+  "materializationProfiles": [
+    {
+      "id": "raw-git-lf",
+      "aggregateSha256": "b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731",
+      "files": [
+        {
+          "path": "tools/collect_logs.py",
+          "bytes": 138984,
+          "sha256": "8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2"
+        },
+        {
+          "path": "tools/collect-windows-logs.ps1",
+          "bytes": 4143,
+          "sha256": "0492cbd60c6f45721b974fff8d11c74af4c7dab96cadc493efd7dc4ab1d3ce21"
+        },
+        {
+          "path": "tools/resource_sampling.py",
+          "bytes": 9173,
+          "sha256": "aa49ae8359a1036c034667ba216d105744f05cff9ee8d105b34c0bc1852337b5"
+        },
+        {
+          "path": "tools/memory_sampling.py",
+          "bytes": 9123,
+          "sha256": "55a5f5e68161973d9c37ff9b2ddcd5baaf1288152221beeaad4c33331d9995be"
+        },
+        {
+          "path": "tools/deployment/operational.py",
+          "bytes": 26444,
+          "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
+        }
+      ]
+    },
+    {
+      "id": "canonical-gitattributes-crlf-ps1",
+      "aggregateSha256": "9ab3c329ec7f6a532ff8c4d3f47a036430f038716de7dc575e8df96d003ee74a",
+      "files": [
+        {
+          "path": "tools/collect_logs.py",
+          "bytes": 138984,
+          "sha256": "8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2"
+        },
+        {
+          "path": "tools/collect-windows-logs.ps1",
+          "bytes": 4207,
+          "sha256": "035626c0dc3208846410c3df8bde78de4d421fcb01f8561fcb5bbda7e184e935"
+        },
+        {
+          "path": "tools/resource_sampling.py",
+          "bytes": 9173,
+          "sha256": "aa49ae8359a1036c034667ba216d105744f05cff9ee8d105b34c0bc1852337b5"
+        },
+        {
+          "path": "tools/memory_sampling.py",
+          "bytes": 9123,
+          "sha256": "55a5f5e68161973d9c37ff9b2ddcd5baaf1288152221beeaad4c33331d9995be"
+        },
+        {
+          "path": "tools/deployment/operational.py",
+          "bytes": 26444,
+          "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
+        }
+      ]
+    }
+  ],
+  "checkoutMaterializationProof": {
+    "sourceRevision": "6a98bddd8953eff732ec7d2cbb3de8cdec8abdee",
+    "attributesSha256": "ab075d1d95f262d177facd3ad857d9fbc6d263b2dce67eafa83b7aa2eb2a9612",
+    "method": "disposable GIT_INDEX_FILE; read-tree exact source; checkout-index exact .gitattributes and five files; core.autocrlf=false",
+    "canonicalPowerShellBytes": 4207,
+    "canonicalPowerShellCrlfCount": 64,
+    "otherFourFilesUnchanged": true,
+    "candidateWorktreeAndIndexUnchanged": true,
+    "liveHostUsed": false
+  },
+  "materializationInMemoryChallenge": {
+    "previousGuardRevision": "e6b01fdd8c5916650047089f1ddef4204d064ad3",
+    "platformFdMetadataSimulated": true,
+    "productionPinsMocked": false,
+    "rawGitAccepted": true,
+    "canonicalCheckoutAccepted": true,
+    "canonicalUnderRawRegistrationDenied": true,
+    "partialCrlfUnderRawRegistrationDenied": true,
+    "partialCrlfSelfRegisteredDenied": true,
+    "redistributionDeniedInBothProfiles": true,
+    "canonicalRedistributedPowerShellBytes": 68705,
+    "canonicalRedistributedPowerShellSha256": "4caabe02bff022c456ce2f24546011a39bd43f20cde2e6e22cb59993d39182e9"
+  }
 }

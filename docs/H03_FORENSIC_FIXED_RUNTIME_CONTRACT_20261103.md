@@ -10,13 +10,21 @@ Source-only кандидат для последовательности «шт�
 использует четыре файла, `3e32de6987665c4d7c1d33ba7ba82019afdf9cdb` — пять.
 Отсутствие пятого файла не переключает пятифайловый контракт на четырёхфайловый.
 
-Добавлен один закрытый пятифайловый контракт по фактическим runtime-байтам ASA
+Добавлены два конечных пятифайловых профиля materialization runtime-байтов ASA
 [PR965](https://github.com/spikeal8-maker/asa-lab/pull/965), immutable source
-`6a98bddd8953eff732ec7d2cbb3de8cdec8abdee`. Его bundle SHA256:
+`6a98bddd8953eff732ec7d2cbb3de8cdec8abdee`:
 
-```text
-b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731
-```
+- Raw Git LF: `b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731`.
+- Canonical attributes checkout: `9ab3c329ec7f6a532ff8c4d3f47a036430f038716de7dc575e8df96d003ee74a`.
+
+Точная `.gitattributes` требует `*.ps1 text eol=crlf`, в том числе на Linux с
+`core.autocrlf=false`. Через отдельный disposable `GIT_INDEX_FILE`, `read-tree`
+и `checkout-index` воспроизведены только пять публичных runtime-файлов и attributes:
+PS1 получает 4207 bytes / 64 CRLF, SHA256
+`035626c0dc3208846410c3df8bde78de4d421fcb01f8561fcb5bbda7e184e935`.
+Raw Git PS1 — 4143 bytes; остальные четыре файла в обоих профилях одинаковы.
+Application worktree и его index не изменялись. Предыдущий guard `e6b01fdd`
+отклонял штатный canonical checkout; он не является принятым решением.
 
 Алгоритм не изменён: SHA256 последовательно получает UTF-8 имя относительно
 `tools/`, затем точные bytes файла, в порядке `collect_logs.py`,
@@ -28,14 +36,16 @@ immutable Git blobs; происхождение закреплено в
 Для иной зарегистрированной revision одновременно необходимы:
 
 1. Строка из ровно 40 lowercase hex символов.
-2. Зарегистрированный `scriptDigest`, равный единственному закреплённому bundle hash.
+2. Зарегистрированный `scriptDigest`, равный одному из двух закреплённых bundle hashes.
 3. Повторное чтение **всех пяти фактических файлов** с сохранёнными no-follow,
    размерными и race-проверками. Для каждого файла отдельно проверяются закреплённые
-   длина и SHA256 из source snapshot; общий digest также должен совпасть с pin.
+   длина и SHA256 выбранного полного профиля; общий digest должен совпасть с ним же.
 
-Одного записанного `scriptDigest` недостаточно. Изменённый byte, другое окончание
-строк, отсутствующий файл или новый самосогласованный hash блокируют новый контракт.
-CLI/environment override и автоматического вывода неизвестного layout нет.
+Одного записанного `scriptDigest` недостаточно. Guard не нормализует входные bytes,
+не смешивает отдельные pins из разных профилей и не угадывает преобразования.
+Изменённый byte, частичный CRLF, отсутствующий файл, несовпадение профиля регистрации
+или иной самосогласованный hash блокируют новый контракт. CLI/environment override
+и автоматического вывода неизвестного layout нет.
 Merge/doc/helper-pin commit может иметь другую revision только при неизменных
 пяти runtime-файлах. Это не общая совместимость с будущими выпусками и не отдельная
 аттестация Git HEAD, application images, публикации или CI.
@@ -55,23 +65,26 @@ USER runner не конвертируется в root, службы не зап�
 Guard остаётся PLAN по умолчанию и не исправляет history/квитанции/metadata.
 
 Публичный SHA256 **LF-байтов** нового `scripts/diagnostic_forensic_snapshot.py`:
-`e983f77a37aa4da6f03caf0d9bc3a449ab24a5f10afd5d3c751e8616f0c34961`.
+`c82a304985a775a14861c8f76f40816487e15b51fbb51be82f1d7864bb2c1335`.
 CRLF-копия имеет другой hash и не заменяет этот доверенный артефакт.
 Независимое review guard и новая отдельная правка app helper, закрепляющая этот
 guard hash/source, обязательны до использования: старый helper ещё требует 6b0.
 
 ## Проверки и ограничения
 
-Windows: 27 тестов, 10 PASS / 17 Linux-only SKIP. Новые Linux-сценарии проверяют
+Windows: 29 тестов, 11 PASS / 18 Linux-only SKIP. Новые Linux-сценарии проверяют
 фактическое чтение всех пяти файлов, same-length changed-byte/missing-file,
 перенос через filename delimiter при равном aggregate, поддельный stored pin,
-неизвестный самосогласованный bundle и сохранение unit/quiescence guards.
+неизвестный самосогласованный bundle и сохранение unit/quiescence guards. Полные
+raw/canonical профили принимаются; несовпадение профиля, partial CRLF, changed-byte
+и перераспределение файлов проверяются отрицательными сценариями.
 Синтетические успешные fixtures явно подменяют ожидаемые bundle и per-file pins;
 они не выдаются за реальные байты PR965. Производственные pins сверены отдельно
-со всеми immutable Git blobs. Полный `registered_runner` также проверен в памяти
-на исходных и реально перераспределённых PR965 bytes: старый guard принимает оба
-набора, новый принимает только исходный. В этом challenge подменены платформенные
-FD/metadata adapters; это не Linux permissions evidence. Linux CI и независимое
+со всеми immutable Git blobs и canonical checkout. Полный `registered_runner`
+проверен в памяти на обоих реальных профилях, их redistribution и partial CRLF:
+новый guard принимает оба исходных профиля и отклоняет отрицательные варианты.
+В этом challenge подменены только платформенные FD/metadata adapters, production
+pins не подменялись; это не Linux permissions evidence. Linux CI и независимое
 повторное review — отдельные доказательства.
 
 Ни новый guard, ни source-контракт не подтверждают восстановление H03, полноту

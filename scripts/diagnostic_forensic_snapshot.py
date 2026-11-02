@@ -38,6 +38,16 @@ FIXED_RUNTIME_FILE_PINS = {
     'memory_sampling.py': (9123, '55a5f5e68161973d9c37ff9b2ddcd5baaf1288152221beeaad4c33331d9995be'),
     'deployment/operational.py': (26444, 'c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa'),
 }
+# Two complete, finite materializations of that same immutable source. Git
+# attributes require PowerShell CRLF even when core.autocrlf=false on Linux.
+CANONICAL_RUNTIME_BUNDLE_SHA256 = '9ab3c329ec7f6a532ff8c4d3f47a036430f038716de7dc575e8df96d003ee74a'
+FIXED_RUNTIME_PROFILES = {
+    FIXED_RUNTIME_BUNDLE_SHA256: FIXED_RUNTIME_FILE_PINS,
+    CANONICAL_RUNTIME_BUNDLE_SHA256: {
+        **FIXED_RUNTIME_FILE_PINS,
+        'collect-windows-logs.ps1': (4207, '035626c0dc3208846410c3df8bde78de4d421fcb01f8561fcb5bbda7e184e935'),
+    },
+}
 
 
 class Blocked(RuntimeError):
@@ -144,13 +154,16 @@ def runner_digest_files(revision, stored_digest):
     if isinstance(revision, str) and revision in DIGEST_CONTRACTS:
         return DIGEST_CONTRACTS[revision]
     require(isinstance(revision, str) and re.fullmatch(r'[a-f0-9]{40}', revision)
-            and stored_digest == FIXED_RUNTIME_BUNDLE_SHA256,
+            and isinstance(stored_digest, str) and stored_digest in FIXED_RUNTIME_PROFILES,
             'RUNNER_REVISION_CONTRACT_UNSUPPORTED')
     return FIXED_RUNTIME_DIGEST_FILES
 
 
-def verify_fixed_runtime_file(name, length, sha256):
-    require(name in FIXED_RUNTIME_FILE_PINS and (length, sha256) == FIXED_RUNTIME_FILE_PINS[name],
+def verify_fixed_runtime_file(name, length, sha256, profile_digest):
+    require(isinstance(profile_digest, str) and profile_digest in FIXED_RUNTIME_PROFILES,
+            'RUNNER_FIXED_FILE_MISMATCH')
+    profile = FIXED_RUNTIME_PROFILES[profile_digest]
+    require(name in profile and (length, sha256) == profile[name],
             'RUNNER_FIXED_FILE_MISMATCH')
 
 
@@ -211,7 +224,7 @@ def registered_runner(installation, unit):
                 while data := os.read(stream, 1024**2):
                     digest.update(data); file_digest.update(data); length += len(data)
                 require(signature(os.fstat(stream)) == signature(info), 'RUNNER_SOURCE_RACE')
-                if fixed_runtime: verify_fixed_runtime_file(name, length, file_digest.hexdigest())
+                if fixed_runtime: verify_fixed_runtime_file(name, length, file_digest.hexdigest(), identity['scriptDigest'])
         require(digest.hexdigest() == identity['scriptDigest'], 'RUNNER_REGISTRATION_STALE')
     finally:
         os.close(tools)
