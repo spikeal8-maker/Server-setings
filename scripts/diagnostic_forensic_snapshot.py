@@ -29,6 +29,15 @@ DIGEST_CONTRACTS = {
 # differ, but neither registration nor operator input may choose other bytes.
 FIXED_RUNTIME_DIGEST_FILES = (*BASE_DIGEST_FILES, 'deployment/operational.py')
 FIXED_RUNTIME_BUNDLE_SHA256 = 'b5d79dbc1c97bf4d94226b4c2c06eac4795c7366ae1a9b17add83a46c0790731'
+# The legacy concatenated digest has no file-boundary framing. Independently
+# pin each fixed-runtime file so bytes cannot migrate across a filename token.
+FIXED_RUNTIME_FILE_PINS = {
+    'collect_logs.py': (138984, '8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2'),
+    'collect-windows-logs.ps1': (4143, '0492cbd60c6f45721b974fff8d11c74af4c7dab96cadc493efd7dc4ab1d3ce21'),
+    'resource_sampling.py': (9173, 'aa49ae8359a1036c034667ba216d105744f05cff9ee8d105b34c0bc1852337b5'),
+    'memory_sampling.py': (9123, '55a5f5e68161973d9c37ff9b2ddcd5baaf1288152221beeaad4c33331d9995be'),
+    'deployment/operational.py': (26444, 'c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa'),
+}
 
 
 class Blocked(RuntimeError):
@@ -140,6 +149,11 @@ def runner_digest_files(revision, stored_digest):
     return FIXED_RUNTIME_DIGEST_FILES
 
 
+def verify_fixed_runtime_file(name, length, sha256):
+    require(name in FIXED_RUNTIME_FILE_PINS and (length, sha256) == FIXED_RUNTIME_FILE_PINS[name],
+            'RUNNER_FIXED_FILE_MISMATCH')
+
+
 def validate_registration(root, settings, runner, unit):
     project = settings.get('project')
     require(isinstance(project, str) and re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,62}', project), 'RUNNER_PROJECT_INVALID')
@@ -187,13 +201,17 @@ def registered_runner(installation, unit):
     tools = directory(root/'tools')
     try:
         digest = hashlib.sha256()
+        fixed_runtime = identity['revision'] not in DIGEST_CONTRACTS
         for name in runner_digest_files(identity['revision'], identity['scriptDigest']):
             digest.update(name.encode())
             with opened(tools, name) as stream:
                 info = os.fstat(stream)
                 require(info.st_size <= 8*1024**2, 'RUNNER_SOURCE_LIMIT')
-                while data := os.read(stream, 1024**2): digest.update(data)
+                file_digest, length = hashlib.sha256(), 0
+                while data := os.read(stream, 1024**2):
+                    digest.update(data); file_digest.update(data); length += len(data)
                 require(signature(os.fstat(stream)) == signature(info), 'RUNNER_SOURCE_RACE')
+                if fixed_runtime: verify_fixed_runtime_file(name, length, file_digest.hexdigest())
         require(digest.hexdigest() == identity['scriptDigest'], 'RUNNER_REGISTRATION_STALE')
     finally:
         os.close(tools)

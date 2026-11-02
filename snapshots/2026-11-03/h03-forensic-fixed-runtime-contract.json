@@ -38,7 +38,7 @@
       "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
     }
   ],
-  "guardToolSha256Lf": "f6ed00d8f2ba9d8011275d26907a0573421faf5c79119a534ca086a5fe456ff6",
+  "guardToolSha256Lf": "e983f77a37aa4da6f03caf0d9bc3a449ab24a5f10afd5d3c751e8616f0c34961",
   "legacyContractsPreserved": {
     "dfee5badd299d318a8e51ff0cbf88e9656333a5d": 4,
     "3e32de6987665c4d7c1d33ba7ba82019afdf9cdb": 5
@@ -46,10 +46,29 @@
   "newContractRequires": [
     "registered revision is exactly 40 lowercase hex characters",
     "registered scriptDigest equals the closed pinned runtime bundle",
+    "each actual file independently matches its pinned length and SHA256",
     "all five actual files recompute to that same pinned bundle",
     "unchanged canonical identity, owner, unit, path, quiescence and lock guards"
   ],
-  "windowsFocusedTests": {"run": 24, "passed": 8, "linuxOnlySkipped": 16},
+  "boundaryRedistributionRegression": {
+    "rejectedPreviousGuardRevision": "6297fd1d686e45fe3bb2c48cf4575feaf6aeb50b",
+    "originalSourceRevision": "6a98bddd8953eff732ec7d2cbb3de8cdec8abdee",
+    "filenameBoundaryOffset": 74486,
+    "aggregateSha256Unchanged": true,
+    "hashCollisionRequired": false,
+    "alteredFiles": [
+      {"path": "tools/collect_logs.py", "bytes": 74486, "sha256": "d23cdb795b88d7e73b518d180d272c041257cef67e40fd4d2fec5c56e2c438af"},
+      {"path": "tools/collect-windows-logs.ps1", "bytes": 68641, "sha256": "79a11984579f21c79d3ac50bf3bd3828634fde4fedd1e46232566c10968bd349"}
+    ],
+    "fullRegisteredRunnerInMemoryChallenge": {
+      "platformFdMetadataSimulated": true,
+      "oldOriginal": "ACCEPT",
+      "oldRedistributed": "ACCEPT",
+      "newOriginal": "ACCEPT",
+      "newRedistributed": "RUNNER_FIXED_FILE_MISMATCH"
+    }
+  },
+  "windowsFocusedTests": {"run": 27, "passed": 10, "linuxOnlySkipped": 17},
   "linuxTests": "PENDING_CI",
   "independentReview": "PENDING",
   "applicationHelperRepin": "REQUIRED_SEPARATE_REVIEWED_SLICE",
