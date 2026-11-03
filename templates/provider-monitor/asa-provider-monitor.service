@@ -1,0 +1,30 @@
+[Unit]
+Description=ASA isolated read-only provider health observer
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I -B /opt/asa-provider-monitor/provider_health_exporter.py sample --config /etc/asa-provider-monitor/config.json --apply
+TimeoutStartSec=30
+UMask=0077
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_CHOWN
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/asa-provider-monitor /opt/asa-provider-monitor
+ReadWritePaths=/var/log/asa-provider-monitor
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+StandardOutput=journal
+StandardError=journal

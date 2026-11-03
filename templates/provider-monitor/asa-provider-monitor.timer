@@ -1,0 +1,11 @@
+[Unit]
+Description=Observe existing ASA providers every sixty seconds
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=60s
+AccuracySec=1s
+Unit=asa-provider-monitor.service
+
+[Install]
+WantedBy=timers.target

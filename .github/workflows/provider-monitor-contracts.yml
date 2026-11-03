@@ -1,0 +1,42 @@
+name: Isolated provider monitor contracts
+on:
+  push:
+    paths:
+      - 'scripts/provider_health_exporter.py'
+      - 'tests/test_provider_health_exporter.py'
+      - 'templates/provider-monitor/**'
+      - '.github/workflows/provider-monitor-contracts.yml'
+  pull_request:
+    paths:
+      - 'scripts/provider_health_exporter.py'
+      - 'tests/test_provider_health_exporter.py'
+      - 'templates/provider-monitor/**'
+      - '.github/workflows/provider-monitor-contracts.yml'
+permissions:
+  contents: read
+jobs:
+  contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: infra
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: spikeal8-maker/asa-lab
+          ref: 2a28cffe7a20302f9b7231ef823bdc05f3fe43d0
+          path: pinned-app
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact-byte provider observer contracts only, no network or deployment
+        working-directory: infra
+        env:
+          ASA_PROVIDER_TEST_SOURCE: ${{ github.workspace }}/pinned-app
+        run: python -B -X utf8 -m unittest discover -s tests -p test_provider_health_exporter.py -v
