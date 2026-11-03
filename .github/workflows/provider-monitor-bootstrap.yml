@@ -67,6 +67,9 @@ jobs:
           sudo install -d -m 755 /opt/asa-provider-bootstrap-ci-source /opt/asa-provider-bootstrap-ci-app
           git archive HEAD scripts/bootstrap-provider-monitor.py scripts/provider_health_exporter.py templates/provider-monitor docs/48-ISOLATED-PROVIDER-MONITOR.md tests/test_provider_monitor_bootstrap.py tests/test_provider_health_exporter.py tests/provider_monitor_bootstrap_ci.py | sudo tar --no-same-owner -x -C /opt/asa-provider-bootstrap-ci-source
           git -C ../pinned-app archive HEAD tools/collect_logs.py tools/collect-windows-logs.ps1 tools/resource_sampling.py tools/memory_sampling.py tools/deployment/__init__.py tools/deployment/paths.py tools/deployment/operational.py | sudo tar --no-same-owner -x -C /opt/asa-provider-bootstrap-ci-app
+          # Git archive records 0664 files; root tar preserves them. Strengthen only
+          # these fresh, absent-before-stage CI trees before any root execution.
+          sudo chmod -R go-w /opt/asa-provider-bootstrap-ci-source /opt/asa-provider-bootstrap-ci-app
       - name: Root native guards, unchanged runtime and pinned consumer tests
         run: |
           sudo env ASA_PROVIDER_BOOTSTRAP_ROOT_TESTS=1 ASA_PROVIDER_TEST_SOURCE=/opt/asa-provider-bootstrap-ci-app python3 -B -X utf8 -m unittest discover -s /opt/asa-provider-bootstrap-ci-source/tests -p test_provider_monitor_bootstrap.py -v

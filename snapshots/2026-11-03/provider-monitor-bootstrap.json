@@ -12,6 +12,7 @@
   "install": {"existingConfigOrSourceOverwrite": false, "foreignUnitOverwrite": false, "partialArtifactsPreserved": true, "secondApplySameBytes": "NO_CHANGE"},
   "ownerIntegration": {"installedCodeImports": false, "configOnlyFileSource": "provider-monitor", "privateMode": "0600", "metadataCas": true, "automaticCollectorRestart": false, "loadedUnitVerified": false},
   "componentCi": {"workflow": "provider-monitor-bootstrap.yml", "actualResult": "RECORD_EXACT_HEAD_IN_PR", "actualSystemd": "REQUIRED", "mockProvidersOnly": true, "secondTimerSample": "REQUIRED", "sameBytesInodesRepeat": "REQUIRED", "nonrootIntegrationAndCas": "REQUIRED", "actualPinnedConsumer": "PURE_FUNCTIONS_ONLY"},
+  "initialComponentFailure": {"source": "7a71ed2ae5c119a0b110338d6a0758a583e2d4f0", "run": 41636884119, "rootJob": 125920211436, "rootBootstrapTests": "11_PASS", "rootExporterTests": "24_PASS_1_PLAN_FAIL", "actualInstall": "SKIPPED", "repair": "Strengthen only fresh Git-archive CI staging permissions; no production guard change"},
   "focusedWindowsBootstrap": {"run": 11, "passed": 8, "rootLinuxSkipped": 3},
   "unchangedExporterWindows": {"run": 25, "passed": 18, "linuxSkipped": 7},
   "wholeCleanAsaDbMinioInstallationTest": "NOT_RUN",

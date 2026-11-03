@@ -168,3 +168,9 @@ Git raw fetch, apply+same-bytes/inodes repeat, offline repeat, настоящи�
 timer sample, nonroot integration/CAS boundaries и exact2a pure consumer. Это
 logging-component proof; clean full ASA/DB/MinIO install и real GPU не запускаются.
 Точный успешный CI head фиксируется в PR после фактического результата.
+
+Первый CI source7a71: Ubuntu/Windows offline PASS, root new11 PASS, unchanged
+exporter24/25 PASS, PLAN fixture FAIL; install step SKIPPED (run41636884119,
+job125920211436). Git archive задаёт0664 files, root tar сохраняет archived modes:
+новые ephemeral staging trees теперь явно лишаются group/other write до root
+execution. Runtime/source guards не ослаблены; исходный failure не скрыт.
