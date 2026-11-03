@@ -1,8 +1,8 @@
 {
   "format": "asa-portal-route-inventory-v1",
-  "sourceRevision": "53a83e53d2ef40901a698082b215a314603e8d97",
+  "sourceRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
   "sourceFiles": {
-    "apps/web/src/App.tsx": "d05b8afe3de64d7959e27540b725aa69f16e35a1eca0708ed7adb990cf777bf0",
+    "apps/web/src/App.tsx": "65b911ef06b04f1f3e8cced977d4202778c336586c1059371cc7179b65b39c94",
     "apps/web/src/creator-portal/navigation.ts": "737912bb38ae308827fab25b9b2ce77420f623503c75d5308b6cd39a7fe80245",
     "apps/web/src/admin/admin-navigation.ts": "1c15fd955bf7adcec987f7cf0cce95b4c368991efbfbf69583b0a14e773d7f24",
     "apps/web/src/admin/ai-admin-navigation.ts": "fcb540a49f1e9063936e8f82b4792e78c846c0e8feabdc595e2b88b1e4320f06",
