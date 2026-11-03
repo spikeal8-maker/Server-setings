@@ -374,9 +374,31 @@ def install(args):
                 providerRequests=bool(changed), timerActivationChanged=changed, appOrGpuRestarted=False)
 
 
-def collector_unit(text, root, project, runner, uid):
+def root_reader_gid(settings):
+    """The explicit system-root reader group is independent of root's primary groups."""
+    import grp
+    gid = settings.get('collectorReaderGid')
+    need(settings.get('collectorMode') == 'system-root'
+         and type(gid) is int and 0 < gid < 2**31, 'ROOT_READER_GROUP')
+    grp.getgrgid(gid)
+    forbidden = {0}
+    try:
+        forbidden.add(grp.getgrnam('docker').gr_gid)
+    except KeyError:
+        pass
+    try:
+        forbidden.add(os.stat('/var/run/docker.sock').st_gid)
+    except FileNotFoundError:
+        pass
+    need(gid not in forbidden, 'ROOT_READER_GROUP')
+    return gid
+
+
+def collector_unit(text, root, project, runner, uid, reader_gid=None):
     allowed = {'Unit': {'Description', 'After'}, 'Service': {'User', 'WorkingDirectory', 'ExecStart', 'Restart', 'RestartSec', 'NoNewPrivileges', 'UMask'},
                'Install': {'WantedBy'}}
+    if uid == 0:
+        allowed['Service'].add('Group')
     values, section = {}, None
     for line in text.splitlines():
         line = line.strip()
@@ -391,7 +413,7 @@ def collector_unit(text, root, project, runner, uid):
         values[section, key] = value
     fields = {('Unit', 'Description'), ('Unit', 'After'), ('Service', 'WorkingDirectory'), ('Service', 'ExecStart'),
               ('Service', 'Restart'), ('Service', 'RestartSec'), ('Service', 'NoNewPrivileges'), ('Service', 'UMask'), ('Install', 'WantedBy')}
-    need(set(values) == fields | ({('Service', 'User')} if uid == 0 else set()), 'COLLECTOR_UNIT')
+    need(set(values) == fields | ({('Service', 'User'), ('Service', 'Group')} if uid == 0 else set()), 'COLLECTOR_UNIT')
     argv = shlex.split(values['Service', 'ExecStart'])
     need(len(argv) == 4 and Path(argv[0]).is_absolute() and Path(argv[0]).resolve() == Path(sys.executable).resolve()
          and argv[1:] == [str(root/'tools/collect_logs.py'), '--root', str(root)]
@@ -399,7 +421,8 @@ def collector_unit(text, root, project, runner, uid):
          and values['Service', 'Restart'] == 'always' and values['Service', 'RestartSec'] == '20'
          and values['Service', 'NoNewPrivileges'] == 'true' and values['Service', 'UMask'] == '0077'
          and values['Install', 'WantedBy'] == ('multi-user.target' if uid == 0 else 'default.target')
-         and (uid != 0 or values['Service', 'User'] == 'root'), 'COLLECTOR_UNIT')
+         and (uid != 0 or (values['Service', 'User'] == 'root' and type(reader_gid) is int
+                          and reader_gid > 0 and values['Service', 'Group'] == str(reader_gid))), 'COLLECTOR_UNIT')
 
 
 def integrate(args):
@@ -413,8 +436,19 @@ def integrate(args):
     if uid == 0:
         read(Path(__file__).absolute(), 64*1024)
     with directory(root/'.asa', owners) as fd:
-        files = {name: read_at(fd, name, 65536, owner=uid, mode=0o600, gid=owner.pw_gid)
-                 for name in ('installation.json', 'collector-runner.json', 'log-collector.json')}
+        if uid == 0:
+            first = read_at(fd, 'installation.json', 65536, owner=0, mode=0o600)
+            initial = decoded(first[0])
+            need(isinstance(initial, dict), 'COLLECTOR_METADATA')
+            metadata_gid = root_reader_gid(initial)
+            need(first[1][4] == metadata_gid, 'FILE_GROUP')
+            files = {'installation.json': first,
+                     **{name: read_at(fd, name, 65536, owner=0, mode=0o600, gid=metadata_gid)
+                        for name in ('collector-runner.json', 'log-collector.json')}}
+        else:
+            metadata_gid = owner.pw_gid
+            files = {name: read_at(fd, name, 65536, owner=uid, mode=0o600, gid=owner.pw_gid)
+                     for name in ('installation.json', 'collector-runner.json', 'log-collector.json')}
         settings, runner, config = [decoded(files[n][0]) for n in files]
         need(all(isinstance(v, dict) for v in (settings, runner, config)), 'COLLECTOR_METADATA')
         need(settings.get('format') == 'asa-installation-v1' and settings.get('project') == args.project
@@ -435,7 +469,7 @@ def integrate(args):
         unit = (Path('/etc/systemd/system') if uid == 0 else Path(owner.pw_dir)/'.config/systemd/user')/name
         text, _ = read(unit, 16384, owners=owners, owner=uid)
         # Local unit file ownership/shape is checked; loaded process identity is a separate operator check.
-        collector_unit(text.decode(), root, args.project, runner, uid)
+        collector_unit(text.decode(), root, args.project, runner, uid, metadata_gid if uid == 0 else None)
         dropin = unit.with_name(name+'.d')
         with directory(unit.parent, owners) as parent:
             try:
@@ -457,7 +491,8 @@ def integrate(args):
         need(not matches or matches == [wanted], 'FILE_SOURCE_COLLISION')
         with directory(OUTPUT) as output:
             info = os.fstat(output)
-            need(stat.S_IMODE(info.st_mode) == 0o750 and info.st_gid in {owner.pw_gid, *os.getgroups()}, 'MONITOR_READER_GROUP')
+            allowed_groups = {metadata_gid} if uid == 0 else {owner.pw_gid, *os.getgroups()}
+            need(stat.S_IMODE(info.st_mode) == 0o750 and info.st_gid in allowed_groups, 'MONITOR_READER_GROUP')
             read_at(output, 'health.log', 1024*1024, mode=0o640, gid=info.st_gid)
         if matches:
             return dict(status='NO_CHANGE', restartRequired=None, unit=name, mode=mode, loadedUnitVerified=False)
@@ -471,12 +506,16 @@ def integrate(args):
                 need(identity(os.fstat(lock)) == files['log-collector.json'][1], 'CONFIG_CAS')
                 out = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
                 try:
+                    if uid == 0:
+                        need(os.fstat(out).st_uid == 0, 'CONFIG_NEW_OWNER')
+                        if os.fstat(out).st_gid != metadata_gid:
+                            os.fchown(out, 0, metadata_gid)
                     os.fchmod(out, 0o600)
                     with os.fdopen(out, 'wb', closefd=False) as stream:
                         stream.write(encoded(changed))
                         stream.flush()
                         os.fsync(out)
-                    need(os.fstat(out).st_uid == uid and os.fstat(out).st_gid == owner.pw_gid, 'CONFIG_NEW_OWNER')
+                    need(os.fstat(out).st_uid == uid and os.fstat(out).st_gid == metadata_gid, 'CONFIG_NEW_OWNER')
                 finally:
                     os.close(out)
                 for file, (_, expected) in files.items():

@@ -106,6 +106,39 @@ class BootstrapContracts(unittest.TestCase):
         with self.assertRaisesRegex(bootstrap.Blocked, 'DUPLICATE_JSON_KEY'):
             bootstrap.decoded(b'{"fileSources":[],"fileSources":[]}')
 
+    def test_root_reader_group_is_explicit_existing_and_not_docker_or_primary_zero(self):
+        groups = types.SimpleNamespace(
+            getgrgid=lambda gid: types.SimpleNamespace(gr_gid=gid) if gid in (1000, 998, 999) else (_ for _ in ()).throw(KeyError(gid)),
+            getgrnam=lambda name: types.SimpleNamespace(gr_gid=998))
+        with patch.dict(sys.modules, {'grp': groups}), \
+             patch.object(bootstrap.os, 'stat', return_value=types.SimpleNamespace(st_gid=999)):
+            self.assertEqual(bootstrap.root_reader_gid({'collectorMode': 'system-root', 'collectorReaderGid': 1000}), 1000)
+            for value in (None, False, 0, -1, 998, 999, 2**31, '1000'):
+                with self.subTest(value=value), self.assertRaises(bootstrap.Blocked):
+                    bootstrap.root_reader_gid({'collectorMode': 'system-root', 'collectorReaderGid': value})
+            with self.assertRaises(KeyError):
+                bootstrap.root_reader_gid({'collectorMode': 'system-root', 'collectorReaderGid': 1001})
+            with self.assertRaisesRegex(bootstrap.Blocked, 'ROOT_READER_GROUP'):
+                bootstrap.root_reader_gid({'collectorMode': 'user', 'collectorReaderGid': 1000})
+
+    def test_system_root_unit_requires_exact_selected_numeric_group_and_user_contract_stays_closed(self):
+        root = ROOT.absolute()
+        text = ('[Unit]\nDescription=ASA Lab diagnostic collector\nAfter=network.target\n[Service]\n'
+                f'WorkingDirectory={root}\nExecStart={bootstrap.shlex.quote(sys.executable)} '
+                f'{bootstrap.shlex.quote(str(root/"tools/collect_logs.py"))} --root {bootstrap.shlex.quote(str(root))}\n'
+                'Restart=always\nRestartSec=20\nNoNewPrivileges=true\nUMask=0077\n'
+                'User=root\nGroup=1000\n[Install]\nWantedBy=multi-user.target\n')
+        bootstrap.collector_unit(text, root, 'fixture', {}, 0, 1000)
+        for candidate in (text.replace('Group=1000\n', ''), text.replace('Group=1000', 'Group=0'),
+                          text.replace('Group=1000', 'Group=1001'), text.replace('Group=1000', 'Group=readers'),
+                          text.replace('User=root', 'User=nobody'), text.replace('Group=1000', 'Group=1000\nExecStartPre=/bin/true')):
+            with self.subTest(candidate=candidate), self.assertRaises(bootstrap.Blocked):
+                bootstrap.collector_unit(candidate, root, 'fixture', {}, 0, 1000)
+        user = text.replace('User=root\nGroup=1000\n', '').replace('multi-user.target', 'default.target')
+        bootstrap.collector_unit(user, root, 'fixture', {}, 1000)
+        with self.assertRaises(bootstrap.Blocked):
+            bootstrap.collector_unit(user.replace('[Install]', 'Group=1000\n[Install]'), root, 'fixture', {}, 1000)
+
     def test_cli_requires_isolated_entry_before_paths_and_redacts_arguments(self):
         result = subprocess.run([sys.executable, '-B', str(ROOT/'scripts/bootstrap-provider-monitor.py'), 'PRIVATE_ARGUMENT'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 1)

@@ -19,8 +19,14 @@ Root `system-root` — только явный заранее выбранный
 разными лимитами (app2a native7d/128MiB, host default30d/1GiB). На целевом сервере
 должны быть собственные registration/root/unit/UID/GID, readiness и process identity.
 Private `.asa/installation.json`, `collector-runner.json`, `log-collector.json`
-должны быть single-link regular files, owner:primaryGID mode0600, без symlink и
-delegated-write ancestors. Интегратор отказывает при ином состоянии.
+должны быть single-link regular files mode0600, без symlink и delegated-write
+ancestors. В USER режиме остаётся owner:primaryGID. В `system-root` режиме
+канонический app collector сохраняет все три файла как root:readerGID, где
+readerGID берётся из проверенного `installation.json.collectorReaderGid`.
+Это существующая ненулевая группа, отличная от Docker group/socket group;
+primary GID root (обычно0) не является readerGID. Интегратор проверяет точное
+совпадение группы всех трёх файлов и `Group=<numeric readerGID>` вместе с
+`User=root` в каноническом unit. Root membership в этой группе не требуется.
 
 App main checkpoint `bbf905d1` ещё не включал private writer PR977;
 он мог повторно сохранить installation.json с неверным mode. Source fix теперь
@@ -129,6 +135,11 @@ owner/private metadata, raw digest всех5 runner files, local unit shape/argv
 Совпадающая запись даёт NO_CHANGE без переписывания файла; другая/повторная запись
 с тем же source даёт STOP. Apply блокирует config inode, перед заменой проверяет
 CAS всех трёх private metadata files; atomic temp0600/fsync сохраняет owner/GID.
+Только в `system-root` режиме новый собственный O_EXCL temp-файл при необходимости
+получает проверенный readerGID через `fchown`; существующие файлы и host permissions
+не исправляются. Output monitor должен иметь ровно выбранный readerGID, а не
+любую supplementary group root. Неверная группа, root-на-USER, чужой unit/drop-in
+или конкурентный writer остаются отказом до замены config.
 Одновременные config writers не допускаются; после CAS-конфликта новый PLAN.
 
 Receipt выдаёт unit/mode/restartRequired и `loadedUnitVerified=false`: local unit
@@ -176,7 +187,11 @@ source digest/identity; он **не заменяет** этот явный resta
 CI workflow `provider-monitor-bootstrap.yml` использует новый GitHub Ubuntu VM,
 actual systemd и только loopback mock providers: PLAN/no writes, автоматический
 Git raw fetch, apply+same-bytes/inodes repeat, offline repeat, настоящий второй
-timer sample, nonroot integration/CAS boundaries и exact2a pure consumer. Это
+timer sample, nonroot integration/CAS boundaries и exact2a pure consumer. Отдельный
+root-system fixture использует primaryGID0, root:ненулевой-readerGID metadata0600,
+не-setgid `.asa` и monitor output вне supplementary groups root. Он проверяет
+PLAN/apply/repeat, сохранение metadata/history и CAS competitor, отказы при
+неверной группе/User/Group/drop-in. Синтетический root collector не запускается. Это
 logging-component proof; clean full ASA/DB/MinIO install и real GPU не запускаются.
 Точный успешный CI head фиксируется в PR после фактического результата.
 
