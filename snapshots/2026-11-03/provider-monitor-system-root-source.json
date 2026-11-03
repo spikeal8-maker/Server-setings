@@ -1,0 +1,39 @@
+{
+  "status": "SOURCE_FIX_REQUIRES_EXACT_CI_AND_INDEPENDENT_REVIEW",
+  "initialBase": "1bdbd4ac815fb8db95f0fe418ed09d05e82ade53",
+  "controlledDocumentationConvergence": "d3f7e8b573ed7c660b17100297b444ba981c0681",
+  "scope": "Portable monitor integration for canonical system-root collector metadata",
+  "rootContract": {
+    "metadataOwnerUid": 0,
+    "metadataGroup": "Validated installation.collectorReaderGid; existing, nonzero, not Docker group/socket group",
+    "metadataMode": "0600",
+    "allThreeMetadataGroupsMustMatch": true,
+    "unit": "Exact User=root and numeric Group=selectedReaderGid",
+    "outputGroup": "Exact selectedReaderGid; no root supplementary-group waiver",
+    "newTempOnlyGroupAssignment": true,
+    "existingMetadataPermissionRepair": false,
+    "userBranchContractUnchanged": true,
+    "rootOnUserDenied": true
+  },
+  "ephemeralRootFixture": {
+    "primaryGid": 0,
+    "selectedReaderOutsideProcessGroups": true,
+    "metadata": "root:selectedReaderGid 0600 single-link",
+    "stateDirectorySetgid": false,
+    "planApplyRepeat": "REQUIRED_IN_GITHUB_UBUNTU_CI",
+    "competingCasWriter": "MUST_BE_PRESERVED",
+    "syntheticCollectorStarted": false
+  },
+  "unchangedExporterSource": "5553a56fdcb3a10829339d6fae6cb7bb3d88cd4a",
+  "exporterTemplatesManifestRawBytesChanged": false,
+  "localDockerOrServerOperations": false,
+  "cleanWholeAsaInstallationQualified": false,
+  "fullLoggingCoverageQualified": false,
+  "actualRootSystemCi": "PENDING_EXACT_HEAD",
+  "localFocused": {
+    "bootstrap": {"run": 15, "passed": 11, "linuxOnlySkipped": 4},
+    "unchangedExporter": {"run": 25, "passed": 18, "linuxOnlySkipped": 7},
+    "sourceMaterialization": "Private git cat-file raw bytes; local Windows checkout/archive CRLF is not accepted as pinned manifest bytes",
+    "rootSystemRuntimeExecutedLocally": false
+  }
+}

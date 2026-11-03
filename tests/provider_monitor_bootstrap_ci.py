@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
+import grp
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path('/var/lib/asa-provider-bootstrap-ci')
 APP = Path('/var/lib/asa-provider-bootstrap-ci-installation')
+ROOT_APP = Path('/var/lib/asa-provider-bootstrap-ci-root-installation')
 FIXTURE = Path('/var/lib/asa-provider-bootstrap-ci-app')
 NAMES = ('asa-provider-monitor.service', 'asa-provider-monitor.timer')
 
@@ -130,10 +132,125 @@ def cas_fixture():
     print(json.dumps(dict(status='CONFIG_CAS_REJECTED', competingWritePreserved=True)))
 
 
+def root_cas_fixture():
+    """Only a fresh synthetic root installation; never an operating collector."""
+    assert os.geteuid() == 0 and os.environ.get('GITHUB_ACTIONS') == 'true'
+    assert os.environ.get('ASA_EPHEMERAL_BOOTSTRAP_CI') == '1'
+    spec = importlib.util.spec_from_file_location('root_cas_bootstrap', ROOT/'scripts/bootstrap-provider-monitor.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    original, changed = module.os.stat, False
+    def competing_write(path, *args, **kwargs):
+        nonlocal changed
+        if path == 'log-collector.json' and kwargs.get('dir_fd') is not None and not changed:
+            changed = True
+            (ROOT_APP/'.asa/log-collector.json').write_text('{"externalRootWriter":"preserved"}\n')
+        return original(path, *args, **kwargs)
+    module.os.stat = competing_write
+    try:
+        try:
+            module.integrate(argparse.Namespace(root=str(ROOT_APP), project='provider-bootstrap-system-root-ci', apply=True))
+        except module.Blocked as error:
+            assert str(error) == 'CONFIG_CAS' and changed
+        else:
+            raise AssertionError('concurrent root config was not rejected')
+    finally:
+        module.os.stat = original
+    assert json.loads((ROOT_APP/'.asa/log-collector.json').read_text()) == {'externalRootWriter': 'preserved'}
+    assert not list((ROOT_APP/'.asa').glob('.provider-monitor-*.tmp'))
+    print(json.dumps(dict(status='ROOT_CONFIG_CAS_REJECTED', competingWritePreserved=True)))
+
+
+def root_integration(bootstrap, reader):
+    """Canonical cdb root:reader metadata, root-primary process, no collector start."""
+    assert os.geteuid() == os.getegid() == 0 and reader not in {0, *os.getgroups()}
+    assert not ROOT_APP.exists() and not ROOT_APP.is_symlink()
+    ROOT_APP.mkdir(mode=0o700)
+    for path in (ROOT_APP/'.asa', ROOT_APP/'tools', ROOT_APP/'tools/deployment'):
+        path.mkdir(mode=0o700)
+    digest = hashlib.sha256()
+    for name in ('collect_logs.py', 'collect-windows-logs.ps1', 'resource_sampling.py', 'memory_sampling.py', 'deployment/operational.py'):
+        data = (FIXTURE/'tools'/name).read_bytes()
+        private(ROOT_APP/'tools'/name, data, 0, 0)
+        digest.update(name.encode()); digest.update(data)
+    project = 'provider-bootstrap-system-root-ci'
+    name = 'asa-log-collector-'+project+'.service'
+    unit = Path('/etc/systemd/system')/name
+    assert not unit.exists() and not unit.is_symlink()
+    assert 'LoadState=not-found' in execute(['systemctl','show',name,'--property=LoadState'])
+    settings = dict(format='asa-installation-v1', profile='production', project=project,
+                    collectorMode='system-root', collectorReaderGid=reader)
+    runner = dict(version=1, root=str(ROOT_APP), project=project, owner='root', mode='system-root', name=name,
+                  scriptDigest=digest.hexdigest(), revision='cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa')
+    config = dict(version=1, project=project, fileSources=[], preserved={'nested':['retained',123]})
+    for file, value in [('installation.json',settings),('collector-runner.json',runner),('log-collector.json',config)]:
+        private(ROOT_APP/'.asa'/file, value, 0, reader)
+    private(ROOT_APP/'.asa/synthetic-history-marker', b'root history unchanged', 0, 0)
+    text = ('[Unit]\nDescription=ASA Lab diagnostic collector\nAfter=network.target\n[Service]\n'
+            f'User=root\nGroup={reader}\nWorkingDirectory={ROOT_APP}\n'
+            f'ExecStart="/usr/bin/python3" "{ROOT_APP}/tools/collect_logs.py" --root "{ROOT_APP}"\n'
+            'Restart=always\nRestartSec=20\nNoNewPrivileges=true\nUMask=0077\n[Install]\nWantedBy=multi-user.target\n')
+    private(unit, text.encode(), 0, 0); unit.chmod(0o644)
+    integration = bootstrap+['integrate','--root',str(ROOT_APP),'--project',project]
+    path = ROOT_APP/'.asa/log-collector.json'
+    protected = hashes([ROOT_APP/'.asa/installation.json',ROOT_APP/'.asa/collector-runner.json',ROOT_APP/'.asa/synthetic-history-marker',unit])
+    original = hashes([path])
+    assert execute(integration)['status'] == 'PLAN' and hashes([path]) == original
+    assert execute(integration+['--apply'])['status'] == 'INTEGRATED'
+    info = path.stat()
+    assert (info.st_uid,info.st_gid,info.st_mode & 0o777,info.st_nlink) == (0,reader,0o600,1)
+    assert json.loads(path.read_text()) == {**config,'fileSources':[dict(source='provider-monitor',path='/var/lib/asa-provider-monitor')]}
+    applied = hashes([path])
+    assert execute(integration+['--apply'])['status'] == 'NO_CHANGE' and hashes([path]) == applied
+    assert hashes([Path(p)for p in protected]) == protected
+    # Selected group does not come from root's primary/supplementary membership.
+    assert Path('/var/lib/asa-provider-monitor').stat().st_gid == reader
+    assert (ROOT_APP/'.asa').stat().st_gid == 0  # New temp needs fchown; no setgid inheritance.
+    for bad_gid in (0, reader+1):
+        private(ROOT_APP/'.asa/installation.json', {**settings,'collectorReaderGid':bad_gid}, 0, reader)
+        before = hashes([path])
+        assert execute(integration+['--apply'],expected=1)['status'] == 'BLOCKED'
+        assert hashes([path]) == before
+    forbidden = set()
+    try:
+        forbidden.add(grp.getgrnam('docker').gr_gid)
+    except KeyError:
+        pass
+    try:
+        forbidden.add(Path('/var/run/docker.sock').stat().st_gid)
+    except FileNotFoundError:
+        pass
+    for bad_gid in forbidden:
+        private(ROOT_APP/'.asa/installation.json', {**settings,'collectorReaderGid':bad_gid}, 0, reader)
+        before = hashes([path])
+        assert execute(integration+['--apply'],expected=1)['code'] == 'ROOT_READER_GROUP'
+        assert hashes([path]) == before
+    private(ROOT_APP/'.asa/installation.json', settings, 0, reader)
+    os.chown(path,0,0)
+    assert execute(integration+['--apply'],expected=1)['code'] == 'FILE_GROUP'
+    os.chown(path,0,reader)  # Only the fresh synthetic fixture is restored between challenges.
+    for foreign in (text.replace('User=root','User=nobody'), text.replace('Group='+str(reader),'Group=0'),
+                    text.replace('Group='+str(reader)+'\n','')):
+        private(unit,foreign.encode(),0,0); unit.chmod(0o644)
+        before=hashes([path])
+        assert execute(integration+['--apply'],expected=1)['code']=='COLLECTOR_UNIT'
+        assert hashes([path])==before
+    private(unit,text.encode(),0,0); unit.chmod(0o644)
+    dropin=unit.with_name(name+'.d'); dropin.mkdir(mode=0o700)
+    assert execute(integration+['--apply'],expected=1)['code']=='COLLECTOR_DROPINS'
+    dropin.rmdir()
+    private(path,config,0,reader)
+    assert execute(['/usr/bin/python3','-I','-B',str(Path(__file__)),'--root-cas-fixture'])['status']=='ROOT_CONFIG_CAS_REJECTED'
+    assert 'MainPID=0' in execute(['systemctl','show',name,'--property=MainPID'])
+    return dict(rootPrimaryGroup=0,selectedReaderGroup=reader,rootMetadataGroupPreserved=True,
+                rootPlanApplyRepeat=True,rootUnitGroupStrict=True,rootCasCompetitorPreserved=True,
+                syntheticRootCollectorStarted=False)
+
+
 def rehearse(owner_name):
     assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('ASA_EPHEMERAL_BOOTSTRAP_CI') == '1'
     assert os.geteuid() == 0 and Path('/run/systemd/system').is_dir()
-    assert not any(p.exists() or p.is_symlink() for p in (Path('/var/lib/asa-provider-monitor-runtime'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor'), STATE, APP))
+    assert not any(p.exists() or p.is_symlink() for p in (Path('/var/lib/asa-provider-monitor-runtime'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor'), STATE, APP, ROOT_APP))
     owner = pwd.getpwnam(owner_name)
     assert owner.pw_uid and owner.pw_gid
     parents = [Path('/'), Path('/opt'), Path('/etc'), Path('/etc/systemd'), Path('/etc/systemd/system'), Path('/var'), Path('/var/lib'), ROOT, ROOT/'scripts', ROOT/'templates', ROOT/'templates/provider-monitor']
@@ -200,6 +317,7 @@ def rehearse(owner_name):
     cas = execute(['setpriv', '--reuid='+str(owner.pw_uid), '--regid='+str(owner.pw_gid), '--init-groups',
                    '/usr/bin/python3', '-I', '-B', str(Path(__file__)), '--cas-fixture'])
     assert cas['status'] == 'CONFIG_CAS_REJECTED'
+    root_result = root_integration(bootstrap, owner.pw_gid)
     # A synthetic collector process is not started: this checks actual pinned 2a pure consumer functions only.
     os.environ['ASA_PROVIDER_TEST_SOURCE'] = str(FIXTURE)
     spec = importlib.util.spec_from_file_location('consumer_contracts', ROOT/'tests/test_provider_health_exporter.py')
@@ -227,6 +345,7 @@ def rehearse(owner_name):
                    ownerIntegrationPlanApplyRepeat=True, rootOnUserAndSourceCollisionRejected=True,
                    configCasCompetingWritePreserved=True,
                    syntheticHistoryUnchanged=True, actualPinnedConsumerEventTime=True, deterministicDuplicateId=True,
+                   systemRootIntegration=root_result,
                    timerSamples=len(raw_lines), fullAsaInstallationTest=False, realGpuGeneration=False)
     print(json.dumps(summary, sort_keys=True))
 
@@ -235,6 +354,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mock', action='store_true')
     parser.add_argument('--cas-fixture', action='store_true')
+    parser.add_argument('--root-cas-fixture', action='store_true')
     parser.add_argument('--owner')
     args = parser.parse_args()
-    mock_server() if args.mock else cas_fixture() if args.cas_fixture else rehearse(args.owner)
+    mock_server() if args.mock else cas_fixture() if args.cas_fixture else root_cas_fixture() if args.root_cas_fixture else rehearse(args.owner)
