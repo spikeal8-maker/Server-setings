@@ -323,6 +323,7 @@ class NativeFilesystemContracts(unittest.TestCase):
                 target.chmod(0o600)
             output = root/'output'
             output.mkdir(mode=0o750)
+            output.chmod(0o750)
             value = {**config(), 'version': 1, 'readerGid': 1000, 'bundleRoot': str(bundle.parent), 'outputDirectory': str(output)}
             cfg = root/'config.json'
             cfg.write_text(json.dumps(value))

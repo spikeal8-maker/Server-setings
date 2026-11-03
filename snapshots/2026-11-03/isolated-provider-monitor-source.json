@@ -16,9 +16,20 @@
   "focusedWindowsTests": {"run": 22, "passed": 15, "linuxSkipped": 7},
   "repositoryHygieneTestsPassed": 3,
   "rawGitPinsAstJsonDiff": "PASS",
-  "exactLinuxCi": "PENDING",
+  "priorSourceCi": {"source": "5bea825d3829fe5ec9891a71749a845c5f1cbab8", "contractsRun": 41628279812, "staticRun": 41628279848, "conclusion": "SUCCESS"},
+  "repairedSourceCi": "PENDING",
   "independentReview": "REQUIRED",
-  "actualRootStaging": "NOT_RUN",
+  "actualRootStaging": {
+    "source": "5bea825d3829fe5ec9891a71749a845c5f1cbab8",
+    "operation": "1c5287c6665943fb921082dcc5db20b2",
+    "run": 22, "passed": 21, "failed": 1, "skipped": 0,
+    "failure": "PLAN fixture mkdir under umask 0077 produced 0700: OUTPUT_DIRECTORY_MODE",
+    "diagnosticOperation": "3f9dd8e74e9e4a02902df83588a38e61",
+    "repair": "Fixture-only explicit chmod 0750; production unchanged",
+    "targetedInMemoryRepairOperation": "cac90d0295324894af7cae85f24027ef",
+    "targetedInMemoryRepairPassed": 1,
+    "completeRepairedRootSuite": "NOT_RUN"
+  },
   "actualProviderRequests": "NOT_RUN",
   "actualSystemdAndReader": "NOT_RUN"
 }

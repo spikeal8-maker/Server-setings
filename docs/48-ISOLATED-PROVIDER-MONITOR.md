@@ -108,4 +108,16 @@ ASA_PROVIDER_TEST_SOURCE=/EXACT/CLEAN/2a python3 -B -m unittest discover -s test
 2a, без новых secrets; raw pins проверяются до тестового module execution. Linux FD
 tests используют только temp files с явно simulated root metadata; link/CAS/flock/
 rotation operations реальные. Native negative rejects an actual untrusted temp
-ancestor. Реальная root staging/systemd/reader qualification остаётся отдельной.
+ancestor. Реальная systemd/provider/reader qualification остаётся отдельной.
+
+Первый root staging exact `5bea825d3829fe5ec9891a71749a845c5f1cbab8`:
+22 run, 21 PASS, 1 FAIL, 0 skip (operation
+`1c5287c6665943fb921082dcc5db20b2`). Единственный FAIL — PLAN fixture:
+root umask `0077` сделал test output `0700` вместо обязательного `0750`.
+Однократный capture `3f9dd8e74e9e4a02902df83588a38e61` подтвердил закрытый
+`OUTPUT_DIRECTORY_MODE`, без реальных provider requests.
+Исправлена только подготовка fixture: явный `chmod(0750)` после `mkdir`.
+Production guards/bytes не изменены. Targeted in-memory replay ровно этой
+поправки на тех же проверенных staged bytes при umask `0077`:
+1 PASS, CLI PLAN/exit 0, operation `cac90d0295324894af7cae85f24027ef`.
+Staged source, app/services не менялись; новый полный root suite не заявлен.
