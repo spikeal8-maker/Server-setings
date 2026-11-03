@@ -18,8 +18,8 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path('/var/lib/asa-provider-bootstrap-ci')
-APP = Path('/srv/asa-provider-bootstrap-ci')
-FIXTURE = Path('/opt/asa-provider-bootstrap-ci-app')
+APP = Path('/var/lib/asa-provider-bootstrap-ci-installation')
+FIXTURE = Path('/var/lib/asa-provider-bootstrap-ci-app')
 NAMES = ('asa-provider-monitor.service', 'asa-provider-monitor.timer')
 
 
@@ -133,7 +133,7 @@ def cas_fixture():
 def rehearse(owner_name):
     assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('ASA_EPHEMERAL_BOOTSTRAP_CI') == '1'
     assert os.geteuid() == 0 and Path('/run/systemd/system').is_dir()
-    assert not any(p.exists() or p.is_symlink() for p in (Path('/opt/asa-provider-monitor'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor'), STATE, APP))
+    assert not any(p.exists() or p.is_symlink() for p in (Path('/var/lib/asa-provider-monitor-runtime'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor'), STATE, APP))
     owner = pwd.getpwnam(owner_name)
     assert owner.pw_uid and owner.pw_gid
     parents = [Path('/'), Path('/opt'), Path('/etc'), Path('/etc/systemd'), Path('/etc/systemd/system'), Path('/var'), Path('/var/lib'), ROOT, ROOT/'scripts', ROOT/'templates', ROOT/'templates/provider-monitor']
@@ -152,19 +152,19 @@ def rehearse(owner_name):
     setup = bootstrap+['install', '--reader-gid', str(owner.pw_gid), '--ollama-origin', origins['ollama'], '--comfyui-origin', origins['comfyui']]
     first = execute(setup)
     assert first['status'] == 'PLAN' and first['writes'] is False
-    assert not any(p.exists() for p in (Path('/opt/asa-provider-monitor'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor')))
+    assert not any(p.exists() for p in (Path('/var/lib/asa-provider-monitor-runtime'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor')))
     # Actual automatic three-file HTTPS GitHub path, not monkeypatched/offline.
     applied = execute(setup+['--apply', '--activate'])
     assert applied['status'] == 'INSTALLED'
-    files = [p for base in ('/opt/asa-provider-monitor', '/etc/asa-provider-monitor') for p in Path(base).rglob('*') if p.is_file()]
+    files = [p for base in ('/var/lib/asa-provider-monitor-runtime', '/etc/asa-provider-monitor') for p in Path(base).rglob('*') if p.is_file()]
     files += [Path('/etc/systemd/system')/n for n in NAMES]
     before = hashes(files)
     second = execute(setup+['--apply', '--activate'])
     assert second['status'] == 'NO_CHANGE' and hashes(files) == before
     assert second['timerActivationChanged'] is False
     # Explicit offline path also verifies the exact installed immutable closure without replacement.
-    assert execute(setup+['--offline-bundle', '/opt/asa-provider-monitor/app-source/tools', '--apply'])['status'] == 'NO_CHANGE'
-    exporter = ['/usr/bin/python3', '-I', '-B', '/opt/asa-provider-monitor/provider_health_exporter.py', 'check', '--config', '/etc/asa-provider-monitor/config.json']
+    assert execute(setup+['--offline-bundle', '/var/lib/asa-provider-monitor-runtime/app-source/tools', '--apply'])['status'] == 'NO_CHANGE'
+    exporter = ['/usr/bin/python3', '-I', '-B', '/var/lib/asa-provider-monitor-runtime/provider_health_exporter.py', 'check', '--config', '/etc/asa-provider-monitor/config.json']
     assert execute(exporter)['status'] == 'AVAILABLE'
     initial = json.loads(Path('/var/lib/asa-provider-monitor/latest.json').read_text())
     deadline = time.monotonic()+100
@@ -186,7 +186,8 @@ def rehearse(owner_name):
     expected = {**config, 'fileSources': config['fileSources']+[dict(source='provider-monitor', path='/var/lib/asa-provider-monitor')]}
     assert json.loads(config_path.read_text()) == expected
     integrated = hashes([config_path])
-    assert execute(integration+['--apply'])['status'] == 'NO_CHANGE' and hashes([config_path]) == integrated
+    repeat = execute(integration+['--apply'])
+    assert repeat['status'] == 'NO_CHANGE' and repeat['restartRequired'] is None and hashes([config_path]) == integrated
     assert hashes([Path(p) for p in preserved]) == preserved
     # Meaningful negative: root must not maintain a USER config, and duplicate source cannot be silently rewritten.
     assert execute(bootstrap+['integrate', '--root', str(APP), '--project', 'provider-bootstrap-ci', '--apply'], expected=1)['status'] == 'BLOCKED'

@@ -31,6 +31,11 @@ class BootstrapContracts(unittest.TestCase):
             raw = (subprocess.check_output(['git', 'show', 'HEAD:'+name], cwd=ROOT) if (ROOT/'.git').exists()
                    else (ROOT/name).read_bytes())
             self.assertEqual((len(raw), hashlib.sha256(raw).hexdigest()), (pin['bytes'], pin['sha256']))
+            if name.endswith('.service'):
+                self.assertEqual(raw.count(b'/opt/asa-provider-monitor'), 2)
+                projected = raw.replace(b'/opt/asa-provider-monitor', b'/var/lib/asa-provider-monitor-runtime')
+                self.assertEqual((len(projected), hashlib.sha256(projected).hexdigest()),
+                                 (manifest['serviceProjection']['bytes'], manifest['serviceProjection']['sha256']))
 
     def test_private_numeric_origins_no_auth_dns_redirect_path_or_injection(self):
         for value in ('http://127.0.0.1:11434', 'http://192.168.1.20:8188', 'https://[fd00::1]:443'):
@@ -59,6 +64,18 @@ class BootstrapContracts(unittest.TestCase):
     def test_plan_static_inspection_never_queries_systemd(self):
         with patch.object(bootstrap, 'present', return_value=None), patch.object(bootstrap, 'unit_guard', side_effect=AssertionError('systemd')):
             self.assertFalse(bootstrap.inspect(b'config', {}, {}, 1000))
+
+    def test_existing_manual_layout_is_rejected_before_any_write_or_download(self):
+        args = types.SimpleNamespace(reader_gid=1000, offline_bundle=None, apply=True, activate=True)
+        def present(path):
+            return (1,) if path in (bootstrap.CONFIG, bootstrap.OUTPUT) else None
+        with patch.object(bootstrap.os, 'geteuid', return_value=0, create=True), patch.object(bootstrap, 'read'), \
+             patch.object(bootstrap, 'sources', return_value=({}, {})), patch.object(bootstrap, 'configuration', return_value=b'config'), \
+             patch.object(bootstrap, 'present', side_effect=present), patch.object(bootstrap, 'download', side_effect=AssertionError('network')), \
+             patch.object(bootstrap, 'write_new', side_effect=AssertionError('write')), patch.object(bootstrap, 'make_dir', side_effect=AssertionError('mkdir')), \
+             patch.object(bootstrap, 'unit_guard', side_effect=AssertionError('systemd')):
+            with self.assertRaisesRegex(bootstrap.Blocked, '^PARTIAL_INSTALL_PRESERVED$'):
+                bootstrap.install(args)
 
     def test_source_download_is_fixed_pinned_bounded_and_rejects_redirect(self):
         pin = {'bytes': 3, 'sha256': hashlib.sha256(b'abc').hexdigest()}

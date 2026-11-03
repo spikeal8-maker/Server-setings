@@ -21,9 +21,9 @@ import time
 from urllib.parse import urlsplit
 import uuid
 
-MANIFEST_PIN = (1106, '95bfd368f92240d08e021cae4a53c1957f821c15f99640d1aba2060f609ee3ff')
+MANIFEST_PIN = (1235, '64980bb48025c1fec82bbad7762ab1a212ae710d61828018352cb7add066d35a')
 SOURCE = Path(__file__).absolute().parents[1]
-CODE = Path('/opt/asa-provider-monitor')
+CODE = Path('/var/lib/asa-provider-monitor-runtime')
 CONFIG = Path('/etc/asa-provider-monitor')
 OUTPUT = Path('/var/lib/asa-provider-monitor')
 UNITS = Path('/etc/systemd/system')
@@ -132,12 +132,17 @@ def sources():
     raw, _ = read(SOURCE/'templates/provider-monitor/bootstrap-manifest.json', MANIFEST_PIN[0])
     need((len(raw), digest(raw)) == MANIFEST_PIN, 'MANIFEST_PIN_MISMATCH')
     manifest = decoded(raw)
-    need(set(manifest) == {'format', 'applicationRevision', 'applicationFiles', 'sourceFiles'}
+    need(set(manifest) == {'format', 'applicationRevision', 'applicationFiles', 'sourceFiles', 'serviceProjection'}
          and manifest['format'] == 'asa-provider-bootstrap-manifest-v1'
          and manifest['applicationRevision'] == APP_REVISION
          and set(manifest['applicationFiles']) == APPLICATION_FILES
          and set(manifest['sourceFiles']) == SOURCE_FILES, 'MANIFEST_CONTRACT')
     files = {p: pinned(read(SOURCE/p, pin['bytes'])[0], pin) for p, pin in manifest['sourceFiles'].items()}
+    # One closed portability projection; the original PR66 template stays immutable.
+    service = 'templates/provider-monitor/asa-provider-monitor.service'
+    need(files[service].count(b'/opt/asa-provider-monitor') == 2, 'SERVICE_PROJECTION')
+    files[service] = pinned(files[service].replace(b'/opt/asa-provider-monitor', b'/var/lib/asa-provider-monitor-runtime'),
+                            manifest['serviceProjection'])
     return manifest, files
 
 
@@ -455,7 +460,7 @@ def integrate(args):
             need(stat.S_IMODE(info.st_mode) == 0o750 and info.st_gid in {owner.pw_gid, *os.getgroups()}, 'MONITOR_READER_GROUP')
             read_at(output, 'health.log', 1024*1024, mode=0o640, gid=info.st_gid)
         if matches:
-            return dict(status='NO_CHANGE', restartRequired=False, unit=name, mode=mode, loadedUnitVerified=False)
+            return dict(status='NO_CHANGE', restartRequired=None, unit=name, mode=mode, loadedUnitVerified=False)
         changed = {**config, 'fileSources': [*rows, wanted]}
         if args.apply:
             import fcntl

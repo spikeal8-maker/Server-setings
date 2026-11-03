@@ -15,6 +15,10 @@
   },
   "applicationRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
   "format": "asa-provider-bootstrap-manifest-v1",
+  "serviceProjection": {
+    "bytes": 870,
+    "sha256": "4df7fc4a7ff38dab83a844791f4f18da5173f2c8f881f9ac007e459f2dfa2d4b"
+  },
   "sourceFiles": {
     "scripts/provider_health_exporter.py": {
       "bytes": 19819,

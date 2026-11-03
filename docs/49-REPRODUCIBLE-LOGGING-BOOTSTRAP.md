@@ -43,14 +43,14 @@ sudo -i
 umask 022
 read -r -p 'Reviewed full infra commit SHA: ' INFRA_SHA
 test "${#INFRA_SHA}" = 40
-test ! -e /opt/asa-provider-bootstrap-source
-git clone --no-checkout https://github.com/spikeal8-maker/Server-setings.git /opt/asa-provider-bootstrap-source
-git -C /opt/asa-provider-bootstrap-source checkout --detach "$INFRA_SHA"
-test "$(git -C /opt/asa-provider-bootstrap-source rev-parse HEAD)" = "$INFRA_SHA"
+test ! -e /var/lib/asa-provider-bootstrap-source
+git clone --no-checkout https://github.com/spikeal8-maker/Server-setings.git /var/lib/asa-provider-bootstrap-source
+git -C /var/lib/asa-provider-bootstrap-source checkout --detach "$INFRA_SHA"
+test "$(git -C /var/lib/asa-provider-bootstrap-source rev-parse HEAD)" = "$INFRA_SHA"
 read -r -p 'Existing collector reader GID: ' READER_GID
 read -r -p 'Ollama numeric origin incl actual port: ' OLLAMA_ORIGIN
 read -r -p 'ComfyUI numeric origin incl actual port: ' COMFYUI_ORIGIN
-python3 -I -B /opt/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN"
+python3 -I -B /var/lib/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN"
 ```
 
 Например `http://127.0.0.1:11434` допустим только если провайдер реально уже
@@ -67,11 +67,11 @@ PLAN не создаёт файлов/tempdirs/locks, не делает HTTP/DNS
 ## 3. Установить повторяемо, без ручного копирования модулей
 
 ```sh
-python3 -I -B /opt/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN" --apply --activate
+python3 -I -B /var/lib/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN" --apply --activate
 # Успешная повторная команда проверяет те же bytes/config и возвращает NO_CHANGE;
 # уже активный timer не перезапускается.
-python3 -I -B /opt/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN" --apply --activate
-python3 -I -B /opt/asa-provider-monitor/provider_health_exporter.py check --config /etc/asa-provider-monitor/config.json
+python3 -I -B /var/lib/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py install --reader-gid "$READER_GID" --ollama-origin "$OLLAMA_ORIGIN" --comfyui-origin "$COMFYUI_ORIGIN" --apply --activate
+python3 -I -B /var/lib/asa-provider-monitor-runtime/provider_health_exporter.py check --config /etc/asa-provider-monitor/config.json
 systemctl status asa-provider-monitor.timer asa-provider-monitor.service --no-pager
 ```
 
@@ -86,9 +86,14 @@ files `deployment/{__init__,paths,operational}.py`; USER checkout не подх�
 Нет runtime зависимости на H03 incident bundle или mutable app imports.
 
 Manifest закреплён length/SHA256 внутри bootstrap и перечисляет unchanged555
-exporter, exact service/timer и три app2a blobs. Config строится из явных inputs:
+exporter, исходные service/timer templates и три app2a blobs. Для нового bootstrap
+ровно два литерала `/opt/asa-provider-monitor` в service меняются на
+`/var/lib/asa-provider-monitor-runtime`; весь полученный unit отдельно pinned
+(870 bytes, SHA256 `4df7fc4a7ff38dab83a844791f4f18da5173f2c8f881f9ac007e459f2dfa2d4b`).
+Это одна закрытая проекция без operator path guessing/normalization; timer и
+shared PR66 templates остаются byte-identical. Config строится из явных inputs:
 `/etc/asa-provider-monitor/config.json` root0600; код и bundle под
-`/opt/asa-provider-monitor`, root-controlled; output `/var/lib/asa-provider-monitor`
+`/var/lib/asa-provider-monitor-runtime`, root-controlled; output `/var/lib/asa-provider-monitor`
 root:readerGID0750, log0640/latest0600. Manifest/права/ссылки проверяются до
 исполнения installed exporter PLAN; self source trust начинается с independently
 reviewed Git commit, выбранного оператором, а не с хеша, присланного сервером.
@@ -112,8 +117,8 @@ root-controlled system-root installation. Подставьте реальные 
 ```sh
 read -r -p 'Canonical ASA root: ' ASA_ROOT
 read -r -p 'Existing Compose project: ' ASA_PROJECT
-python3 -I -B /opt/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py integrate --root "$ASA_ROOT" --project "$ASA_PROJECT"
-python3 -I -B /opt/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py integrate --root "$ASA_ROOT" --project "$ASA_PROJECT" --apply
+python3 -I -B /var/lib/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py integrate --root "$ASA_ROOT" --project "$ASA_PROJECT"
+python3 -I -B /var/lib/asa-provider-bootstrap-source/scripts/bootstrap-provider-monitor.py integrate --root "$ASA_ROOT" --project "$ASA_PROJECT" --apply
 ```
 
 Helper не импортирует/исполняет код ASA. Он проверяет canonical registration,
@@ -141,6 +146,8 @@ systemctl --user restart "$COLLECTOR_UNIT"
 Обычный same-release reconcile не обязан замечать изменение config при прежнем
 source digest/identity; он **не заменяет** этот явный restart. Helper не делает его
 сам и не меняет collector mode, ingress, `.env`, release, volumes или private keys.
+При уже совпадающем config `restartRequired=null` означает UNKNOWN: NO_CHANGE
+не доказывает, что ранее добавленный source уже загружен текущим процессом.
 
 ## 5. Cross-host logging acceptance и история
 
@@ -184,3 +191,8 @@ Ephemeral parent ownership/mode inventory добавлен для точной �
 права production guards не ослаблены. Отдельно full-transfer deadline теперь
 охватывает DNS через killable worker; native controlled-DNS-stall regression
 проверяет timeout и отсутствие оставшегося процесса.
+Следующий40b CI дал точный parent inventory: hosted Ubuntu `/opt` root:root0777,
+остальные проверенные parents включая `/var/lib` root0755; PLAN закономерно
+отказал. Global permissions не меняются: новый source/runtime и CI fixtures
+размещаются под trusted `/var/lib`. Старые H03 units/config не мигрируются;
+существующая manual installation блокирует bootstrap как partial/collision.
