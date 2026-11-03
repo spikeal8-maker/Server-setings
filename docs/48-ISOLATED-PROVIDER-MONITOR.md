@@ -4,6 +4,12 @@
 real provider requests, systemd и user-reader integration этим PR не проверены.
 Он не запускает генерацию, не меняет модели/GPU, приложение, Compose, сеть или порты.
 
+Повторяемая установка на новом узле теперь описана в
+[49 — bootstrap и owner integration](49-REPRODUCIBLE-LOGGING-BOOTSTRAP.md):
+PLAN-default CLI сам проверяет/получает pinned modules и размещает собственные
+units, отдельное owner действие добавляет fileSource. Ручные пути ниже остаются
+описанием storage/trust contract, а не обязательной скрытой source-copy процедурой.
+
 `scripts/provider_health_exporter.py` выполняется только Linux root, через Python
 `-I -B`. До imports он открывает каждый ancestor без symlink, требует root ownership
 без group/other write, single-link regular files и проверяет **raw length + SHA256**
