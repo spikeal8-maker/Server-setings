@@ -1,0 +1,162 @@
+{
+  "status": "OPERATOR_EVIDENCE_INDEPENDENT_REVIEW_REQUIRED",
+  "host": "H03",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "metadataRecovery": {
+    "applyOperation": "803b0437436741b5a03fed64e393e0231",
+    "independentComparison": "89ea167f4af443718757a842522e9bb9",
+    "retiredSegments": 31,
+    "records": 607,
+    "authenticatedSuccessors": 1,
+    "eventsUnchanged": 160891,
+    "filesUnchanged": 1395,
+    "allowedStateKeysChanged": 2,
+    "legacyDebtAfter": 0,
+    "typedLedgerAfter": 1
+  },
+  "fixedRunner": {
+    "mode": "user",
+    "pid": 1382415,
+    "restarts": 0,
+    "priorPid": 1246904
+  },
+  "latestHistoryAudit": {
+    "operation": "3c01dd0f875b4addba3e06573c1ad83c",
+    "complete": 457,
+    "total": 457,
+    "incomplete": false,
+    "heartbeatAgeSeconds": 9,
+    "catalogAgeSeconds": 12.6
+  },
+  "nativeIntegrity": {
+    "operation": "2ce0bfdb9d454cada5972290faa39e85",
+    "verifiedRequiredSegments": 12253,
+    "accepted": 43,
+    "persisted": 43,
+    "dropped": 0,
+    "pending": 0
+  },
+  "hostCanaries": {
+    "operation": "91be31963610401ab977fc36e80f1505",
+    "verifiedSegments": 4,
+    "eachCanaryCount": 1
+  },
+  "periodicMetrics": {
+    "operation": "1f965abc9932413db7ad8c9977f1e799",
+    "completeSamples": 3,
+    "rawShaSegments": 34,
+    "missed": 0,
+    "dropped": 0,
+    "expired": 0,
+    "quota": 0,
+    "publishLagSeconds": [
+      16.732,
+      2.846,
+      12.251
+    ],
+    "retainedWarning": "host_commit_pressure"
+  },
+  "latestSources": {
+    "total": 47,
+    "ok": 41,
+    "nonOk": 6,
+    "remaining": "BOUNDED_AI_HISTORICAL_DB_PENDING_AND_DOCKER_HISTORY_GAP"
+  },
+  "requiredCoverage": "INCOMPLETE_THREE_COMPOSE_DECLARATIONS_MISSING",
+  "ingressHistoricalTimestamp": "file_mtime_NOT_15MIN_VISIT_COUNT",
+  "providerGpuRawCollection": "UNPROVEN",
+  "schoolUpdate": "NOT_RUN",
+  "allModules100Users": "NOT_RUN",
+  "electronics836": "NOT_CLEARED",
+  "finalReceiptFreeze": "RECORDED_CONTROLLER_RECEIPTS",
+  "independentReview": "REQUIRED",
+  "lateDiagnostics": {
+    "synthetic429StorageOperation": "1bedf8b16a6b46a08ac7e1f78cc385d2",
+    "storedRows": 1,
+    "httpStatus": 429,
+    "rejectedPrivateFieldAbsent": true,
+    "writerDropped": 0,
+    "writerPending": 0
+  },
+  "actualApiExport": {
+    "operation": "08a7632ee7a64a45a6c4f988800bb7eb",
+    "independentZipCheck": "b3ba5ec3af9d4f07ae5092a46796210b",
+    "queryRows": 1,
+    "pageRows": 1,
+    "exportRows": 1,
+    "zipBytes": 1794,
+    "zipSha256": "bfafa1e49f884ecaf1f9bc3a6d5933de3e7cd1cb6b29df35ec7f13218329047b",
+    "foreignOwnerDenied": true,
+    "coverageComplete": false
+  },
+  "providerMetadata": {
+    "operation": "5716023e37f2420e80d8254ccdc7c044",
+    "get200": 3,
+    "milliseconds": [
+      34,
+      20,
+      7
+    ],
+    "generation": "NOT_RUN"
+  },
+  "existingAiInventory": {
+    "sevenCompleteImageJobs": true,
+    "last7Days": {
+      "succeeded": 80,
+      "cancelled": 16,
+      "failed": 2
+    },
+    "newGenerationTest": false
+  },
+  "gpuWrapperLogIntake": {
+    "files": 24,
+    "bytes": 2223,
+    "continuousRemoteRawCollection": "NOT_QUALIFIED",
+    "serviceRestart": "NOT_RUN"
+  },
+  "pendingSource": {
+    "app981": "fcbe414e27d4610c13b1723262a05790817c91f3",
+    "app982": "339bf66f7b44d7158cc2ebf789f5ec871b7e7764",
+    "independentReview": "APPROVED_SOURCE_ONLY",
+    "deployed": false,
+    "general": "BLOCKED_FOREIGN_BASELINE_FORMATTING",
+    "providerInfra66": "5553a56fdcb3a10829339d6fae6cb7bb3d88cd4a",
+    "providerInstalled": true,
+    "previousRootSyntheticTests": {
+      "pass": 24,
+      "skip": 0
+    },
+    "finalProviderPlanTimerProof": "ACTUAL_VERIFIED",
+    "providerMerge": "1b2c7d407d5dd005490e9d0777ec1f69e8eb0892",
+    "providerExactCiChecksSuccess": 5,
+    "finalRootSyntheticTests": {
+      "pass": 25,
+      "skip": 0,
+      "operation": "1d66baecb66b4ef5bd6aca488f4d0701"
+    }
+  },
+  "providerMonitor": {
+    "planUnitProof": "f5db5eaa0b6a4d63b56dff04a7a4543e",
+    "oneshotTimerEnable": "c6aebc4a319742e086a637bc6233119e",
+    "output": "/var/lib/asa-provider-monitor",
+    "directoryMode": "0750",
+    "logMode": "0640",
+    "latestMode": "0600",
+    "ownerUid": 0,
+    "readerGid": 1000,
+    "sampleIntervalSeconds": 121.143,
+    "allReachable": true,
+    "userConfigCas": "8e7a7b756cbb43ada6ed47a08fa4706e",
+    "userConfigSha256": "a68f996c9de788b231b91f1929f187a673ca66cf6f1c4e4438954fe955091d6d",
+    "deliveryProof": "d2dda12d77c54ea6911f93c2a31ac561",
+    "rootSamples": 6,
+    "publishedSamples": 5,
+    "samplesOlderThan40sExactlyOnce": true,
+    "rawShaAndReceiptFieldsEqual": true,
+    "timestampBasis": "event",
+    "lastPublishAgeSeconds": 72.388,
+    "generation": "NOT_RUN",
+    "appGpuRestart": "NOT_RUN",
+    "applicationProviderPolicyQualified": false
+  }
+}
