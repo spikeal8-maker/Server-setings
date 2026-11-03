@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_ALIGNMENT_ONLY",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "infrastructureBase": "8044aa8a8b065962cb93ae6d4620eee588458809",
+  "previousApplication": "53a83e53d2ef40901a698082b215a314603e8d97",
+  "application": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
+  "sourcePins": {"route": 44, "resource": 23, "fixture": 11},
+  "routeEntries": 65,
+  "changedPins": ["apps/web/src/App.tsx"],
+  "reason": "Shared PortalHeader now also wraps the existing chess editor. No new endpoint or navigation route; browser rendering remains NOT_RUN.",
+  "unchanged": "All 65 complete route rows, roles, checks, limits, private cohort bindings, local-AI policy and 77 remaining source pins",
+  "verification": {
+    "gitObjectPins": "78_MATCH_EXACT_2a",
+    "focusedTests": {"run": 86, "pass": 85, "conditionalSkip": 1},
+    "cleanSourceReader": "NOT_RUN: existing exact-2a worktree is dirty; guard refused it without mutation",
+    "load20_50_100": "NOT_RUN",
+    "browser": "NOT_RUN"
+  },
+  "independentReview": "REQUIRED",
+  "productionElectronics836": "NOT_CLEARED"
+}
