@@ -10,7 +10,7 @@
 - Защищённая forensic-копия сохранена. PLAN подтвердил 31 retired segment,
   607 записей и один аутентифицированный successor; независимая prerequisite
   проверка — `49d492790ade49559be42937e3b253ba`.
-- Metadata-only APPLY: `803b0437436741b5a03fed64e393e0231`. Независимое сравнение
+- Metadata-only APPLY: `803b0437436741b5a03fed64e393e023`. Независимое сравнение
   `89ea167f4af443718757a842522e9bb9`: 160891 events, все non-state таблицы/schema
   и 1395 файлов неизменны; изменены только две разрешённые state keys.
   Legacy debt=0, typed successor ledger=1. Оригинальные HMAC не подделывались.
@@ -82,7 +82,7 @@ Infra provider exporter PR66 source
 Фактический oneshot и timer enable — `c6aebc4a319742e086a637bc6233119e`, без
 генерации и перезапуска app/GPU. Root output `/var/lib/asa-provider-monitor`:
 root:GID1000, directory0750/log0640/latest0600. Два samples разделены121.143s,
-все endpoints reachable, check age13.323s (`a6818be4db13484aaef0529ea5c2f8ed4`).
+все endpoints reachable, check age13.323s (`a6818be4db13484aaef0529ea5c2f8ed`).
 USER config CAS `8e7a7b756cbb43ada6ed47a08fa4706e` добавил только provider-monitor
 fileSource, сохранив UID1000/mode0600; config SHA256
 `a68f996c9de788b231b91f1929f187a673ca66cf6f1c4e4438954fe955091d6d`.
