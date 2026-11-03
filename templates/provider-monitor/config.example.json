@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "bundleRoot": "/var/lib/asa-stabilization-cli-909-2a28cffe7a20/tools",
-  "outputDirectory": "/var/log/asa-provider-monitor",
+  "bundleRoot": "/opt/asa-provider-monitor/app-source/tools",
+  "outputDirectory": "/var/lib/asa-provider-monitor",
   "readerGid": 1000,
   "providers": {
     "ollama": {"origin": "http://127.0.0.1:11434"},

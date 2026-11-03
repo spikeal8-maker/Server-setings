@@ -35,12 +35,24 @@ Ollama `GET /api/ps`, `GET /api/tags` и ComfyUI `GET /system_stats`: исход
 `templates/provider-monitor/config.example.json` — пример, **не реальные настройки**;
 loopback origins нельзя слепо переносить на другой узел. Существующие root-trusted
 17 CLI files можно использовать как bundle: проверяются только три pinned файла.
+Переносимый example bundleRoot — `/opt/asa-provider-monitor/app-source/tools`:
+оператор отдельно размещает там только `deployment/__init__.py`, `paths.py` и
+`operational.py` из exact Git raw blobs app2a; lengths66/2477/26444 и SHA256 указаны
+в таблице выше. Все ancestors/files root-controlled; обычный mutable USER checkout
+или guessed/normalized bytes не подходят. Example не создаёт эти файлы сам.
+Существующий H03 root-trusted CLI bundle
+`/var/lib/asa-stabilization-cli-909-2a28cffe7a20/tools` может быть явно выбран
+оператором в реальном config без повторного копирования. Этот incident path не
+является переносимым default или production-code dependency.
 Настоящий installed USER checkout не подходит, даже при том же Git SHA.
 
 Разместить exact reviewed exporter в `/opt/asa-provider-monitor/`, root-owned code
 без group/other write; config — `/etc/asa-provider-monitor/config.json`, root0600.
 Все ancestors должны принадлежать root без delegated write. Dedicated output
-`/var/log/asa-provider-monitor` заранее создаётся root:`readerGid`, mode0750.
+`/var/lib/asa-provider-monitor` заранее создаётся root:`readerGid`, mode0750.
+Это persistent private state с отдельным `health.log`; config outputDirectory и
+unit ReadWritePaths должны указывать один approved path. Проверять реальных
+ancestors на каждом host, а не предполагать их безопасность по имени `/var/lib`.
 Не использовать business/forensic/USER directories; чужой entry в output даёт STOP.
 Config требует ровно два provider IDs, явные origins, bundle/output paths и GID;
 секретов и implicit defaults нет. Проверить целевой GID и возможность чтения его
@@ -136,3 +148,12 @@ Production guards/bytes не изменены. Targeted in-memory replay ров�
 поправки на тех же проверенных staged bytes при umask `0077`:
 1 PASS, CLI PLAN/exit 0, operation `cac90d0295324894af7cae85f24027ef`.
 Staged source, app/services не менялись; новый полный root suite не заявлен.
+
+Отдельный installation preflight `0ba9fea6369040009a0f5b85fcb5e42d`
+остановился на parent trust до любой записи; diagnosis
+`7079c7c1bf294db0a0dc8472bed5226e` подтвердил `/var/log` root:102 mode0775
+и `/var/lib` root:root mode0755. Все шесть installation targets отсутствовали,
+activation не выполнялась. Default example/template/docs перенесены в
+`/var/lib/asa-provider-monitor`; права `/var/log` и строгие production guards
+не менялись. Новый path PLAN, real probes и service activation этим source patch
+не выполнены; требуются отдельные review и operator preflight.

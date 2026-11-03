@@ -417,6 +417,19 @@ class NativeFilesystemContracts(unittest.TestCase):
 
 
 class Templates(unittest.TestCase):
+    def test_example_and_unit_share_dedicated_persistent_root_controlled_output(self):
+        value = json.loads((ROOT/'templates/provider-monitor/config.example.json').read_text())
+        service = (ROOT/'templates/provider-monitor/asa-provider-monitor.service').read_text()
+        doc = (ROOT/'docs/48-ISOLATED-PROVIDER-MONITOR.md').read_text(encoding='utf-8')
+        self.assertEqual(value['outputDirectory'], '/var/lib/asa-provider-monitor')
+        self.assertEqual(value['bundleRoot'], '/opt/asa-provider-monitor/app-source/tools')
+        self.assertNotIn('asa-stabilization-cli-909', json.dumps(value))
+        self.assertEqual([line for line in service.splitlines() if line.startswith('ReadWritePaths=')],
+                         ['ReadWritePaths='+value['outputDirectory']])
+        self.assertIn('`'+value['outputDirectory']+'`', doc)
+        for setting in ('User=root', 'Group=root', 'ProtectSystem=strict', 'UMask=0077'):
+            self.assertIn(setting, service.splitlines())
+
     def test_manual_unit_has_no_installer_generation_ports_or_user_import_path(self):
         service = (ROOT/'templates/provider-monitor/asa-provider-monitor.service').read_text()
         timer = (ROOT/'templates/provider-monitor/asa-provider-monitor.timer').read_text()
