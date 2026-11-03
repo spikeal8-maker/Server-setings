@@ -198,7 +198,7 @@ def project(name, value):
 
 
 def validate_receipt(value):
-    need(isinstance(value, dict) and set(value) == {'format', 'sourceRevision', 'configSha256', 'sampleId', 'startedAt', 'checkedAt', 'providers'}, 'RECEIPT_FORMAT')
+    need(isinstance(value, dict) and set(value) == {'format', 'sourceRevision', 'configSha256', 'sampleId', 'startedAt', 'checkedAt', 'providers', 'time', 'kind', 'level'}, 'RECEIPT_FORMAT')
     need(value['format'] == FORMAT and value['sourceRevision'] == SOURCE_REVISION
          and isinstance(value['configSha256'], str) and re.fullmatch('[a-f0-9]{64}', value['configSha256'])
          and isinstance(value['sampleId'], str) and re.fullmatch('[a-f0-9]{32}', value['sampleId']), 'RECEIPT_IDENTITY')
@@ -224,6 +224,9 @@ def validate_receipt(value):
             else:
                 need(stats['ramFreeBytes'] <= stats['ramTotalBytes'] and stats['vramFreeBytes'] <= stats['vramTotalBytes']
                      and stats['cudaDeviceCount'] <= stats['deviceCount'] <= 8, 'RECEIPT_STATS')
+    need(value['time'] == value['checkedAt'] and value['kind'] == 'provider_health'
+         and value['level'] == ('error' if any(row['availability'] == 'unavailable' for row in value['providers']) else 'info'),
+         'RECEIPT_EVENT_ENVELOPE')
     need(len(encode(value)) <= MAX_LINE, 'RECEIPT_LIMIT')
     return value
 
@@ -245,8 +248,11 @@ def probe(config, config_hash, operational):
                        else 'connection_failed' if isinstance(error, OSError) else 'invalid_response')
         rows.append(dict(id=name, checkedAt=stamp(), availability=availability, failure=failure,
                          durationMs=min(MAX_PROBE_SECONDS * 1000, max(0, round((time.monotonic()-begin)*1000))), stats=stats))
+    checked = stamp()
     return validate_receipt(dict(format=FORMAT, sourceRevision=SOURCE_REVISION, configSha256=config_hash,
-                                 sampleId=uuid.uuid4().hex, startedAt=started, checkedAt=stamp(), providers=rows))
+                                 sampleId=uuid.uuid4().hex, startedAt=started, checkedAt=checked, providers=rows,
+                                 time=checked, kind='provider_health',
+                                 level='error' if any(row['availability'] == 'unavailable' for row in rows) else 'info'))
 
 
 def output_files(fd, gid):

@@ -78,6 +78,21 @@ Append/fsync предшествует atomic latest0600/fsync-directory. При 
 совпадения latest с последней строкой журнала и поэтому не принимает незавершённую
 публикацию за свежий успех.
 
+Receipt имеет закрытый event envelope для существующего file adapter app2a:
+`time` строго равен `checkedAt`, `kind` строго `provider_health`, `level` —
+`error`, если хотя бы один validated provider unavailable, иначе `info`.
+Validator отклоняет missing/forged/mismatched поля. Тот же полный JSON с newline
+публикуется в log/latest; `error` receipt остаётся корректным свидетельством
+реальной неготовности, и audit возвращает `PROVIDER_UNAVAILABLE`.
+Новых imports collector в production нет. Test-only чтение exact Git raw
+`tools/collect_logs.py` app2a (138984 bytes,
+SHA256 `8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2`)
+через `ASA_PROVIDER_TEST_SOURCE` извлекает только перечисленные pure functions/constants
+AST, без module imports/top-level I/O. Реальные `file_timestamp` и `normalize`
+проверяют success и отдельный failure каждого provider: event time вместо mtime,
+info/error соответственно. Legacy envelope показывает прежний mtime/info fallback.
+Это не меняет consumer taxonomy и не квалифицирует API required-provider policy.
+
 ```sh
 sudo python3 -I -B /opt/asa-provider-monitor/provider_health_exporter.py sample --config /etc/asa-provider-monitor/config.json --apply
 sudo python3 -I -B /opt/asa-provider-monitor/provider_health_exporter.py check --config /etc/asa-provider-monitor/config.json

@@ -6,11 +6,13 @@ The focused CI supplies an immutable public 2a checkout for real transport reuse
 from contextlib import contextmanager, redirect_stdout
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+import ast
 import hashlib
 import importlib.util
 import io
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import subprocess
@@ -30,6 +32,7 @@ def receipt(at=None):
     at = at or exporter.stamp()
     return dict(format=exporter.FORMAT, sourceRevision=exporter.SOURCE_REVISION,
                 configSha256='a'*64, sampleId='b'*32, startedAt=at, checkedAt=at,
+                time=at, kind='provider_health', level='info',
                 providers=[dict(id=name, checkedAt=at, availability='reachable', failure='none', durationMs=1,
                                 stats=({'ramTotalBytes': 100, 'ramFreeBytes': 50, 'deviceCount': 1,
                                         'cudaDeviceCount': 1, 'vramTotalBytes': 10, 'vramFreeBytes': 5}
@@ -49,6 +52,28 @@ def immutable_blobs(test):
 def config():
     return {'providers': {'ollama': {'origin': 'http://127.0.0.1:11434'},
                           'comfyui': {'origin': 'http://127.0.0.1:8188'}}}
+
+
+def collector_functions(test):
+    """Test-only exact 2a consumer: execute selected pure AST, no collector imports/I/O."""
+    source = os.environ.get('ASA_PROVIDER_TEST_SOURCE')
+    if not source:
+        test.skipTest('Exact public 2a collect_logs.py supplied by ASA_PROVIDER_TEST_SOURCE')
+    raw = (Path(source)/'tools/collect_logs.py').read_bytes()
+    test.assertEqual((len(raw), hashlib.sha256(raw).hexdigest()),
+                     (138984, '8e728afecab47a89ac73261fc588faf7be172f6ff32b77db16138d7d079a00f2'))
+    functions = {'clean', 'timestamp', 'file_timestamp', 'log_level', 'host_source', 'editor_module',
+                 'subsystem', 'classification_payload', 'event_subsystem', 'classify_event', 'normalize'}
+    constants = {'UTC', 'SENSITIVE', 'EDITOR_MODULES', 'LOG_MODULES'}
+    nodes = [node for node in ast.parse(raw).body
+             if (isinstance(node, ast.FunctionDef) and node.name in functions)
+             or (isinstance(node, ast.Assign) and len(node.targets) == 1
+                 and isinstance(node.targets[0], ast.Name) and node.targets[0].id in constants)]
+    test.assertEqual({n.name for n in nodes if isinstance(n, ast.FunctionDef)}, functions)
+    test.assertEqual({n.targets[0].id for n in nodes if isinstance(n, ast.Assign)}, constants)
+    scope = dict(json=json, re=re, hashlib=hashlib, datetime=datetime, timedelta=timedelta, timezone=timezone)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), '<immutable-2a-collector-pure-functions>', 'exec'), scope)
+    return types.SimpleNamespace(**{name: scope[name] for name in functions})
 
 
 class ReceiptContracts(unittest.TestCase):
@@ -86,9 +111,30 @@ class ReceiptContracts(unittest.TestCase):
     def test_fresh_failure_never_becomes_availability(self):
         value = receipt()
         value['providers'][0].update(availability='unavailable', failure='timeout', stats={})
+        value['level'] = 'error'
         exporter.validate_receipt(value)
         with self.assertRaisesRegex(exporter.Blocked, 'PROVIDER_UNAVAILABLE'):
             exporter.audit(value, 'a'*64)
+
+    def test_event_envelope_is_exact_and_cannot_relabel_provider_outcome(self):
+        for unavailable in (False, True):
+            base = receipt()
+            if unavailable:
+                base['providers'][0].update(availability='unavailable', failure='timeout', stats={})
+                base['level'] = 'error'
+            exporter.validate_receipt(base)
+            for key, values in {'time': ['2000-01-01T00:00:00.000Z', None, True, []],
+                                'kind': ['http_response', None, True, {}],
+                                'level': ['info' if unavailable else 'error', 'warn', None, False, []]}.items():
+                for item in values:
+                    value = deepcopy(base)
+                    value[key] = item
+                    with self.subTest(unavailable=unavailable, key=key, item=item), self.assertRaisesRegex(exporter.Blocked, 'RECEIPT_EVENT_ENVELOPE'):
+                        exporter.validate_receipt(value)
+                value = deepcopy(base)
+                del value[key]
+                with self.assertRaisesRegex(exporter.Blocked, 'RECEIPT_FORMAT'):
+                    exporter.validate_receipt(value)
 
     def test_duplicate_json_keys_and_parent_paths_are_denied(self):
         with self.assertRaises(exporter.Blocked):
@@ -113,6 +159,39 @@ class ReceiptContracts(unittest.TestCase):
 
 
 class ActualPinnedTransport(unittest.TestCase):
+    def test_probed_success_and_failure_use_actual_collector_event_time_and_level(self):
+        consumer = collector_functions(self)
+        replies = {'/api/ps': {'models': []}, '/api/tags': {'models': []},
+                   '/system_stats': {'system': {'ram_total': 100, 'ram_free': 40}, 'devices': []}}
+        with exporter.approved_modules(immutable_blobs(self)) as operational:
+            for failed_provider in (None, 'comfyui', 'ollama'):
+                def reply(target, path):
+                    if failed_provider and path in exporter.GETS[failed_provider]:
+                        raise TimeoutError('PRIVATE ERROR')
+                    return replies[path]
+                with patch.object(operational, 'fetch_json', side_effect=reply):
+                    value = exporter.probe(config(), 'a'*64, operational)
+                raw = exporter.encode(value).decode()
+                level = 'error' if failed_provider else 'info'
+                self.assertEqual(value['time'], value['checkedAt'])
+                self.assertEqual(value['kind'], 'provider_health')
+                self.assertEqual(value['level'], level)
+                at, authority = consumer.file_timestamp(raw, '2001-01-01T00:00:00.000Z')
+                self.assertEqual((at, authority), (value['checkedAt'], 'event'))
+                event = consumer.normalize('provider-monitor', raw, at, value['sampleId'])
+                self.assertEqual((event['time'], event['level'], event['source']), (value['checkedAt'], level, 'provider-monitor'))
+                self.assertEqual(json.loads(event['message'])['kind'], 'provider_health')
+                if failed_provider:
+                    with self.assertRaisesRegex(exporter.Blocked, '^PROVIDER_UNAVAILABLE$'):
+                        exporter.audit(value, 'a'*64)
+                else:
+                    exporter.audit(value, 'a'*64)
+                legacy = {k: v for k, v in value.items() if k not in ('time', 'kind', 'level')}
+                legacy_raw = exporter.encode(legacy).decode()
+                fallback, authority = consumer.file_timestamp(legacy_raw, '2001-01-01T00:00:00.000Z')
+                self.assertEqual((fallback, authority), ('2001-01-01T00:00:00.000Z', 'file_mtime'))
+                self.assertEqual(consumer.normalize('provider-monitor', legacy_raw, fallback, 'legacy')['level'], 'info')
+
     def test_exact_closure_dependencies_and_no_user_module_path(self):
         blobs = immutable_blobs(self)
         before = list(sys.path)
@@ -272,6 +351,7 @@ class NativeFilesystemContracts(unittest.TestCase):
                     with exporter.locked(fd, create=False):
                         files = exporter.output_files(fd, 1000)
                         self.assertEqual(set(files), {*exporter.LOGS, 'latest.json', 'probe.lock'})
+                        self.assertEqual(files['health.log'][0].splitlines(keepends=True)[-1], files['latest.json'][0])
                         self.assertLess(exporter.audit(exporter.decode(files['latest.json'][0]), 'a'*64), 2)
                         self.assertEqual(sum(len(files[n][0].splitlines()) for n in exporter.LOGS), 5)
             finally:
