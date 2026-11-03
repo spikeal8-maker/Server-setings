@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "bundleRoot": "/opt/asa-provider-monitor/app-source/tools",
+  "outputDirectory": "/var/lib/asa-provider-monitor",
+  "readerGid": 1000,
+  "providers": {
+    "ollama": {"origin": "http://127.0.0.1:11434"},
+    "comfyui": {"origin": "http://127.0.0.1:8188"}
+  }
+}
