@@ -22,9 +22,11 @@ Private `.asa/installation.json`, `collector-runner.json`, `log-collector.json`
 должны быть single-link regular files, owner:primaryGID mode0600, без symlink и
 delegated-write ancestors. Интегратор отказывает при ином состоянии.
 
-Известный app main на checkpoint `bbf905d1` ещё не включал private writer PR977;
-он мог повторно сохранить installation.json с неверным mode. Не обходить отказ:
-нужен qualified app release с исправленным writer и повторная private-mode проверка.
+App main checkpoint `bbf905d1` ещё не включал private writer PR977;
+он мог повторно сохранить installation.json с неверным mode. Source fix теперь
+merged `0fc52994c6b390e566a2fb7f7e957e605763599f`; это не qualification combined
+published release и не H03 update. Не обходить отказ: нужен qualified app release
+с исправленным writer и повторная private-mode проверка.
 PR981/982 source-only fixes required-coverage/ingress timestamps тоже не считаются
 установленными этим bootstrap. Не выдавать component CI за исправление ASA release.
 
@@ -75,8 +77,10 @@ systemctl status asa-provider-monitor.timer asa-provider-monitor.service --no-pa
 
 APPLY автоматически скачивает ровно три immutable Git raw app2a blobs (таблица
 в [48](48-ISOLATED-PROVIDER-MONITOR.md)), fixed raw.githubusercontent.com HTTPS,
-без proxy/redirect, с length/SHA256 и bounded HTTP reads. Онлайн нужен только при
-первом install; повторный install использует проверенные установленные bytes.
+без proxy/redirect, с length/SHA256 и bounded HTTP reads.
+Каждый полный transfer от DNS/connect до TLS/body ограничен12s killable subprocess;
+на timeout дочерний процесс уничтожается и reap, без фонового DNS worker.
+Онлайн нужен только при первом install; повторный install использует проверенные установленные bytes.
 `--offline-bundle /ROOT_CONTROLLED/tools` вместо download читает те же три exact
 files `deployment/{__init__,paths,operational}.py`; USER checkout не подходит.
 Нет runtime зависимости на H03 incident bundle или mutable app imports.
@@ -174,3 +178,9 @@ exporter24/25 PASS, PLAN fixture FAIL; install step SKIPPED (run41636884119,
 job125920211436). Git archive задаёт0664 files, root tar сохраняет archived modes:
 новые ephemeral staging trees теперь явно лишаются group/other write до root
 execution. Runtime/source guards не ослаблены; исходный failure не скрыт.
+Следующий dba067 CI root11+exporter25 PASS; actual bootstrap PLAN отклонён
+`DIRECTORY_TRUST` до target writes (run41637155430/job125921120254).
+Ephemeral parent ownership/mode inventory добавлен для точной диагностики;
+права production guards не ослаблены. Отдельно full-transfer deadline теперь
+охватывает DNS через killable worker; native controlled-DNS-stall regression
+проверяет timeout и отсутствие оставшегося процесса.

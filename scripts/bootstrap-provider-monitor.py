@@ -31,6 +31,7 @@ NAMES = ('asa-provider-monitor.service', 'asa-provider-monitor.timer')
 APP_REVISION = '2a28cffe7a20302f9b7231ef823bdc05f3fe43d0'
 APPLICATION_FILES = {'deployment/__init__.py', 'deployment/paths.py', 'deployment/operational.py'}
 SOURCE_FILES = {'scripts/provider_health_exporter.py', *('templates/provider-monitor/'+n for n in NAMES)}
+DOWNLOAD_SECONDS = 12
 
 
 class Blocked(RuntimeError):
@@ -162,8 +163,8 @@ def configuration(args):
                                                              for name in ('comfyui', 'ollama')}))
 
 
-def download(path, pin):
-    """Direct fixed GitHub origin, no proxy/redirect, absolute deadline and exact bound."""
+def fetch_http(path, pin):
+    """Worker only: direct fixed GitHub origin, no proxy/redirect and exact bound."""
     connection = http.client.HTTPSConnection('raw.githubusercontent.com', timeout=10)
     deadline, timer = time.monotonic()+10, None
     try:
@@ -197,6 +198,20 @@ def download(path, pin):
         if timer:
             timer.cancel()
         connection.close()
+
+
+def download(path, pin):
+    # The killable process boundary starts before the worker can resolve DNS or
+    # connect. A socket timeout alone cannot bound getaddrinfo/TLS/connect stalls.
+    need(path in APPLICATION_FILES, 'SOURCE_PATH')
+    try:
+        result = subprocess.run([sys.executable, '-I', '-B', str(Path(__file__).absolute()),
+                                 '_fetch', '--path', path, '--apply'], capture_output=True, timeout=DOWNLOAD_SECONDS)
+    except subprocess.TimeoutExpired:
+        # subprocess.run kills and reaps its child on timeout; no background DNS worker remains.
+        raise Blocked('SOURCE_TRANSFER_TIMEOUT') from None
+    need(result.returncode == 0, 'SOURCE_TRANSFER_FAILED')
+    return pinned(result.stdout, pin)
 
 
 def command(argv):
@@ -494,7 +509,17 @@ def main(argv=None):
         owner.add_argument('--root', required=True)
         owner.add_argument('--project', required=True)
         owner.add_argument('--apply', action='store_true')
+        worker = actions.add_parser('_fetch', help=argparse.SUPPRESS)
+        worker.add_argument('--path', choices=sorted(APPLICATION_FILES), required=True)
+        worker.add_argument('--apply', action='store_true', required=True)
         args = parser.parse_args(argv)
+        if args.action == '_fetch':
+            need(os.geteuid() == 0, 'ROOT_REQUIRED')
+            read(Path(__file__).absolute(), 64*1024)
+            manifest, _ = sources()
+            raw = fetch_http(args.path, manifest['applicationFiles'][args.path])
+            sys.stdout.buffer.write(raw)
+            return 0
         result = install(args) if args.action == 'install' else integrate(args)
         print(json.dumps(result, sort_keys=True))
         return 0

@@ -136,6 +136,9 @@ def rehearse(owner_name):
     assert not any(p.exists() or p.is_symlink() for p in (Path('/opt/asa-provider-monitor'), Path('/etc/asa-provider-monitor'), Path('/var/lib/asa-provider-monitor'), STATE, APP))
     owner = pwd.getpwnam(owner_name)
     assert owner.pw_uid and owner.pw_gid
+    parents = [Path('/'), Path('/opt'), Path('/etc'), Path('/etc/systemd'), Path('/etc/systemd/system'), Path('/var'), Path('/var/lib'), ROOT, ROOT/'scripts', ROOT/'templates', ROOT/'templates/provider-monitor']
+    print(json.dumps(dict(kind='EPHEMERAL_PARENT_TRUST_INVENTORY', parents=[dict(path=str(p), uid=p.stat().st_uid, gid=p.stat().st_gid,
+                     mode=oct(p.stat().st_mode & 0o7777)) for p in parents])), flush=True)
     for name in NAMES+('asa-provider-bootstrap-ci-mock.service',):
         properties = execute(['systemctl', 'show', name, '--property=LoadState,FragmentPath'])
         assert 'LoadState=not-found' in properties and 'FragmentPath=\n' in properties+'\n'

@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import types
 import unittest
 from unittest.mock import Mock, patch
@@ -71,9 +72,9 @@ class BootstrapContracts(unittest.TestCase):
             with patch.object(bootstrap.http.client, 'HTTPSConnection', return_value=connection) as factory, patch.object(bootstrap.threading, 'Timer'):
                 if expected:
                     with self.assertRaisesRegex(bootstrap.Blocked, expected):
-                        bootstrap.download('deployment/paths.py', pin)
+                        bootstrap.fetch_http('deployment/paths.py', pin)
                 else:
-                    self.assertEqual(bootstrap.download('deployment/paths.py', pin), b'abc')
+                    self.assertEqual(bootstrap.fetch_http('deployment/paths.py', pin), b'abc')
             factory.assert_called_once_with('raw.githubusercontent.com', timeout=10)
             connection.request.assert_called_once_with('GET', '/spikeal8-maker/asa-lab/'+bootstrap.APP_REVISION+'/tools/deployment/paths.py', headers={'Accept': 'application/octet-stream'})
             connection.close.assert_called_once()
@@ -102,6 +103,21 @@ class RootNativeContracts(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix='provider-bootstrap-contract-', dir='/var/lib')
         self.root = Path(self.tmp.name)
         self.addCleanup(self.tmp.cleanup)
+
+    def test_full_transfer_deadline_kills_and_reaps_a_stalled_dns_worker(self):
+        worker = self.root/'stalled.py'
+        pidfile = self.root/'pid'
+        worker.write_text('import os,socket,time\nfrom pathlib import Path\n'
+                          'Path('+repr(str(pidfile))+').write_text(str(os.getpid()))\n'
+                          'socket.getaddrinfo=lambda *args: time.sleep(60)\n'
+                          'socket.getaddrinfo("raw.githubusercontent.com",443)\n')
+        start = time.monotonic()
+        with patch.object(bootstrap, '__file__', str(worker)), patch.object(bootstrap, 'DOWNLOAD_SECONDS', .5):
+            with self.assertRaisesRegex(bootstrap.Blocked, '^SOURCE_TRANSFER_TIMEOUT$'):
+                bootstrap.download('deployment/paths.py', {'bytes': 1, 'sha256': '0'*64})
+        self.assertLess(time.monotonic()-start, 3)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(int(pidfile.read_text()), 0)
 
     def test_actual_symlink_hardlink_groupwrite_and_wrong_owner_denied(self):
         target = self.root/'target'
