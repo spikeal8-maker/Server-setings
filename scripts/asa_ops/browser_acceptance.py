@@ -19,6 +19,13 @@ from asa_ops.acceptance_fixture import (
 )
 
 
+def _error_code(exc):
+    message = str(exc)
+    if message in ('SAVE_NOT_OBSERVED', 'REOPEN_VALUE_MISMATCH', 'REOPEN_DRAFT_MISMATCH') or re.fullmatch(r'API_STATUS_[0-9]{3}', message):
+        return message
+    return type(exc).__name__
+
+
 def main():
     from playwright.sync_api import sync_playwright
     parser = argparse.ArgumentParser()
@@ -242,7 +249,7 @@ def main():
                 checks['existing_project_open'] = True
                 fresh.close()
         except Exception as exc:
-            code = str(exc) if re.fullmatch(r'API_STATUS_[0-9]{3}', str(exc)) else type(exc).__name__
+            code = _error_code(exc)
             report['error'] = {'stage': stage, 'code': code}
             report['http_failures']=failures
             # Authentication forms can show synthetic identifiers: never persist

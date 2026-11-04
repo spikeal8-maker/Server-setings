@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-04",
+  "status": "SOURCE_ONLY",
+  "repository": "https://github.com/spikeal8-maker/Server-setings",
+  "parent_revision": "88f3f76144d8b499fe70a3c9beccba16c80e0856",
+  "observed_upstream_main_revision": "72dba1f36c9513267fc1a3ebe598be4ed98df5ed",
+  "branch": "fix/asa-browser-diagnostic-codes-20261104",
+  "candidate_commit_status": "NOT_PUBLISHED",
+  "tested_files": {
+    "scripts/asa_ops/browser_acceptance.py": {
+      "previous_sha256": "7e28aa8254011eb082331c2800909f1ce7f07b4da73473ed3942aacdb1691adc",
+      "tested_sha256": "5c91b152c44a48ed7ab3f14f20eb62aa4fb9f5bad2a694150172fb1f49442b34"
+    },
+    "tests/test_browser_acceptance_errors.py": {
+      "tested_sha256": "4a33052a26216adef26b293fb452be899843ca32935a9f1b386dcb76fffb889d"
+    },
+    "scripts/asa_ops/acceptance_fixture.py": {
+      "sha256": "64de2bc8478d5aaa60f60fa1b0035448d8c467cf0ffcc92a0aa0be22d3b4786f",
+      "byte_identity_with_parent": "PRESERVED"
+    },
+    "scripts/cloud_storage.py": {
+      "sha256": "72e35bbb3043acefb423cfe706f82b089eaba974deb04f16df8f335093c59d0c",
+      "byte_identity_with_parent": "PRESERVED",
+      "upstream_main_changes_imported": false
+    }
+  },
+  "telemetry_contract": {
+    "field": "error.code",
+    "added_exact_codes": [
+      "SAVE_NOT_OBSERVED",
+      "REOPEN_VALUE_MISMATCH",
+      "REOPEN_DRAFT_MISMATCH"
+    ],
+    "existing_api_status_rule": "API_STATUS_[0-9]{3}",
+    "unknown_exception_fallback": "type(exc).__name__",
+    "save_reopen_failure_exit_code": 2,
+    "report_schema_changed": false,
+    "success_policy_changed": false,
+    "ui_actions_assertions_raises_timeouts_changed": false
+  },
+  "local_source_gate": {
+    "command": "python3 -B -m unittest -v test_browser_acceptance_errors test_acceptance_fixture_repair.BrowserContractTests test_repository",
+    "working_directory": "tests",
+    "tests_total": 11,
+    "tests_passed": 11,
+    "tests_skipped": 0,
+    "new_telemetry_tests": 7,
+    "existing_browser_contract_tests": 1,
+    "repository_hygiene_tests": 3,
+    "execution_boundary": "Real helper, producer except and report/exit tail AST; no UI body execution, browser, trace or monkeypatch.",
+    "full_module_ast_equivalence_outside_classifier": "PASS",
+    "original_bytes_outside_helper_and_one_expression": "IDENTICAL",
+    "fixture_and_cloud_byte_identity": "PASS",
+    "diff_check": "PASS",
+    "snapshot_json": "VALID"
+  },
+  "historical_ci_observations": [
+    {
+      "repository": "https://github.com/spikeal8-maker/asa-lab",
+      "revision": "b3919967f44eca642d243f68e6146331bdfe412c",
+      "run_url": "https://github.com/spikeal8-maker/asa-lab/actions/runs/41868163289",
+      "run_id": 41868163289,
+      "docker_synthetic_job_id": 126709642708,
+      "artifact_id": 13344420867,
+      "artifact_zip_sha256": "c2590e681cdf56189557b5d5804984b6e614faafb2b35d63e40096c608c74180",
+      "evidence_kind": "EXISTING_SANITIZED_ARTIFACT",
+      "status": "FAIL",
+      "error_code": "CI_BROWSER_AFTER",
+      "fresh_postgres_restore": "PASS",
+      "fresh_minio_authenticated_s3_restore": "PASS",
+      "browser_before": {
+        "status": "passed",
+        "checks_passed": 6
+      },
+      "browser_after": {
+        "status": "failed",
+        "error_stage": "blocks_save",
+        "error_code": "RuntimeError"
+      },
+      "cleanup": "PASS"
+    },
+    {
+      "repository": "https://github.com/spikeal8-maker/asa-lab",
+      "revision": "6ae7ea27e3d17826f3b54e2e9abd690d5c876f6b",
+      "run_url": "https://github.com/spikeal8-maker/asa-lab/actions/runs/41869804276",
+      "run_id": 41869804276,
+      "evidence_kind": "WORKFLOW_AND_JOB_STATUS_FROM_GITHUB_API",
+      "workflow_status": "completed",
+      "workflow_conclusion": "success",
+      "contracts_job": {
+        "id": 126713811213,
+        "conclusion": "success"
+      },
+      "docker_synthetic_job": {
+        "id": 126714302379,
+        "conclusion": "success"
+      },
+      "publish_job_conclusion": "skipped",
+      "artifact_inspected": false
+    }
+  ],
+  "historical_shared_runtime_context": {
+    "asa_runtime_revision": "959d52079d8c5659e86f084ad2453bd3eb68fe34",
+    "schema": 304,
+    "browser_component_revision": "88f3f76144d8b499fe70a3c9beccba16c80e0856",
+    "browser_sha256": "7e28aa8254011eb082331c2800909f1ce7f07b4da73473ed3942aacdb1691adc",
+    "fixture_sha256": "64de2bc8478d5aaa60f60fa1b0035448d8c467cf0ffcc92a0aa0be22d3b4786f"
+  },
+  "browser_root_cause": "UNKNOWN",
+  "new_browser_run": "NOT_RUN",
+  "new_vm_or_live_host_acceptance": "NOT_RUN",
+  "network_or_live_host_actions_performed": false,
+  "independent_review": "PENDING",
+  "asa_pin_integration": "NOT_RUN",
+  "limitations": [
+    "The historical RuntimeError cannot retrospectively identify which save/reopen condition failed.",
+    "The later workflow success is not proof that the earlier browser failure was fixed.",
+    "The tested source fragments prove telemetry and unchanged failure exit policy, not a real browser journey.",
+    "Publication, exact candidate commit review and ASA pin integration are separate gates."
+  ],
+  "raw_logs_or_exception_messages_included": false,
+  "secrets_or_personal_data_included": false
+}
