@@ -1,0 +1,191 @@
+{
+  "format": "asa-cloud-error-classifier-source-v1",
+  "date": "2026-11-05",
+  "status": "SOURCE_ONLY_LOCAL_FOCUSED_PASS_REVIEW_CI_PENDING",
+  "baseRevision": "f11426d7040f44c024aa12c4962876986aa0e3ca",
+  "baseTree": "88d41d4a6b7d56a66c1a47d37c0d2d1dac9ef757",
+  "scope": [
+    "scripts/cloud_storage.py",
+    "tests/test_cloud_storage.py",
+    "docs/08-ПРОВЕРКИ-И-ОГРАНИЧЕНИЯ.md",
+    "snapshots/2026-11-05/cloud-error-classifier-source.json"
+  ],
+  "runtimeSources": [
+    {
+      "path": "scripts/cloud_storage.py",
+      "bytes": 11980,
+      "sha256": "e494038f3d1ad7e6ae7bc72f0cc0ff8bb3ab3a18d8a96a42d0302f46764ae760",
+      "gitBlob": "5e38522ecf9b165d2b38177e3a03a65f276cf24b"
+    },
+    {
+      "path": "tests/test_cloud_storage.py",
+      "bytes": 11517,
+      "sha256": "8a33dfefecd79a7eed314b655d0fd695aaa8d61a27f817151c62087709566a2a",
+      "gitBlob": "be6b55107e33a62b5bb90eedbbd238647fa59e4c"
+    }
+  ],
+  "primarySourceBinding": {
+    "rcloneVersion": "1.75.2",
+    "rcloneTagObject": "b0dd53938615bb610c64f610eb2b17be16752f77",
+    "rcloneCommit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+    "oauth2Version": "0.36.0",
+    "oauth2Commit": "4d954e69a88d9e1ccb8439f8d5b6cbef230c4ef9",
+    "files": [
+      {
+        "repository": "rclone/rclone",
+        "commit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+        "path": "backend/yandex/yandex.go",
+        "url": "https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/backend/yandex/yandex.go",
+        "bytes": 35125,
+        "sha256": "5197779bd3005154e15af58a385ca4f8b49601c34b5726c8c73c5455a101f604",
+        "gitBlob": "412a84da3b654bd2ea5a59cf34e67842fdc408ba"
+      },
+      {
+        "repository": "rclone/rclone",
+        "commit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+        "path": "backend/yandex/api/types.go",
+        "url": "https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/backend/yandex/api/types.go",
+        "bytes": 4037,
+        "sha256": "f82323cbaab55415e6f081c24dbc727fbde1094279c9adff4f35badc8b9fd7e1",
+        "gitBlob": "24c06514d55960777f8f7c2362863dab4a0f2ccc"
+      },
+      {
+        "repository": "rclone/rclone",
+        "commit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+        "path": "lib/rest/rest.go",
+        "url": "https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/lib/rest/rest.go",
+        "bytes": 23063,
+        "sha256": "a94a5bcbaa8747aba39a46c384b7cff0e6740cf99b51536304d44b1c1c59f1e0",
+        "gitBlob": "ecb35047f03960fff623540505ecb052b5e62aa3"
+      },
+      {
+        "repository": "rclone/rclone",
+        "commit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+        "path": "lib/oauthutil/oauthutil.go",
+        "url": "https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/lib/oauthutil/oauthutil.go",
+        "bytes": 36801,
+        "sha256": "09eb4af0c5b1dbdba9b0666621f6596d682db6519cfcb83812a15d5cd6068d6b",
+        "gitBlob": "d21efe059083c21082a4ba8fff992cca6ffb8acb"
+      },
+      {
+        "repository": "rclone/rclone",
+        "commit": "be8d6044eacb843b74d335db0c5fbe09222031fe",
+        "path": "go.mod",
+        "url": "https://github.com/rclone/rclone/blob/be8d6044eacb843b74d335db0c5fbe09222031fe/go.mod",
+        "bytes": 13798,
+        "sha256": "1c9531778eb026c13390af728f882adbeb30581bd6a10905f95190aab0379906",
+        "gitBlob": "72e027c28a6ece261560e7621917eeb58d76aa55"
+      },
+      {
+        "repository": "golang/oauth2",
+        "commit": "4d954e69a88d9e1ccb8439f8d5b6cbef230c4ef9",
+        "path": "token.go",
+        "url": "https://github.com/golang/oauth2/blob/4d954e69a88d9e1ccb8439f8d5b6cbef230c4ef9/token.go",
+        "bytes": 6275,
+        "sha256": "9715ac669ec1d80ae4549dd83379a95c7ea278542a9c96ad55e957e2e822c8db",
+        "gitBlob": "e995eebb5e176424ca0de53890f0b18bbb8047bf"
+      },
+      {
+        "repository": "golang/oauth2",
+        "commit": "4d954e69a88d9e1ccb8439f8d5b6cbef230c4ef9",
+        "path": "internal/token.go",
+        "url": "https://github.com/golang/oauth2/blob/4d954e69a88d9e1ccb8439f8d5b6cbef230c4ef9/internal/token.go",
+        "bytes": 11220,
+        "sha256": "98972e4d8b7a8807d2dc6ad760ad4bac346391b2d0bb155d6a7c62bfe6844a22",
+        "gitBlob": "8389f2462949176657ad7aff7a9a732d2fc9940c"
+      }
+    ]
+  },
+  "classifierContract": {
+    "errorRecordSelection": "FIRST_SOURCE_SHAPED_HEADER_NO_BODY_OR_LATER_LINE_RESCAN",
+    "contexts": [
+      "start of line",
+      "colon followed by one ASCII space"
+    ],
+    "formats": {
+      "yandex": "[%d - %s] %s (%s)",
+      "rest": "HTTP error %v (%v) returned body: %q",
+      "restFallback": "http error %d: %v",
+      "oauthHttp": "oauth2: cannot fetch token: %v\\nResponse: %s"
+    },
+    "asciiStatusCodes": {
+      "401": "CLOUD_AUTHORIZATION",
+      "403": "CLOUD_AUTHORIZATION",
+      "410": "CLOUD_PROVIDER_GONE"
+    },
+    "unknownMalformedOrUnsupported": "CLOUD_TRANSFER_FAILED",
+    "duplicateRestStatusAgreementRequired": true,
+    "providerProseIsNotStatusEvidence": true,
+    "oauthWithoutNumericHttpStatus": "CLOUD_TRANSFER_FAILED",
+    "universalOAuthErrorCoverage": false,
+    "rawProviderOutputPublished": false
+  },
+  "validation": {
+    "focusedCommand": "python3 -B -m unittest discover -s tests -p test_cloud_storage.py -v",
+    "focusedMethods": 13,
+    "focusedPassed": 13,
+    "focusedSkips": 0,
+    "priorMethodsBytePreserved": 7,
+    "newMethods": [
+      "CloudErrorClassificationTests.test_first_http_header_owns_its_multiline_prose",
+      "CloudErrorClassificationTests.test_non_http_digits_in_paths_ids_ports_and_elapsed_are_transfer_failures",
+      "CloudErrorClassificationTests.test_source_defined_http_headers_keep_auth_and_gone_failures",
+      "CloudErrorClassificationTests.test_status_output_never_contains_provider_text",
+      "CloudErrorClassificationTests.test_success_timeout_and_invocation_contract_are_unchanged",
+      "CloudErrorClassificationTests.test_unknown_malformed_unicode_and_context_values_fail_closed"
+    ],
+    "newSkips": 0,
+    "counterfactual": {
+      "source": "f11426d7040f44c024aa12c4962876986aa0e3ca",
+      "methodsRun": 4,
+      "expectedFailingMethods": [
+        "test_first_http_header_owns_its_multiline_prose",
+        "test_non_http_digits_in_paths_ids_ports_and_elapsed_are_transfer_failures"
+      ],
+      "assertionFailureRecords": 16,
+      "positiveControlMethods": [
+        "test_source_defined_http_headers_keep_auth_and_gone_failures",
+        "test_success_timeout_and_invocation_contract_are_unchanged"
+      ],
+      "errors": 0,
+      "skips": 0,
+      "missingHelperFailure": false
+    },
+    "externalSubprocesses": "MODELED",
+    "rcloneExecution": "NOT_RUN",
+    "docker": "NOT_RUN",
+    "providerAuthentication": "NOT_RUN",
+    "providerTransfer": "NOT_RUN",
+    "vm": "NOT_RUN",
+    "nativeWindows": "NOT_RUN",
+    "newCandidateCI": "NOT_RUN"
+  },
+  "preservation": {
+    "otherProductDefinitionsBytePreserved": 12,
+    "rcloneOtherStatementsBytePreserved": true,
+    "commandsTimeoutsRetriesExitZeroUnchanged": true,
+    "timeoutAndOsErrorPropagateSameObject": true,
+    "containerImageAndConfigurationUnchanged": true,
+    "browserFixtureSchoolReceiptAndTransferFunctionsUnchanged": true,
+    "asaSourcePinsAndStrictCloudGuardUnchanged": true,
+    "historicalServerSnapshotUnchanged": true
+  },
+  "historicalNativeEvidence": {
+    "asaSource": "9ff6b788f83bf53320b875feb0cacf9488c5c3ba",
+    "runId": 42062686313,
+    "phase": "public_cloud_connection_policies",
+    "phaseReason": "CLOUD_FAULT_POLICY_RESULT",
+    "recordedCloudReason": "CLOUD_AUTHORIZATION",
+    "rawStderr": "NOT_RETAINED",
+    "specificTransportCause": "UNKNOWN",
+    "modeledFalsePositiveIsHistoricalCause": false
+  },
+  "acceptanceLimits": [
+    "This source-only change is not provider or native acceptance.",
+    "A recognized textual header is not an independent HTTP/provider attestation.",
+    "The first header governs classification; provider prose may contain newlines, so later headers are not independently trusted records.",
+    "Yandex installs its own error handler; shared REST and OAuth forms are source-supported but not proven to have produced native9ff.",
+    "ASA pin propagation requires the future immutable reviewed Ops commit; no candidate SHA is invented.",
+    "Independent review and actual CI remain required."
+  ]
+}

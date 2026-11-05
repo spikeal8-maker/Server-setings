@@ -80,13 +80,44 @@ def install():
             'connection_verified':False,'backup_schedule_enabled':False}
 
 
+def _rclone_error_code(stderr):
+    """Read the first source-defined HTTP header, never numbers in provider prose."""
+    if not isinstance(stderr, str):
+        return 'CLOUD_TRANSFER_FAILED'
+    # rclone 1.75.2: yandex/api.ErrorResponse, rest error handlers, oauth2 0.36.0.
+    # Description/Message and OAuth Response may contain newlines and fake headers.
+    # Stop at the first header even when its status is unknown or malformed.
+    header = re.search(
+        r'(?:^|: )(?:\[(?P<yandex>[^ \t\r\n\]]+ - [^\r\n]*)'
+        r'|HTTP error (?P<rest>[^\r\n]*)|http error (?P<fallback>[^\r\n]*)'
+        r'|oauth2: (?P<oauth>[^\r\n]*))', stderr, re.MULTILINE)
+    status = None
+    if header:
+        if header['yandex'] is not None:
+            match = re.match(r'([0-9]{3}) - [^\]\r\n]*\](?: |$)', header['yandex'])
+        elif header['rest'] is not None:
+            match = re.match(r'([0-9]{3}) \(([0-9]{3})(?: [^()\r\n]*)?\) returned body:', header['rest'])
+            if match and match[1] != match[2]:
+                match = None
+        elif header['fallback'] is not None:
+            match = re.match(r'([0-9]{3}): ([0-9]{3})(?: |$)', header['fallback'])
+            if match and match[1] != match[2]:
+                match = None
+        else:
+            match = re.match(r'cannot fetch token: ([0-9]{3})(?: |$)', header['oauth'])
+        if match:
+            status = match[1]
+    return {'401': 'CLOUD_AUTHORIZATION', '403': 'CLOUD_AUTHORIZATION',
+            '410': 'CLOUD_PROVIDER_GONE'}.get(status, 'CLOUD_TRANSFER_FAILED')
+
+
 def rclone(*args, timeout_seconds=6800):
     command=['docker','exec',PROJECT+'-rclone-1','rclone','--config','/config/rclone/rclone.conf',
              '--contimeout','20s','--timeout','60s','--max-duration',str(min(6000,max(1,timeout_seconds-5)))+'s','--retries','2',*args]
     p=subprocess.run(command,capture_output=True,text=True,timeout=timeout_seconds)
     # Never return raw provider errors: these may contain account or token details.
     if p.returncode:
-        code = 'CLOUD_PROVIDER_GONE' if '410' in p.stderr and 'Gone' in p.stderr else 'CLOUD_AUTHORIZATION' if any(x in p.stderr for x in ['401','403']) else 'CLOUD_TRANSFER_FAILED'
+        code = _rclone_error_code(p.stderr)
         raise ValueError(code)
     return p.stdout
 
