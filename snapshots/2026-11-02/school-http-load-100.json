@@ -1,0 +1,24 @@
+{
+  "format": "asa-http-load-author-evidence-v1",
+  "date": "2026-11-02",
+  "state": "AUTHOR_PREPARED",
+  "releaseAccepted": false,
+  "productionChanges": false,
+  "liveLoad": "NOT_RUN",
+  "profiles": [20, 50, 100],
+  "modes": ["core", "mixed"],
+  "localContractTests": {"state": "PASS", "count": 26, "network": false},
+  "receiptFormat": "asa-release-http-load-v3",
+  "priorStepGuard": "Complete fresh deployment/cohort/workload-bound evidence and step chain; no cryptographic attestation",
+  "sourceInventory": {
+    "revision": "14ca13ed3a5939d7fea46710d806c07d522cc111",
+    "routes": 64,
+    "canonicalGitBlobHashes": 31,
+    "cleanCheckoutVerification": "PASS"
+  },
+  "optionalAi": {"default": "DISABLED", "paidFallback": "FORBIDDEN", "maxImageJobs": 11},
+  "separateNotRun": ["browser100", "Scratch-first-open", "WebGL", "numerical-simulation", "live-update-rollback", "canonical-restore", "source-IP-NAT", "image-queue100-SQL"],
+  "publisherHook": "NOT_INSTALLED",
+  "independentReview": "REQUIRED_AT_FINAL_SHA",
+  "ubuntuCI": "SEE_EXACT_COMMIT_CHECKS"
+}

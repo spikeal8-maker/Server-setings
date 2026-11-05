@@ -1,0 +1,82 @@
+{
+  "kind": "h03-host-diagnostic-forensic-preservation",
+  "observedAtUtc": "2026-11-02T20:40:45.397935+00:00",
+  "host": "admins-MS-7D22",
+  "installationRoot": "/srv/asa-lab",
+  "composeProject": "asa-lab-dev",
+  "entryOrigin": "https://test.asa-lab.ru",
+  "toolSourceRevision": "6b0eb3d56acd829dc14891924cc63ff5bb163d73",
+  "toolSha256": "5dd13624af168db3a3d1eb14eb0e9762506eb626dcccd102fe858dd266542e1e",
+  "syntheticLinux": {
+    "operationId": "897dd5ff4b3d44f28a24d573bf2d6879",
+    "testsRun": 18,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "liveAdapterQueryVerified": true,
+    "serviceChanged": false
+  },
+  "capture": {
+    "operationId": "201e15e9a47344e88bb8ae9a48b481c8",
+    "startedAtUtc": "2026-11-02T20:36:16.135851+00:00",
+    "finishedAtUtc": "2026-11-02T20:36:19.973477+00:00",
+    "scope": "HOST_COLLECTOR_ONLY",
+    "files": 1403,
+    "sourceBytes": 131882395,
+    "manifestSha256": "eccb0bf480fd636f1d527da4a4b78e024668d2f4e34dbc8e6f600d25481889d5",
+    "collectorActiveAfter": true,
+    "applicationServiceChanged": false,
+    "businessDataChanged": false,
+    "legacyDebt": 31,
+    "recoverySnapshotVerified": false,
+    "qualification": "NOT_A_VERIFIED_RECOVERY_SNAPSHOT"
+  },
+  "independentPreservationAudit": {
+    "operationId": "d1abebe237f44f6292c2d686317db18a",
+    "result": "PASS",
+    "manifestAndReceiptMatch": true,
+    "verifiedManifestCopyFiles": 1407,
+    "privatePermissionsAndOwnership": true,
+    "links": 0,
+    "readOnlySqliteQuickChecksPassed": 2
+  },
+  "postCaptureAvailability": {
+    "operationId": "d98e899dfd874430b8942c7e3d847c96",
+    "readinessPath": "/health/ready",
+    "readinessHttp": 200,
+    "portalHttp": 200,
+    "databaseUp": true,
+    "revision": "dfee5badd299d318a8e51ff0cbf88e9656333a5d",
+    "schemaVersion": 299,
+    "expectedSchemaVersion": 299,
+    "synchronized": true,
+    "previousIncorrectProbePath": "/api/ready",
+    "previousIncorrectProbeHttp": 404
+  },
+  "successorRecoveryFeasibility": {
+    "operationId": "e8416d12f84f4cf9b85f14bba94c8924",
+    "scope": "PRESERVED_COPY_READ_ONLY",
+    "retiredFiles": 31,
+    "records": 607,
+    "uniqueIds": 607,
+    "currentPublishedMatches": 607,
+    "exactJsonMatches": 607,
+    "exactRawLineMatches": 607,
+    "authenticatedSuccessors": 1,
+    "absent": 0,
+    "unpublished": 0,
+    "ambiguous": 0,
+    "authenticationErrors": 0,
+    "originalHmacCreated": false,
+    "liveRecoveryRun": false
+  },
+  "remaining": {
+    "permanentHostCollectionHealed": false,
+    "retirementRecoveryApplied": false,
+    "h03ApplicationUpdate": "NOT_RUN_BY_THIS_PROGRAMME",
+    "schoolApplicationUpdate": "NOT_RUN_BY_THIS_PROGRAMME",
+    "hundredPupilAcceptance": "NOT_RUN",
+    "next": "review durable-retirement fix and typed successor-proof recovery, rehearse on an isolated copy, then qualify the fixed release on H03 and VM100"
+  },
+  "privacy": "No payloads, raw file identities, configuration values, private keys or diagnostic archive contents are published. Private custody details remain in the server audit."
+}

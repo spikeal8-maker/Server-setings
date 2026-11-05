@@ -1,0 +1,22 @@
+{
+  "status": "SOURCE_ONLY_NOT_DEPLOYED",
+  "schedule": "02:30 Europe/Moscow",
+  "mcp_store_gate": true,
+  "manager_operation_lock": true,
+  "encryption": "age with external public recipient",
+  "cloud_namespace": "new project namespace; no existing archives deleted",
+  "ciphertext_roundtrip_in_code": true,
+  "live_backup_verified": false,
+  "decryption_verified": false,
+  "isolated_restore_verified": false,
+  "timer_installed": false,
+  "timer_enabled": false,
+  "retention_implemented": false,
+  "external_alert_delivery_accepted": false,
+  "tests_windows": {
+    "run": 11,
+    "passed": 10,
+    "posix_skipped": 1
+  },
+  "next_required": "Independent review, live backup and isolated restore before timer activation"
+}

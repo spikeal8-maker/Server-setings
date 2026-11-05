@@ -60,6 +60,39 @@ class TestPanelAPI(unittest.TestCase):
                 with self.assertRaises(panelctl.PanelError):
                     panelctl.validate_site("94.29.44.211", bad, "asa-lab-public-ip")
 
+    def test_openresty_install_includes_required_website_directory(self):
+        calls = []
+
+        class FakeAPI:
+            host = "http://127.0.0.1:19192"
+
+            def request(self, method, endpoint, payload=None):
+                calls.append((method, endpoint, payload))
+                if endpoint == "/apps/openresty":
+                    return {"id": 62, "versions": ["1.27.1.2-5-1-focal"]}
+                if endpoint == "/apps/detail/62/1.27.1.2-5-1-focal/app":
+                    return {"id": 148}
+                if endpoint == "/apps/install":
+                    return {}
+                raise AssertionError(endpoint)
+
+        with mock.patch.object(panelctl, "require_local_write"), mock.patch(
+            "subprocess.run", return_value=mock.Mock(stdout="", returncode=0)
+        ):
+            panelctl.openresty_install(FakeAPI(), apply=True, desired="1.27.1.2-5-1-focal")
+        installs = [payload for method, endpoint, payload in calls
+                    if method == "POST" and endpoint == "/apps/install"]
+        self.assertEqual(1, len(installs))
+        self.assertEqual("/opt/1panel/www", installs[0]["params"]["WEBSITE_DIR"])
+        self.assertEqual(80, installs[0]["params"]["PANEL_APP_PORT_HTTP"])
+        self.assertEqual(443, installs[0]["params"]["PANEL_APP_PORT_HTTPS"])
+
+    def test_mcp_binary_permissions_for_dynamic_user(self):
+        script = (BASE / "scripts/setup-mcp.sh").read_text(encoding="utf-8")
+        self.assertIn('DynamicUser=yes', script)
+        self.assertIn('chmod 0755 "$BIN/mcp-1panel"', script)
+        self.assertIn('chmod 0600 "$CONF/mcp.env"', script)
+
     def test_existing_site_not_recreated(self):
         class FakeAPI:
             def request(self, method, endpoint, payload=None):

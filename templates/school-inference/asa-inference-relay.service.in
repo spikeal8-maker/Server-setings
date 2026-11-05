@@ -1,0 +1,19 @@
+# Template only. Substitute and verify BOTH placeholders before installation.
+[Unit]
+Description=ASA school direct production GPU tunnel over Tailscale
+After=network-online.target docker.service tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -F /dev/null -N -T -i /etc/asa-inference-relay/id_ed25519 -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o HostKeyAlias=asa-inference-prod -o UserKnownHostsFile=/etc/asa-inference-relay/known_hosts -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -L __ASA_BRIDGE_GATEWAY__:18188:127.0.0.1:8188 -L __ASA_BRIDGE_GATEWAY__:11435:127.0.0.1:11434 asa-gpu-direct@__ASA_GPU_TAILNET_IP__
+Restart=always
+RestartSec=10
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

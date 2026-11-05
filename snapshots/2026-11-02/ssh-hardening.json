@@ -1,0 +1,17 @@
+{
+  "status": "SSH_SLICE_ACCEPTED_NOT_PRODUCTION_READY",
+  "host": "admins-MS-7D22",
+  "password_authentication": false,
+  "publickey_authentication": true,
+  "root_ssh_login": false,
+  "x11_forwarding": false,
+  "owner_key_sudo_verified": true,
+  "negative_password_test": "publickey only",
+  "full_root_mcp_verified": true,
+  "mcp_operation": "4dd640f755be44e9ab08ca45b638c397",
+  "rollback_timer": "confirmed and disarmed after tests",
+  "mfa": "owner unable to enroll now",
+  "overall_security_task": "INCOMPLETE",
+  "os_updates_applied_in_slice": false,
+  "backups_scheduled_in_slice": false
+}

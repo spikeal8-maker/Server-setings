@@ -1,0 +1,27 @@
+{
+  "format": "asa-preupdate-safety-observation-v1",
+  "observedDate": "2026-11-03",
+  "timeBasis": "UTC",
+  "sourceCandidate": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
+  "h03": {
+    "host": "admins-MS-7D22",
+    "root": "/srv/asa-lab",
+    "project": "asa-lab-dev",
+    "profile": "production",
+    "liveRevision": "dfee5badd299d318a8e51ff0cbf88e9656333a5d",
+    "liveSchema": 299,
+    "fullLegacyCliCheck": {"operationId": "eb8b5287ba4a4be5a08944d6f287e8d4", "status": "PASS", "effectiveUid": 1000, "codeFiles": 17, "configUnchanged": true, "containersUnchanged": true},
+    "backup": {"operationId": "1a4af57e09a64a3998e5d4a8622605fd", "path": "/srv/asa-lab/backups/20261103T004145Z-52a9e054", "manifestSha256": "6035845a2038605d131a7ae41d1cb4a9ef80f5a6ec3e5443f6912e0662dc489d", "payloadFiles": 2207, "payloadBytes": 212360086, "coreFingerprintsUnchanged": true, "maintenanceMarkerAfter": false},
+    "isolatedRestore": {"operationId": "7f190a4d001145748aa5bd51d5a2d1bc", "status": "PASS", "database": "asa_preupdate_20261103_52a9e054_test", "databasePreserved": true, "liveDatabaseRestored": false, "coreFingerprintsEqual": true, "minioServerRestoreTested": false},
+    "coreRows": {"accounts": 95, "users": 6, "classrooms": 32, "courses": 2, "projects": 1717, "project_drafts": 1717},
+    "readerLinuxTests": {"revision": "8b8dd90ed3a7473d4026f7ec7df027a42608f69c", "operationId": "bc59eb39b53d4ac38476fdccb2bb4b34", "run": 14, "passed": 13, "skipped": 1, "skipReason": "differing-UID proof restricted to isolated GitHub Linux"}
+  },
+  "school": {"host": "asa-school-01", "project": "asa-lab-school", "liveRevision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b", "liveSchema": 286, "readOnlyCliCheck": "PASS_AGAINST_PRIOR_PUBLISHED_DFEE_NOT_NEW_CANDIDATE", "effectiveUid": 0, "configUnchanged": true, "containersUnchanged": true, "backupArchive": "asa-school-01-20261103T002057Z-4757cad2.tar.age", "backupVerifiedAt": "2026-11-03T00:21:19.299375+00:00", "backupSchedule": "daily03:20 Europe/Moscow", "transport": "existing Proxmox guest exec"},
+  "fullElectronicsQualification": {"runId": 41554307177, "sourceRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0", "profile": "strict-real-time", "statusAtCheckpoint": "IN_PROGRESS"},
+  "applicationUpdated": false,
+  "liveDiagnosticMetadataRecovery": false,
+  "diagnosticHistoryHealthy": false,
+  "schoolProductionBlocker836Closed": false,
+  "pupils100Acceptance": "NOT_RUN",
+  "pupils5000Capacity": "NOT_MEASURED"
+}

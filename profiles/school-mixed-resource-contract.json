@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "observedSourceRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
+  "writes": "owned-synthetic-api-only",
+  "lessonKind": "material",
+  "dueAt": null,
+  "sourceFiles": {
+    "apps/api/src/classroom-teachers.controller.ts": "748f4e447981231b10abee8f2c9f89a34478c7f36e8fc9b620a8bc16e9057c17",
+    "contexts/projects/application/project.usecases.ts": "3ca64db944d4247c534014b1149612557f7a05033b113071314ae42a5065cc87",
+    "contexts/projects/infrastructure/pg-project.repository.ts": "aa3d4a11e6500facff9034699a729b8a55b9a00c53c7d79aa5559d2058c838cd",
+    "migrations/0061_course_visibility_set.sql": "e524a0ce5e5ef148155ef8c8e556a594147d6d7bcea74d7670a72534e64a22e5",
+    "migrations/0064_course_outline.sql": "aadaca9296ca19b975c9ec7767a199ea8302a96fa4dbac7940422bef54c77983",
+    "migrations/0075_course_lesson_blocks.sql": "a39c66f83d02fbdc05f8046649f0991aec10ada1132df074e6b91725f58399af",
+    "migrations/0092_course_enrollments.sql": "59f9533100f9b126f37e22917fcda418153cfcf3ae95390cedd228af996f6822",
+    "migrations/0095_learning_audiences.sql": "722adc21fc369633136cd53315bd7391678b8ad82705cf1ed4f4f3e519dd3446",
+    "migrations/0109_course_runtime_materialization.sql": "353f6853e44ed89754d4a277c8cf2fecd438382edb78e94361a08b856541bc30",
+    "migrations/0111_course_authoring_revision.sql": "bc81cd98907669ff1a76d9a8b4d98e17ef0d5d2c98b2fa32ad85f4e8512632b3",
+    "migrations/0120_learning_in_app_notifications.sql": "31c1ac48da66493cfe58ebda4902519c2f4f63133ef50daf6fac9b67edbed22d",
+    "migrations/0127_learning_assignment_timezone.sql": "0860d1673245c3796fddbc50955acbdd7e477bc5e49fb021fb89616ae85976e9",
+    "migrations/0133_learning_attempt_lifecycle_convergence.sql": "b60fdec87524d7352428382e46259204fed19b856aeefbec802670183d98a35e",
+    "migrations/0137_author_draft_from_published_version.sql": "e20301b9ee2a2d7bfc33010f91e1be9bdf8d6bc522275857d4a1159efd821832",
+    "migrations/0145_course_authoring_closure.sql": "675026b1fe5c30b9bae9bd9eda80da79cdd28b968ed1523ae41f0acda519f293",
+    "migrations/0153_course_structure_duplicate_hide.sql": "286add3eb992698e0f7c78c45d82b698060d6af00df5dfcc0685e4b997dd8647",
+    "migrations/0173_module_learning_capabilities.sql": "b893da504ded72dbc2b6b023e0fc32ff91407e1751cc6371fc2dabf62b797502",
+    "migrations/0231_course_prepublication_diagnostics.sql": "cf1780e9a7db1f6014dfe8453846008b4ed15a4b584796297cdb2f651fb38236",
+    "migrations/0232_course_archive_assignment_atomicity.sql": "436863aa0a25f4837223cfe6dd23200b0a3f757d99b54e3ff1d6caceea9c6c22",
+    "apps/api/src/auth.controller.ts": "52a7fa07f8bd9c4f371b69fc73744d72ff74c27340770962a5a8de13faac72e1",
+    "apps/api/src/ai-access.controller.ts": "4442b70ecd10945ce66133591ccd197f29ea6f8d3193ca4ae0950e27c770781b",
+    "apps/api/src/ai-access.service.ts": "156810610d120207716ab17a2a270319c9991f227b0760804481b67183969626",
+    "migrations/0226_ai_student_admission.sql": "672ceca0a8cbeb7223dce9268a240682a7b07cf3c1c60ce3505a5bd4d623d02c"
+  }
+}

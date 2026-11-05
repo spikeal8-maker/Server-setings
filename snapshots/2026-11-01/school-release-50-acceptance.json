@@ -1,0 +1,193 @@
+{
+  "live": {
+    "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
+    "schema": 286
+  },
+  "sessionsExpired": 50,
+  "releaseAccepted": false,
+  "burst50Passed": false,
+  "scratchFirstOpenPassed": false,
+  "updateCheckPassedAfterEntryRepair": true,
+  "migration286To287IsolatedPassed": true,
+  "canonicalBackupRestorePassed": false,
+  "pacedUsers": 50,
+  "paceMs": 5000,
+  "pacedModulePassed": {
+    "three-d": 50,
+    "electronics": 50,
+    "blocks": 50
+  },
+  "evidence": {
+    "normalModules": "core-50-protocol-fixed.json",
+    "scratch": "blocks-50-final.json",
+    "burst": "core-50.json",
+    "migration": "migration-rehearsal-ordered.json"
+  },
+  "browser": {
+    "threeDShapeSavedReopened": true,
+    "electronicsComponent330OhmSavedReopened": true,
+    "electronicsStartStop": true,
+    "scratchSpriteNameAndX75ReopenedAfterRetry": true,
+    "scratchColdOpenNeedsRetry": true
+  },
+  "syntheticProjectLifecyclePassed": true,
+  "finishedAt": "2026-11-01T20:07:12.276455+00:00",
+  "burst": {
+    "passed": false,
+    "paceMs": 0,
+    "actualDistinctStudents": null,
+    "modules": {
+      "three-d": {
+        "journeys": 50,
+        "passed": 2
+      },
+      "electronics": {
+        "journeys": 50,
+        "passed": 0
+      },
+      "blocks": {
+        "journeys": 50,
+        "passed": 0
+      }
+    },
+    "latency": {
+      "count": 334,
+      "minMs": 92.74,
+      "medianMs": 360.4,
+      "p95Ms": 547.51,
+      "maxMs": 629.39
+    },
+    "requestCount": 490,
+    "statusCounts": {
+      "200": 286,
+      "201": 52,
+      "404": 2,
+      "429": 150
+    }
+  },
+  "pacedCoreEarlierCollector": {
+    "passed": false,
+    "paceMs": 5000,
+    "actualDistinctStudents": 50,
+    "modules": {
+      "three-d": {
+        "journeys": 50,
+        "passed": 50
+      },
+      "electronics": {
+        "journeys": 50,
+        "passed": 50
+      },
+      "blocks": {
+        "journeys": 50,
+        "passed": 0
+      }
+    },
+    "latency": {
+      "count": 1000,
+      "minMs": 37.33,
+      "medianMs": 177.575,
+      "p95Ms": 438.96,
+      "maxMs": 509.15
+    },
+    "requestCount": 1263,
+    "statusCounts": {
+      "200": 963,
+      "201": 150,
+      "404": 100,
+      "400": 50
+    }
+  },
+  "focusedScratchFinal": {
+    "passed": true,
+    "paceMs": 5000,
+    "actualDistinctStudents": 50,
+    "modules": {
+      "blocks": {
+        "journeys": 50,
+        "passed": 50
+      }
+    },
+    "latency": {
+      "count": 550,
+      "minMs": 37.82,
+      "medianMs": 93.83000000000001,
+      "p95Ms": 438.71,
+      "maxMs": 528.02
+    },
+    "requestCount": 657,
+    "statusCounts": {
+      "200": 557,
+      "201": 50,
+      "404": 50
+    }
+  },
+  "pacedCombinedSingleRun": false,
+  "migration": {
+    "targetRevision": "3be406112912d133cd9f07a7392ec81071dd5f3f",
+    "targetSchema": 287,
+    "observedSchema": "0287",
+    "testDatabase": "asalab_release287_20261101_ordered3_test",
+    "productionDatabaseReplaced": false,
+    "productionContainersRestarted": false,
+    "fingerprintsPreserved": true,
+    "restoreRequiresCatalogDataFirst": true,
+    "canonicalUnorderedRestorePassed": false,
+    "tables": {
+      "accounts": {
+        "count": 96,
+        "unchanged": true
+      },
+      "projects": {
+        "count": 1742,
+        "unchanged": true
+      },
+      "project_drafts": {
+        "count": 1742,
+        "unchanged": true
+      },
+      "classroom_student_seats": {
+        "count": 513,
+        "unchanged": true
+      }
+    },
+    "targetImage": "ghcr.io/spikeal8-maker/asa-lab/api@sha256:1793edc0c55b06584d030943f31ceed1261a206426c21927513338c8c3c1685a",
+    "finishedAt": "2026-11-01T20:00:58.978972+00:00"
+  },
+  "projectLifecycle": {
+    "passed": true,
+    "checks": [
+      {
+        "module": "three-d",
+        "duplicate": true,
+        "archiveRestore": true,
+        "trashRestore": true,
+        "documentPreserved": true
+      },
+      {
+        "module": "electronics",
+        "duplicate": true,
+        "archiveRestore": true,
+        "trashRestore": true,
+        "documentPreserved": true
+      },
+      {
+        "module": "blocks",
+        "duplicate": true,
+        "archiveRestore": true,
+        "trashRestore": true,
+        "documentPreserved": true
+      }
+    ],
+    "permanentDeletion": false,
+    "scope": "synthetic personal projects only"
+  },
+  "automaticUpdatesEnabled": false,
+  "unitTestsLinux": {
+    "passed": 190,
+    "failed": 0
+  },
+  "gateScriptSha256": "f7c8d58017762483eab8f0a70edc195993ba65a99ec5e8051dc4f581d0b1f296",
+  "independentCodeReview": "APPROVE",
+  "publisherHookInstalled": false
+}

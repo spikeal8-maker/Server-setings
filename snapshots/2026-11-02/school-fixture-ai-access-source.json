@@ -1,0 +1,55 @@
+{
+  "status": "AUTHOR_SOURCE_AND_OFFLINE_FAKE_API_ONLY",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "infrastructureBase": "df1e15e6df143cc0877cbfc45429de5bd789848f",
+  "observedApplication": "0489c430d1e9d06631c970c29e30ea2229c2c9f0",
+  "actualReadOnlySourceVerification": "2259ef92dd5a0e3e2cd76f802cf998d20bb89b9d",
+  "runtimeChanged": false,
+  "workingDataChanged": false,
+  "liveApiWrites": "NOT_RUN",
+  "providerGeneration": "NOT_RUN",
+  "releaseAccepted": false,
+  "scope": "Normal teacher AI-access API for exact new nonce-owned synthetic100class only; no global/provider/role/session changes",
+  "normalBuildWrites": 8,
+  "buildMaximumWritesWithIndependentCleanup": 10,
+  "buildMaximumCallsWithCleanup": 280,
+  "requestBudgets": {
+    "normalCalls": 260,
+    "normalSeconds": 600,
+    "cleanupCalls": 20,
+    "cleanupSeconds": 120,
+    "perHttpTimeoutSeconds": 10
+  },
+  "policyPrerequisite": {
+    "mode": "deny",
+    "revision": 0,
+    "overrides": "all100inherit",
+    "canGenerate": "all100false",
+    "minimumRating": "preserved"
+  },
+  "permissionProof": "saved:true revision1 + teacher readback + all100 actual seat-cookie /api/ai/scopes + final revision readback",
+  "cleanup": "Independent own-class CAS deny1to2 and own-course private before failure receipt I/O, original session deadline and core expiry",
+  "unknown": "Lost/malformed allow receipt cannot adopt matching revision1; intervening policy/membership change is never overwritten; operator-only resolution",
+  "durabilityLimits": "Predeclared compensation IDs and last valid ownership snapshot; SIGKILL/inflight/permanent disk failure remain UNKNOWN. Class policy has no autonomous TTL.",
+  "sourcePins": {
+    "fixture": 11,
+    "routes": 31,
+    "routeEntries": 64,
+    "mixedPrior20": "UNCHANGED",
+    "mixedNow": 23,
+    "added": {
+      "apps/api/src/ai-access.controller.ts": "4442b70ecd10945ce66133591ccd197f29ea6f8d3193ca4ae0950e27c770781b",
+      "apps/api/src/ai-access.service.ts": "156810610d120207716ab17a2a270319c9991f227b0760804481b67183969626",
+      "migrations/0226_ai_student_admission.sql": "672ceca0a8cbeb7223dce9268a240682a7b07cf3c1c60ce3505a5bd4d623d02c"
+    }
+  },
+  "offlineTests": {
+    "focused": 25,
+    "combinedRun": 70,
+    "combinedPassed": 69,
+    "combinedSkipped": 1,
+    "skip": "POSIX permissions and locking validated on LinuxCI"
+  },
+  "independentReview": "REQUIRED_AT_PUBLISHED_EXACT_SHA",
+  "linuxCi": "SEE_EXACT_COMMIT_CHECKS"
+}

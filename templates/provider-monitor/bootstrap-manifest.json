@@ -1,0 +1,36 @@
+{
+  "applicationFiles": {
+    "deployment/__init__.py": {
+      "bytes": 66,
+      "sha256": "b894d56afdcda00c7f34bab54c979d957581cadb120a414f207397850fd70a1b"
+    },
+    "deployment/operational.py": {
+      "bytes": 26444,
+      "sha256": "c538817ec94cc16df51cec1cc4054789a4f0c873595eaf6263987a2ca2909ffa"
+    },
+    "deployment/paths.py": {
+      "bytes": 2477,
+      "sha256": "517981b0847c1fb271eb407d2084ef4db08cc87f0a03bd0a8c84d8a73f6a434b"
+    }
+  },
+  "applicationRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
+  "format": "asa-provider-bootstrap-manifest-v1",
+  "serviceProjection": {
+    "bytes": 870,
+    "sha256": "4df7fc4a7ff38dab83a844791f4f18da5173f2c8f881f9ac007e459f2dfa2d4b"
+  },
+  "sourceFiles": {
+    "scripts/provider_health_exporter.py": {
+      "bytes": 19819,
+      "sha256": "ca992e45dc1a7b4844b80ff11c4e2952a731145c4a58ccf4a58a5551648ff679"
+    },
+    "templates/provider-monitor/asa-provider-monitor.service": {
+      "bytes": 846,
+      "sha256": "b93552eb22ff5eb30de051c5069992ee333041c0033ee538321ffcfd2ff4edb2"
+    },
+    "templates/provider-monitor/asa-provider-monitor.timer": {
+      "bytes": 196,
+      "sha256": "9e9e53f17cdff9eebe99bb1db6bcbc11fd2f61f1fe647fc4546c27bf34954bd3"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "sourceRepository": "spikeal8-maker/asa-lab",
+  "observedSourceRevision": "2a28cffe7a20302f9b7231ef823bdc05f3fe43d0",
+  "sourceFiles": {
+    "migrations/0010_account_identity_sessions_v2.sql": "ef016ec5286a25a6465804ddf52886170c11558dc53248a1b5f9a8aa27aabf65",
+    "migrations/0021_classroom_roster_studentseat.sql": "282565ce27a3c04f3df66a36c62a18e312bed95dbfbc8537504752fb989ef4dd",
+    "migrations/0022_personal_classes_coteachers.sql": "d3e41e17af878686d0f1b5cd1e97455103f90885cbbacb3a86bd28adb6b53f3c",
+    "migrations/0241_max_external_only_registration.sql": "859c003111fafed508271fff05205aafe63cb15edc030986e27fc90ed8191e85",
+    "contexts/identity/domain/password.ts": "26e05e44bb0f7611b6c048497afb98f9fa748477ce8e0f5a215519d7b3850142",
+    "apps/api/src/classrooms.controller.ts": "827698a60257f239e3b88c2d0bc036245c29bc92f8e68b5f0c60d4a170b14c4b",
+    "apps/api/src/classroom-join.controller.ts": "21119c0bf1d7dcb6376efe5907a91b6d973b16bd2ec585cfbccce6887defa874",
+    "apps/api/src/courses.controller.ts": "dc04e7ce037569b3a1e9507be057ce6e2c436370bdc0a1181321ce6b29aa52ce",
+    "apps/api/src/public-projects.controller.ts": "b51de767636a771d89fc145c12b65805b4a0f23123bf902afa3c031e9b552d78",
+    "apps/api/src/projects.controller.ts": "3e96756e218888373849a606301f14a239b2fbe9314606c6bc74af817850c15c",
+    "apps/api/src/gallery.controller.ts": "a8ddc2966234ff46d76953cfa9ac6b7ae00925c04731769a350c3f635082d048"
+  }
+}

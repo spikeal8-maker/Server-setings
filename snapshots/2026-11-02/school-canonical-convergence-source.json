@@ -1,0 +1,117 @@
+{
+  "state": "AUTHOR_PREPARED_SOURCE_ONLY",
+  "programme": "https://github.com/spikeal8-maker/asa-lab/issues/909",
+  "infrastructureProgrammeParent": "a89a38a62d81d0fc598b60fa46cf57bac99c1189",
+  "infrastructureFrozenMain": "05ea148c007cf2c2b56729294599c2d611a3c14a",
+  "applicationVerified": "53a83e53d2ef40901a698082b215a314603e8d97",
+  "applicationCanonicalParent": "c3399eb42aeda9aff44db3ca0b21198d625297aa",
+  "applicationProgrammeParent": "854b6b9766727cb6a20f795bc6f68ea40a363beb",
+  "sourceContracts": {
+    "fixturePins": 11,
+    "routePins": 44,
+    "mixedPins": 23,
+    "originalRoutePinsRetained": 32,
+    "changedExistingPins": 7,
+    "unchangedExistingReferences": 59,
+    "addedPins": 12,
+    "routes": 65,
+    "originalRoutes": 64,
+    "originalRoutesDigest": "7f9713065aa046f5d3f53c588b81228c18b730f49a5f3bcc68b925fc77725b01"
+  },
+  "changedExistingPaths": [
+    "apps/web/src/creator-portal/navigation.ts",
+    "apps/api/src/ai-chat.controller.ts",
+    "apps/api/src/ai-image.controller.ts",
+    "apps/api/src/ai-chat.service.ts",
+    "apps/api/src/ai-image.service.ts",
+    "apps/api/src/ai-ollama.ts",
+    "apps/api/src/app.module.ts"
+  ],
+  "addedPinnedPaths": [
+    "apps/web/src/chess/chess-navigation.ts",
+    "apps/web/src/chess/ChessModuleExperience.tsx",
+    "apps/web/src/chess/chess-network-api.ts",
+    "apps/api/src/chess-network.controller.ts",
+    "contexts/games/application/chess-network.ts",
+    "contexts/games/infrastructure/pg-chess-network.ts",
+    "packages/contracts/src/chess-network.ts",
+    "migrations/0294_games_chess_network.sql",
+    "apps/api/src/ai-working-files.ts",
+    "migrations/0296_ai_working_files.sql",
+    "migrations/0298_ai_image_file_binding.sql",
+    "migrations/0300_ai_image_durable_queue.sql"
+  ],
+  "actualReaders": {
+    "exactCleanCheckout": true,
+    "routeAndMixedReaders": "PASS",
+    "fixtureImmutableGitBlobChecks": "11_PASS",
+    "workingTreeHashFallback": false
+  },
+  "newChecks": {
+    "networkRoute": "/#/chess/:projectId/network",
+    "networkReads": [
+      "GET /api/games/chess/access",
+      "GET /api/games/chess/history?limit=10"
+    ],
+    "networkPolicy": "closed typed projection; teacher deny observed, no policy write",
+    "networkHistory": "empty own new QA principal projection",
+    "aiWorkingFiles": "GET acknowledged own new thread working-files, items=[] before local provider submission",
+    "aiEscalation": "requires emptyWorkingFilesVerified=true in every AI row"
+  },
+  "preservedContracts": [
+    "all64 route roles/checks/limitations",
+    "local-only Ollama; no paid fallback",
+    "real PNG768; history/reopen; own cancel; acknowledged idempotency",
+    "SSE framing and heartbeat source",
+    "required logs and protected runtime metrics",
+    "QA ownership, expiry, cleanup-first and UNKNOWN/no-replay",
+    "backup, ingress, portability tooling and1Panel/SSH canonical additions"
+  ],
+  "canonicalHistory": {
+    "maximumSourceSchema": 300,
+    "queueMigration": "migrations/0300_ai_image_durable_queue.sql",
+    "queueSourceSha256": "0ea57787d707326f9222fb906bc7d826a91d417c3efdeeb6251c6a3156b6cd26",
+    "runtimeMigrationRehearsal286to300": "NOT_RUN",
+    "canonicalMigrationFilesByteIdentical": 293,
+    "queueByteIdenticalToProgramme0294": true,
+    "scratchBlocksEditorByteIdenticalToProgramme854": true
+  },
+  "mergeConflict": "docs08 both complete parent sections retained; every nonempty parent line verified",
+  "frozenMainRetention": "7scripts/docs byte-identical after Git EOL normalization; new main tests11PASS",
+  "focusedOfflineSuite": {
+    "run": 85,
+    "passed": 84,
+    "skipped": 1,
+    "skip": "POSIX mode/lock on Windows; Ubuntu CI required",
+    "addedRegressions": 6
+  },
+  "fullWindowsSuite": {
+    "run": 246,
+    "failures": 2,
+    "errors": 15,
+    "skipped": 6,
+    "state": "NOT_PASS_PLATFORM_LIMITATIONS",
+    "causes": [
+      "fcntl/pwd/grp imports",
+      "geteuid/procfd unavailable",
+      "symlink privileges and POSIX modes",
+      "path separators",
+      "unchanged repository-test default CP1251 read"
+    ]
+  },
+  "independentReview": "REQUIRED_AT_FINAL_INFRA_SHA",
+  "ubuntuExactCI": "PENDING",
+  "runtimeChanged": false,
+  "workingDataChanged": false,
+  "networkOrHostSettingsChanged": false,
+  "liveLoad": "NOT_RUN",
+  "browser100": "NOT_RUN",
+  "workingFileEditRestore": "NOT_RUN",
+  "networkMatchInteraction": "NOT_RUN",
+  "nativeImageHtmlBinding": "NOT_RUN",
+  "paidProviders": "NOT_RUN",
+  "documentAttachments": "NOT_RUN",
+  "freshPhysicalHostAccepted": false,
+  "releaseAccepted": false,
+  "secretsIncluded": false
+}

@@ -1,0 +1,59 @@
+{
+  "observedAt": "2026-11-02T18:05:28.409582Z",
+  "scope": "school HTTP ingress tuning; not application deployment or pupil acceptance",
+  "reviewedToolSource": "215cd38eccbc4c534735b9d777a6850ded9141f6",
+  "host": "x.asa-lab.ru",
+  "router": "asa-stage-x-https",
+  "appliedBefore": "2026-11-02T18:00:29.188545Z",
+  "beforeSha256": "02f516ba49519483b310d36b8610e8d4666ba3f635935b11189991b7a2ad9ff4",
+  "afterSha256": "6591c6696cd95d02d52af462d444ee8a6dc4db51df558105222702afc185b984",
+  "previousProfile": {"average": 600, "burst": 300, "period": "1m"},
+  "appliedProfile": {"average": 6000, "burst": 2000, "period": "1m"},
+  "otherRouterObjectsPreserved": true,
+  "proxyRestartedByThisOperation": false,
+  "privateBeforeAndRollbackReceiptRetainedOutsideProviderWatch": true,
+  "yamlDependency": {
+    "version": "6.0.3",
+    "wheelSha256": "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc",
+    "systemPythonChanged": false
+  },
+  "tlsVerifiedBeforeAndAfter": {
+    "schoolReadyStatus": 200,
+    "schoolAnonymousProtectedAdminStatus": 401,
+    "neighbourTest2RootStatus": 200
+  },
+  "readOnlyEdgeProbe": {
+    "startedAt": "2026-11-02T18:04:26.248686Z",
+    "finishedAt": "2026-11-02T18:04:48.131126Z",
+    "endpointKind": "public HTML GET only",
+    "requested": 650,
+    "completed": 650,
+    "http200": 650,
+    "http429": 0,
+    "maximumClientWorkers": 8,
+    "plannedRequestsPerSecond": 30,
+    "elapsedSeconds": 21.882,
+    "latencyMs": {"p50": 132.3035, "p95": 278.855, "p99": 483.51},
+    "retries": 0,
+    "credentialsOrCookiesSent": false,
+    "responseBodiesRetained": false
+  },
+  "schoolRuntimeAfter": {
+    "revision": "de1efb9b45a0ee10233cab53a066cb0c8c4f121b",
+    "schema": 286,
+    "synchronized": true,
+    "sourceClean": true,
+    "automaticUpdates": false,
+    "inferenceRelayActive": true,
+    "nightBackupTimerActive": true,
+    "ollamaReachable": true,
+    "comfyuiReachable": true
+  },
+  "applicationUpdated": false,
+  "workingDatabaseReplaced": false,
+  "newCollectorActivated": false,
+  "school100PupilModuleAndAIProbe": "NOT_RUN",
+  "fullSystemStabilityAccepted": false,
+  "evidence": "https://github.com/spikeal8-maker/asa-lab/issues/909#issuecomment-6584568360",
+  "secretsPersonalDataOrRawLogsIncluded": false
+}
