@@ -5,10 +5,12 @@ import contextlib
 import copy
 import io
 import json
+import math
 from pathlib import Path
 import re
 import unittest
 import uuid
+from unittest import mock
 from types import SimpleNamespace
 from urllib.parse import urlsplit
 
@@ -378,6 +380,223 @@ class BrowserAcceptanceTransportTests(unittest.TestCase):
         self.assertNotIn("fresh.request.get(", source)
 
 
+
+
+def reopen_fragments(api):
+    """Execute the real reopened read and both equality guards without a browser."""
+    tree = ast.parse(SOURCE.read_text(encoding="utf-8"), filename=str(SOURCE))
+    main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "main")
+    candidates = []
+    for loop in ast.walk(main):
+        if not isinstance(loop, ast.For):
+            continue
+        for index, node in enumerate(loop.body):
+            if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "actual"):
+                candidates.append(loop.body[index:index + 4])
+    if len(candidates) != 1:
+        raise AssertionError("Expected the one real reopened read and equality guards")
+    driver = ast.parse(
+        "def check_reopened(module, reopened, reopened_field, value, after):\n"
+        "    return actual\n"
+    ).body[0]
+    driver.body = copy.deepcopy(candidates[0]) + driver.body
+    helpers = [
+        copy.deepcopy(node) for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_reopened_blocks_value"
+    ]
+    # The parent source deliberately compiles too: its premature read must fail
+    # the same call-site regression instead of failing only on a missing helper.
+    program = ast.fix_missing_locations(ast.Module(body=helpers + [driver], type_ignores=[]))
+    namespace = {
+        "_browser_api": api, "origin": "http://127.0.0.1:4610", "project": "fixture-only",
+    }
+    exec(compile(program, str(SOURCE), "exec"), namespace)
+    return namespace["check_reopened"]
+
+
+class ReopenedValuePage:
+    """Only an ordering/timeout seam; no DOM, Playwright or real readiness claim."""
+    def __init__(self):
+        self.calls = []
+        self.ready = False
+        self.value = "37"
+        self.ready_error = None
+        self.read_error = None
+
+    def locator(self, selector):
+        if selector != '[data-asa-blocks-loading-overlay][data-state="ready"]':
+            raise AssertionError("Expected the accepted parent readiness selector")
+        self.calls.append(("locator", selector))
+        return self
+
+    def bounded_timeout(self, timeout):
+        if (type(timeout) not in (int, float) or not math.isfinite(timeout)
+                or not 0 < timeout <= 45000):
+            raise AssertionError("Expected a finite positive timeout within the original budget")
+
+    def wait_for(self, *, state, timeout):
+        if state != "attached":
+            raise AssertionError("The ready overlay is hidden, not visible")
+        self.bounded_timeout(timeout)
+        self.calls.append(("ready", timeout))
+        if self.ready_error is not None:
+            raise self.ready_error
+        self.ready = True
+
+    def input_value(self, *, timeout):
+        self.bounded_timeout(timeout)
+        self.calls.append(("value", timeout))
+        if self.read_error is not None:
+            raise self.read_error
+        return self.value if self.ready else ""
+
+
+class BrowserAcceptanceReopenReadinessTests(unittest.TestCase):
+    def setUp(self):
+        self.page = ReopenedValuePage()
+        self.api_calls = []
+        self.field_pages = []
+        self.after = {"draft": {"revision": 3, "document": {"synthetic": True}}}
+        self.reread = copy.deepcopy(self.after)
+
+        def api(page, origin, method, path, *, allowed):
+            self.assertIs(page, self.page)
+            self.assertEqual((origin, method, path, allowed),
+                             ("http://127.0.0.1:4610", "GET", "/api/projects/fixture-only", (200,)))
+            self.api_calls.append(page)
+            return self.reread
+
+        self.check_reopened = reopen_fragments(api)
+
+    def field(self, page):
+        self.assertIs(page, self.page)
+        self.field_pages.append(page)
+        return page
+
+    def check(self, module="blocks"):
+        return self.check_reopened(module, self.page, self.field, "37", self.after)
+
+    def assert_failed_report(self, error, code):
+        _, report_failure = producer_fragments()
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            exit_code = report_failure(error, "blocks_save", {
+                "teacher_login": True, "student_login": True, "course_open": True,
+            })
+        report = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 2)
+        self.assertEqual(report["error"], {"stage": "blocks_save", "code": code})
+        self.assertFalse(report["checks"]["scratch_save_reopen"])
+        self.assertFalse(report["checks"]["electronics_save_reopen"])
+        self.assertNotIn(SECRET, output.getvalue())
+
+    def test_actual_blocks_call_waits_for_same_page_ready_before_reading_initial_field(self):
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, 1012.5]):
+            self.assertEqual(self.check(), "37")
+        self.assertEqual(self.page.calls, [
+            ("locator", '[data-asa-blocks-loading-overlay][data-state="ready"]'),
+            ("ready", 45000), ("value", 32500),
+        ])
+        self.assertEqual(self.field_pages, [self.page])
+        self.assertEqual(self.api_calls, [self.page])
+
+    def test_already_ready_state_still_shares_one_original_deadline(self):
+        self.page.ready = True
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1001.0, 1044.0]):
+            self.assertEqual(self.check(), "37")
+        self.assertEqual(self.page.calls[1:], [("ready", 44000), ("value", 1000)])
+        self.assertEqual(self.api_calls, [self.page])
+
+    def test_sub_millisecond_remaining_is_positive_and_not_rounded_to_zero(self):
+        for read_at in (1044.99975, math.nextafter(1045.0, 0.0)):
+            with self.subTest(read_at=read_at):
+                self.setUp()
+                with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, read_at]):
+                    self.assertEqual(self.check(), "37")
+                timeout = self.page.calls[-1][1]
+                self.assertTrue(math.isfinite(timeout))
+                self.assertGreater(timeout, 0)
+                self.assertLess(timeout, 1)
+                self.assertEqual(timeout, (1045.0 - read_at) * 1000)
+
+    def test_exhausted_before_readiness_does_not_start_wait_or_value_read(self):
+        for wait_at in (1045.0, 1046.0):
+            with self.subTest(wait_at=wait_at):
+                self.setUp()
+                with mock.patch("time.monotonic", side_effect=[1000.0, wait_at]):
+                    with self.assertRaises(TimeoutError) as caught:
+                        self.check()
+                self.assertEqual([call[0] for call in self.page.calls], ["locator"])
+                self.assertEqual(self.api_calls, [])
+                self.assert_failed_report(caught.exception, "TimeoutError")
+
+    def test_readiness_exhaustion_does_not_renew_budget_or_read_value(self):
+        for read_at in (1045.0, 1046.0):
+            with self.subTest(read_at=read_at):
+                self.setUp()
+                with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, read_at]):
+                    with self.assertRaises(TimeoutError) as caught:
+                        self.check()
+                self.assertEqual([call[0] for call in self.page.calls], ["locator", "ready"])
+                self.assertEqual(self.api_calls, [])
+                self.assert_failed_report(caught.exception, "TimeoutError")
+
+    def test_nonfinite_clock_never_reaches_playwright_as_timeout(self):
+        for clock_values in ([math.nan, 1000.0], [math.inf, 1000.0],
+                             [1000.0, math.nan], [1000.0, -math.inf],
+                             [1000.0, 1000.0, math.nan], [1000.0, 1000.0, math.inf]):
+            with self.subTest(clock_values=clock_values):
+                self.setUp()
+                with mock.patch("time.monotonic", side_effect=clock_values):
+                    with self.assertRaises(TimeoutError):
+                        self.check()
+                self.assertNotIn("value", [call[0] for call in self.page.calls])
+                self.assertEqual(self.api_calls, [])
+
+    def test_original_readiness_failure_is_not_retried_or_replaced(self):
+        error = TimeoutError(SECRET)
+        self.page.ready_error = error
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0]):
+            with self.assertRaises(TimeoutError) as caught:
+                self.check()
+        self.assertIs(caught.exception, error)
+        self.assertEqual([call[0] for call in self.page.calls], ["locator", "ready"])
+        self.assertEqual(self.api_calls, [])
+        self.assert_failed_report(error, "TimeoutError")
+
+    def test_original_value_read_failure_is_not_retried_or_replaced(self):
+        error = ValueError(SECRET)
+        self.page.read_error = error
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, 1001.0]):
+            with self.assertRaises(ValueError) as caught:
+                self.check()
+        self.assertIs(caught.exception, error)
+        self.assertEqual([call[0] for call in self.page.calls], ["locator", "ready", "value"])
+        self.assertEqual(self.api_calls, [])
+        self.assert_failed_report(error, "ValueError")
+
+    def test_ready_does_not_relax_exact_value_equality_or_allow_draft_read_after_mismatch(self):
+        self.page.value = "38"
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, 1001.0]):
+            with self.assertRaisesRegex(RuntimeError, "^REOPEN_VALUE_MISMATCH$") as caught:
+                self.check()
+        self.assertEqual(self.api_calls, [])
+        self.assert_failed_report(caught.exception, "REOPEN_VALUE_MISMATCH")
+
+    def test_exact_draft_equality_is_still_required_after_ready_value_matches(self):
+        self.reread["draft"]["revision"] = 4
+        with mock.patch("time.monotonic", side_effect=[1000.0, 1000.0, 1001.0]):
+            with self.assertRaisesRegex(RuntimeError, "^REOPEN_DRAFT_MISMATCH$") as caught:
+                self.check()
+        self.assertEqual(self.api_calls, [self.page])
+        self.assert_failed_report(caught.exception, "REOPEN_DRAFT_MISMATCH")
+
+    def test_electronics_keeps_its_existing_read_without_blocks_wait_or_new_deadline(self):
+        self.page.ready = True
+        with mock.patch("time.monotonic", side_effect=AssertionError("Unexpected blocks deadline")):
+            self.assertEqual(self.check("electronics"), "37")
+        self.assertEqual(self.page.calls, [("value", 45000)])
+        self.assertEqual(self.api_calls, [self.page])
 
 if __name__ == "__main__":
     unittest.main()

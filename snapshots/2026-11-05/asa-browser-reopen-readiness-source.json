@@ -1,0 +1,174 @@
+{
+  "format": "asa-browser-reopen-readiness-source-v1",
+  "date": "2026-11-05",
+  "classification": "SOURCE_ONLY",
+  "base": {
+    "repository": "spikeal8-maker/Server-setings",
+    "revision": "a5ceab84d8fe2cd24cc8b41a2d38df80820e6d5f",
+    "tree": "17bf9740937ccd790e2b351f14c7a9909f3aaebf"
+  },
+  "candidateFiles": {
+    "scripts/asa_ops/browser_acceptance.py": {
+      "sha256": "c445903be3327a64b869117171960cd531fa82426fcd5702da7bebfdcd7c6fab",
+      "bytes": 22232
+    },
+    "tests/test_browser_acceptance_errors.py": {
+      "sha256": "32d2fefe4e8eef7045729c809019f7af1e445b136d56a30dc5039ad23df93a79",
+      "bytes": 29719
+    }
+  },
+  "observedPriorRun": {
+    "repository": "spikeal8-maker/asa-lab",
+    "sourceRevision": "4ee78c2600b02a27d9813770770b8b040581da84",
+    "runId": 41967726777,
+    "jobId": 127048845561,
+    "artifactId": 13388491415,
+    "artifactZipSha256": "1cf6c6af0325b9bd7ebd07055d706c7193fb0615c5da276337e13933b9a87cc7",
+    "evidenceSha256": "37f67976cd48ac197d332be86d589d83e2fe81ab9e6601bfa56dc60c939359d8",
+    "runtimeRevision": "6a876a942985780297cf346a9a85077be7479d0b",
+    "browserBefore": {
+      "status": "failed",
+      "reasonCode": "BROWSER_USER_FLOW_FAILED",
+      "stage": "blocks_save",
+      "code": "REOPEN_VALUE_MISMATCH"
+    },
+    "actualCause": "UNKNOWN",
+    "actualFieldValue": "NOT_RECORDED",
+    "expectedFieldValue": "NOT_RECORDED",
+    "hydrationAtRead": "NOT_RECORDED",
+    "intermediateSave": "NOT_OBSERVED",
+    "note": "Unfinished check flags do not prove separately executed failing checks."
+  },
+  "runtimeSourceComparison": {
+    "revisions": [
+      "6a876a942985780297cf346a9a85077be7479d0b",
+      "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+      "959d52079d8c5659e86f084ad2453bd3eb68fe34"
+    ],
+    "equalGitBlobs": {
+      "apps/web/src/blocks/BlocksEditor.tsx": "a8c951685404d82bccd51aae82c078b4ca7fd7d9",
+      "apps/web/src/blocks/blocks-editor-shell.css": "30d34ae70b3da0a633988017834d64344b736e9f",
+      "infra/scratch-editor/host/editor.js": "ef832d5f177246c7d4ad2acec010c57182ea4d04",
+      "infra/scratch-editor/host/main.js": "79c30821d95c404d88391123e385ca5454214214",
+      "infra/scratch-editor/host/storage.js": "c67b9b3a2cd3e173b1064476b124319d207eac98",
+      "infra/scratch-editor/patches/0004-initial-load-baseline-before-ready.patch": "fbaa244313c20680831159f6a46cb0acbc8be492",
+      "contexts/projects/infrastructure/pg-project.repository.ts": "371126bb22aaf97a0bb541d0602d10b12e1fc620"
+    }
+  },
+  "sourceProof": [
+    {
+      "claim": "The parent accepts editor-ready only for its iframe source and accepted runtime bridge message, then exposes data-state=ready on its overlay.",
+      "url": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/apps/web/src/blocks/BlocksEditor.tsx#L275-L329",
+      "selector": "[data-asa-blocks-loading-overlay][data-state=\"ready\"]"
+    },
+    {
+      "claim": "The ready overlay is hidden; attached state observes readiness without requiring visibility.",
+      "url": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/apps/web/src/blocks/blocks-editor-shell.css#L81-L107"
+    },
+    {
+      "claim": "The host publishes editor-ready after onProjectLoaded and any recovery load; baseline-before-ready patch is applied by the pinned build.",
+      "url": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/infra/scratch-editor/host/editor.js#L217-L241",
+      "patchUrl": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/infra/scratch-editor/patches/0004-initial-load-baseline-before-ready.patch"
+    },
+    {
+      "claim": "The pinned Scratch GUI can render the x input disabled with an empty value while the initial project is loading.",
+      "url": "https://github.com/scratchfoundation/scratch-editor/blob/82c5fea6d3e60c781f25c09b375045f9b46a43f7/packages/scratch-gui/src/components/sprite-info/sprite-info.jsx#L120-L127",
+      "upstreamPinUrl": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/infra/scratch-editor/upstream.env"
+    },
+    {
+      "claim": "Pinned driver inputValue resolves the element and returns its current value; it does not await editor hydration or the expected value.",
+      "url": "https://github.com/microsoft/playwright/blob/v1.56.1/packages/playwright-core/src/server/frames.ts#L1242-L1248",
+      "locatorUrl": "https://github.com/microsoft/playwright/blob/v1.56.1/packages/playwright-core/src/client/locator.ts#L277-L278"
+    },
+    {
+      "claim": "The existing revision comparison alone is not marker-specific. An in-flight save captures VM state before asynchronous storage; unchanged document fingerprints do not advance the revision. No such intermediate save was observed in the failed run.",
+      "url": "https://github.com/scratchfoundation/scratch-editor/blob/82c5fea6d3e60c781f25c09b375045f9b46a43f7/packages/scratch-gui/src/lib/project-saver-hoc.jsx#L251-L284",
+      "storageUrl": "https://github.com/spikeal8-maker/asa-lab/blob/6a876a942985780297cf346a9a85077be7479d0b/infra/scratch-editor/host/storage.js#L586-L607"
+    }
+  ],
+  "change": {
+    "scope": "Only the reopened blocks value-read boundary.",
+    "waitState": "attached",
+    "sharedBudgetMilliseconds": 45000,
+    "timeoutRules": [
+      "finite",
+      "strictly_positive",
+      "remaining_shared_budget",
+      "sub_millisecond_not_truncated"
+    ],
+    "preserved": [
+      "first fill and Enter",
+      "save/revision criterion and 100-second save deadline",
+      "exact reopened value equality",
+      "exact draft equality",
+      "electronics read and its 45-second timeout",
+      "browser API transport",
+      "legacy fresh context cookie copy",
+      "fixture ownership/origin/generation",
+      "six checks and report/exit policy",
+      "outer process deadlines"
+    ],
+    "noNewRetries": true,
+    "noNewReopenLoops": true,
+    "noNewDiagnosticStrings": true
+  },
+  "validation": {
+    "pythonVersion": "3.12.14",
+    "focusedCommand": "python3 -B -m unittest discover -s tests -p test_browser_acceptance_errors.py -v",
+    "focused": {
+      "status": "PASS",
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "oldMethodsByteEqual": 19,
+      "newMethods": 11
+    },
+    "exactParentCounterfactual": {
+      "status": "EXPECTED_FAILURE",
+      "methods": 2,
+      "errors": 1,
+      "controlsPassed": 1,
+      "errorCode": "REOPEN_VALUE_MISMATCH",
+      "boundary": "Actual read/equality AST with a controlled initial-value/readiness seam; not browser acceptance."
+    },
+    "negativeCounterfactuals": [
+      {
+        "change": "Renew full 45-second budget after readiness",
+        "methods": 1,
+        "failures": 1
+      },
+      {
+        "change": "Truncate sub-millisecond timeout to integer zero",
+        "methods": 1,
+        "subtestFailures": 2
+      }
+    ],
+    "restoredFinalSource": {
+      "status": "PASS",
+      "methods": 4,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "preservation": {
+      "status": "PASS",
+      "productRestoresToParentByRemovingHelperAndReplacingOneAssignment": true,
+      "oldHelpersByteEqual": [
+        "_browser_api",
+        "_error_code"
+      ],
+      "oldTestMethodsByteEqual": 19
+    },
+    "browser": "NOT_RUN",
+    "nativeVm": "NOT_RUN",
+    "ci": "NOT_RUN",
+    "independentReview": "PENDING"
+  },
+  "limitations": [
+    "The source and controlled regression demonstrate an insufficient readiness boundary, not the actual historical field value or causal timing.",
+    "No actual browser, VM, live host, network service or CI run was used for these local tests.",
+    "The accepted readiness signal does not replace the exact value and draft equality checks.",
+    "No runtime, save-generation policy, release pin, cookie flag or authentication expectation is changed."
+  ]
+}

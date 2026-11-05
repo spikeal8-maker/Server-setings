@@ -110,6 +110,25 @@ def _browser_api(page, origin, method, path, body=None, allowed=(200, 201)):
     return response['data']
 
 
+def _reopened_blocks_value(page, field):
+    import math
+    import time
+
+    deadline = time.monotonic() + 45.0
+
+    def remaining_timeout():
+        remaining = deadline - time.monotonic()
+        if not math.isfinite(remaining) or remaining <= 0:
+            raise TimeoutError()
+        return min(45000, remaining * 1000)
+
+    # The parent accepts editor-ready from this frame after project hydration.
+    # Its ready overlay is hidden, so wait for the state, not visibility.
+    page.locator('[data-asa-blocks-loading-overlay][data-state="ready"]').wait_for(
+        state='attached', timeout=remaining_timeout())
+    return field.input_value(timeout=remaining_timeout())
+
+
 def main():
     from playwright.sync_api import sync_playwright
     parser = argparse.ArgumentParser()
@@ -328,7 +347,9 @@ def main():
                 reopened = fresh.new_page();reopened.goto(origin+'/#/home/'+project, wait_until='domcontentloaded')
                 if module == 'electronics' and not reopened_field(reopened).is_visible():
                     reopened.get_by_role('button', name='Открыть редактор кода', exact=True).click()
-                actual = reopened_field(reopened).input_value(timeout=45000)
+                actual = (_reopened_blocks_value(reopened, reopened_field(reopened))
+                          if module == 'blocks'
+                          else reopened_field(reopened).input_value(timeout=45000))
                 if actual != value:
                     raise RuntimeError('REOPEN_VALUE_MISMATCH')
                 reread = _browser_api(reopened, origin, 'GET', '/api/projects/'+project, allowed=(200,))
