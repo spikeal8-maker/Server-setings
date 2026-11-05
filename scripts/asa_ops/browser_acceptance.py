@@ -11,6 +11,7 @@ import re
 import secrets
 import sys
 import uuid
+from urllib.parse import urlsplit
 
 # Standalone execution works in both repository checkout and private install.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -21,9 +22,92 @@ from asa_ops.acceptance_fixture import (
 
 def _error_code(exc):
     message = str(exc)
-    if message in ('SAVE_NOT_OBSERVED', 'REOPEN_VALUE_MISMATCH', 'REOPEN_DRAFT_MISMATCH') or re.fullmatch(r'API_STATUS_[0-9]{3}', message):
+    if message in ('SAVE_NOT_OBSERVED', 'REOPEN_VALUE_MISMATCH', 'REOPEN_DRAFT_MISMATCH', 'SYNTHETIC_LOGIN_IDENTITY_MISMATCH') or re.fullmatch(r'API_STATUS_[0-9]{3}', message):
         return message
     return type(exc).__name__
+
+
+# Use the document's normal cookie transport; never extract or forge cookies.
+_BROWSER_API_FETCH = r"""async request => {
+    // Recheck in the document before touching the body or starting a request.
+    if (location.origin !== request.origin)
+        throw new Error('BROWSER_API_ORIGIN');
+    if (typeof request.path !== 'string' || !/^\/api\/[^\u0000-\u0020\u007f\\]*$/.test(request.path))
+        throw new Error('BROWSER_API_PATH');
+    const controller = new AbortController();
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            controller.abort();
+            reject(new Error('BROWSER_API_TIMEOUT'));
+        }, 30000);
+    });
+    try {
+        const headers = {'Idempotency-Key': request.idempotencyKey};
+        const options = {
+            method: request.method, headers, credentials: 'same-origin',
+            mode: 'same-origin', redirect: 'error', cache: 'no-store',
+            signal: controller.signal,
+        };
+        if (request.body !== null) {
+            headers['Content-Type'] = request.contentType;
+            options.body = request.body;
+        }
+        return await Promise.race([deadline, (async () => {
+            const response = await fetch(request.origin + request.path, options);
+            if (!request.allowed.includes(response.status)) {
+                controller.abort();
+                return {status: response.status, data: null};
+            }
+            return {status: response.status, data: await response.json()};
+        })()]);
+    } finally {
+        clearTimeout(timer);
+    }
+}"""
+
+
+def _browser_api(page, origin, method, path, body=None, allowed=(200, 201)):
+    # Check before handing the payload to evaluate; JavaScript repeats the
+    # origin check to reject a navigation between this check and evaluation.
+    if not isinstance(origin, str) or re.search(r'[\x00-\x20\x7f\\]', origin):
+        raise RuntimeError('BROWSER_API_ORIGIN')
+    try:
+        expected, current = urlsplit(origin), urlsplit(page.url)
+        origin_valid = (
+            expected.scheme in ('http', 'https') and expected.hostname
+            and expected.username is None and expected.password is None
+            and not expected.path and not expected.query and not expected.fragment
+            and expected.scheme+'://'+expected.netloc == origin
+            and current.username is None and current.password is None
+            and current.scheme+'://'+current.netloc == origin
+        )
+        expected.port  # Reject an invalid port before evaluating any payload.
+    except (TypeError, ValueError):
+        raise RuntimeError('BROWSER_API_ORIGIN') from None
+    if not origin_valid:
+        raise RuntimeError('BROWSER_API_ORIGIN')
+    if (method not in ('GET', 'POST', 'PUT') or not isinstance(path, str)
+            or not re.fullmatch(r'/api/[^\x00-\x20\x7f\\]*', path)
+            or (method == 'GET' and body is not None)):
+        raise RuntimeError('BROWSER_API_REQUEST')
+    if body is None:
+        payload, content_type = None, None
+    elif isinstance(body, str):
+        payload, content_type = body, 'application/octet-stream'
+    else:
+        payload, content_type = json.dumps(body), 'application/json'
+    response = page.evaluate(_BROWSER_API_FETCH, {
+        'origin': origin, 'method': method, 'path': path, 'body': payload,
+        'contentType': content_type, 'allowed': list(allowed),
+        'idempotencyKey': str(uuid.uuid4()),
+    })
+    if (not isinstance(response, dict) or set(response) != {'status', 'data'}
+            or type(response['status']) is not int or not 100 <= response['status'] <= 599):
+        raise RuntimeError('BROWSER_API_RESPONSE')
+    if response['status'] not in allowed:
+        raise RuntimeError('API_STATUS_'+str(response['status']))
+    return response['data']
 
 
 def main():
@@ -57,7 +141,12 @@ def main():
         failures=[]
         context.on('response',lambda response: failures.append({'status':response.status,'kind':'blocks' if '/blocks' in response.url else 'api'}) if response.status>=400 and ('/api/' in response.url or '/internal/blocks' in response.url) else None)
         def api(method, path, body=None, allowed=(200, 201)):
-            response = context.request.fetch(origin+path, method=method, data=body,
+            if path != '/health/ready':
+                return _browser_api(page, origin, method, path, body, allowed)
+            # This one unauthenticated route precedes navigation and login.
+            if method != 'GET' or body is not None or stage != 'release_provenance' or page.url != 'about:blank':
+                raise RuntimeError('BROWSER_HEALTH_REQUEST')
+            response = context.request.fetch(origin+path, method=method, data=body, timeout=30000,
                        headers={'Origin': origin, 'Idempotency-Key': str(uuid.uuid4())})
             if response.status not in allowed:
                 # Error details may include identifiers. Return only status/stage.
@@ -242,7 +331,7 @@ def main():
                 actual = reopened_field(reopened).input_value(timeout=45000)
                 if actual != value:
                     raise RuntimeError('REOPEN_VALUE_MISMATCH')
-                reread = fresh.request.get(origin+'/api/projects/'+project).json()
+                reread = _browser_api(reopened, origin, 'GET', '/api/projects/'+project, allowed=(200,))
                 if reread.get('draft') != after.get('draft'):
                     raise RuntimeError('REOPEN_DRAFT_MISMATCH')
                 checks[check] = True
