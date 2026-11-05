@@ -1,0 +1,257 @@
+{
+  "format": "asa-browser-session-transport-source-v1",
+  "recordedDateUtc": "2026-11-05",
+  "evidenceClass": "SOURCE_ONLY",
+  "repository": "spikeal8-maker/Server-setings",
+  "componentSourceParent": "80dafa3659e23806963da922c6ddd33ed14fa020",
+  "preservationBaseline": {
+    "commit": "f48f0ba6dc7d5a929e89edecec53a901cd9145a3",
+    "tree": "77a511d26be243270cd84f75d0fa667f52666706",
+    "parents": [
+      "80dafa3659e23806963da922c6ddd33ed14fa020",
+      "72dba1f36c9513267fc1a3ebe598be4ed98df5ed"
+    ],
+    "githubComputedMerge": "8c1609de7a09e4ddace8527a950d5117667509c1",
+    "existingMatrixBlob": "580ddafdc51f8b4876c51e72bb8a37f476014696"
+  },
+  "sourceBlobs": {
+    "browser": {
+      "path": "scripts/asa_ops/browser_acceptance.py",
+      "gitBlob": "c5ed1c791083fbcce1f257c0c20de415575888d8",
+      "utf8Bytes": 21412
+    },
+    "tests": {
+      "path": "tests/test_browser_acceptance_errors.py",
+      "gitBlob": "32acf4242541c87b6ccd7190b0a46be283f211d6",
+      "utf8Bytes": 19149
+    }
+  },
+  "sourceFinding": {
+    "pythonPlaywrightVersion": "1.56.0",
+    "bundledDriverVersion": "1.56.1",
+    "pythonSourceCommit": "75ceca04b7f4b29c1c026130696568fca68c9e88",
+    "driverSourceCommit": "54c711571a37de525377e6f3d3608c3e029b1829",
+    "browserVersion": "141.0.7390.37",
+    "secureCookieFilter": {
+      "http127001": "EXCLUDED_BY_APIREQUESTCONTEXT_FILTER",
+      "httpLocalhost": "PERMITTED_BY_LOCAL_HOSTNAME_EXCEPTION",
+      "historicalNativeCookiePresence": "UNKNOWN",
+      "historicalNativeCookieReplay": "UNKNOWN",
+      "historicalNativeFailureCause": "NOT_DETERMINED"
+    },
+    "references": [
+      "https://github.com/microsoft/playwright-python/blob/75ceca04b7f4b29c1c026130696568fca68c9e88/setup.py",
+      "https://github.com/microsoft/playwright/blob/54c711571a37de525377e6f3d3608c3e029b1829/packages/playwright-core/src/server/network.ts",
+      "https://github.com/microsoft/playwright/blob/54c711571a37de525377e6f3d3608c3e029b1829/packages/playwright-core/src/server/cookieStore.ts",
+      "https://github.com/microsoft/playwright/blob/54c711571a37de525377e6f3d3608c3e029b1829/packages/playwright-core/src/server/fetch.ts",
+      "https://github.com/chromium/chromium/blob/141.0.7390.37/net/base/url_util.cc",
+      "https://github.com/chromium/chromium/blob/141.0.7390.37/net/cookies/cookie_util.cc",
+      "https://github.com/chromium/chromium/blob/141.0.7390.37/net/cookies/cookie_base.cc"
+    ]
+  },
+  "transport": {
+    "authenticatedStaticCallSiteCount": 14,
+    "dispatcherCallSiteCount": 13,
+    "dispatcherRoutes": [
+      {
+        "method": "GET",
+        "path": "/api/auth/me",
+        "staticSites": 1
+      },
+      {
+        "method": "POST",
+        "path": "/api/capabilities/educator/self-attest",
+        "staticSites": 1
+      },
+      {
+        "method": "POST",
+        "path": "/api/classrooms",
+        "staticSites": 1
+      },
+      {
+        "method": "GET",
+        "path": "/api/classrooms/{fixture.classroom}",
+        "staticSites": 1
+      },
+      {
+        "method": "POST",
+        "path": "/api/classrooms/{fixture.classroom}/seats",
+        "staticSites": 1
+      },
+      {
+        "method": "POST",
+        "path": "/api/courses",
+        "staticSites": 1
+      },
+      {
+        "method": "GET",
+        "path": "/api/courses",
+        "staticSites": 1
+      },
+      {
+        "method": "GET",
+        "path": "/api/courses/{fixture.course}/outline",
+        "staticSites": 1
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects",
+        "staticSites": 1
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project}",
+        "staticSites": 3
+      },
+      {
+        "method": "PUT",
+        "path": "/api/projects/{project}/draft",
+        "staticSites": 1
+      }
+    ],
+    "existingReopenedPageRead": {
+      "method": "GET",
+      "path": "/api/projects/{project}",
+      "staticSites": 1,
+      "allowedStatus": [
+        200
+      ]
+    },
+    "preservedUnauthenticatedRoutes": [
+      "GET /health/ready before navigation",
+      "POST /api/class-join/studentseat in the existing new learner context"
+    ],
+    "timeoutMilliseconds": 30000,
+    "timeoutIncludes": [
+      "fetch",
+      "response.json"
+    ],
+    "credentials": "same-origin",
+    "mode": "same-origin",
+    "redirect": "error",
+    "cache": "no-store",
+    "newManualCookieAccess": false,
+    "newCookieHeader": false,
+    "legacyReopenCookieCopy": "BYTE_PRESERVED",
+    "pythonOriginCheck": "BEFORE_EVALUATE",
+    "documentOriginCheck": "BEFORE_BODY_OR_FETCH"
+  },
+  "reporting": {
+    "addedExactMarker": "SYNTHETIC_LOGIN_IDENTITY_MISMATCH",
+    "identityGuard": "BYTE_PRESERVED",
+    "saveReopenMarkers": "BYTE_PRESERVED",
+    "apiStatusRule": "BYTE_PRESERVED",
+    "arbitraryExceptionMessage": "CLASS_NAME_FALLBACK",
+    "failedExit": 2,
+    "sixAcceptanceChecks": "BYTE_PRESERVED",
+    "rawAuthenticationDataExported": false
+  },
+  "validation": {
+    "javascript": {
+      "kind": "PURE_JAVASCRIPT_TRANSPORT",
+      "executed": true,
+      "environment": "functions V8; controlled location/fetch/timer/abort objects; no browser/network/cookie jar/URL parser",
+      "count": 17,
+      "cases": [
+        {
+          "case": "authenticated_GET_uses_same_origin_no_store_and_no_cookie_header",
+          "result": "PASS"
+        },
+        {
+          "case": "POST_201_preserves_JSON_body_idempotency_and_content_type",
+          "result": "PASS"
+        },
+        {
+          "case": "PUT_preserves_literal_data_payload",
+          "result": "PASS"
+        },
+        {
+          "case": "origin_mismatch_rejects_before_body_timers_or_fetch",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_absolute_URL",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_protocol_relative_URL",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_backslash",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_newline",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_NUL",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_space",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_DEL",
+          "result": "PASS"
+        },
+        {
+          "case": "unsafe_path_non_string",
+          "result": "PASS"
+        },
+        {
+          "case": "HTTP_403_does_not_parse_or_export_error_body",
+          "result": "PASS"
+        },
+        {
+          "case": "redirect_transport_rejection_has_no_retry_or_fallback",
+          "result": "PASS"
+        },
+        {
+          "case": "invalid_success_JSON_is_failure",
+          "result": "PASS"
+        },
+        {
+          "case": "pending_fetch_uses_exact_30s_abort_and_failure",
+          "result": "PASS"
+        },
+        {
+          "case": "pending_response_body_shares_exact_30s_deadline",
+          "result": "PASS"
+        }
+      ]
+    },
+    "sourcePreservation": {
+      "browserOutsideApprovedDeltaByteEqualTo80": true,
+      "allSevenPreviousErrorTestsByteEqual": true,
+      "entireMergedMatrixPreserved": true,
+      "fixtureHelper": "UNCHANGED_FROM_PRESERVATION_BASELINE",
+      "cloudHelper": "UNCHANGED_FROM_PRESERVATION_BASELINE",
+      "cloudOldHashClaimed": false,
+      "historicalServerSnapshot": "UNCHANGED_FROM_PRESERVATION_BASELINE",
+      "uiActionsAssertionsCleanupAndOuterDeadlines": "BYTE_PRESERVED"
+    },
+    "python": {
+      "command": "python3 -m unittest discover -s tests -p test_browser_acceptance_errors.py -v",
+      "selectedTests": 19,
+      "existingTests": 7,
+      "addedTests": 12,
+      "result": "NOT_RUN",
+      "reason": "EXECUTION_ENVIRONMENT_UNAVAILABLE"
+    },
+    "nativeBrowser": "NOT_RUN",
+    "nativeVm": "NOT_RUN",
+    "liveHost": "NOT_RUN",
+    "newSourceCI": "NOT_RUN",
+    "independentReview": "PENDING"
+  },
+  "limits": [
+    "Pure JavaScript probes use controlled location, fetch, timers and AbortController; they do not execute a browser, network, cookie jar or URL parser.",
+    "No historical cookie presence or failure cause is inferred from the source finding.",
+    "The preserved baseline includes newer main changes, including cloud helper bytes; this transport slice does not validate or change them.",
+    "A later independent exact-source review, Python/CI gate and native acceptance are required before claiming runtime success.",
+    "No commit, branch or ref is created by this author slice; source blobs and the final tree are unreferenced."
+  ]
+}
