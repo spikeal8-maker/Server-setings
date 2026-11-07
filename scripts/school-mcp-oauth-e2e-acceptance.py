@@ -34,6 +34,26 @@ class ProofError(Exception):
     pass
 
 
+def callback_code(status, headers, state):
+    if status not in (302, 303):
+        raise ProofError("CONSENT_NOT_REDIRECTED_"+str(status))
+    value=headers.get("Location")
+    if not value:
+        raise ProofError("OAUTH_REDIRECT_MISSING")
+    actual=urllib.parse.urlsplit(value)
+    expected=urllib.parse.urlsplit(CALLBACK)
+    if ((actual.scheme,actual.netloc,actual.path)!=(expected.scheme,expected.netloc,expected.path)
+            or actual.fragment):
+        raise ProofError("CALLBACK_URI_WRONG")
+    qs=urllib.parse.parse_qs(actual.query,keep_blank_values=True)
+    if (qs.get("state")!=[state] or len(qs.get("code",[]))!=1
+            or not qs["code"][0] or "error" in qs):
+        raise ProofError("CODE_STATE_MISMATCH")
+    if "iss" in qs and qs["iss"]!=[ROOT+"/"]:
+        raise ProofError("CALLBACK_ISSUER_WRONG")
+    return qs["code"][0]
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, msg, headers, newurl):
         return None
@@ -164,15 +184,7 @@ def run() -> None:
         raise ProofError("CONSENT_FORM_NOT_AVAILABLE")
     status,headers,_=request(consent_url,data=b"",
                              content_type="application/x-www-form-urlencoded")
-    if status!=302:
-        raise ProofError("CONSENT_NOT_REDIRECTED_"+str(status))
-    callback=redirect_location(headers,"127.0.0.1")
-    if not callback.startswith(CALLBACK):
-        raise ProofError("CALLBACK_URI_WRONG")
-    qs=urllib.parse.parse_qs(urllib.parse.urlsplit(callback).query)
-    code=qs.get("code",[None])[0]
-    if qs.get("state")!=[state] or not code:
-        raise ProofError("CODE_STATE_MISMATCH")
+    code=callback_code(status,headers,state)
     print("PUBLIC_OAUTH_AUTHORIZATION_CODE_PKCE=PASS")
 
     token_form={
@@ -259,3 +271,4 @@ if __name__=="__main__":
         label=e.args[0] if isinstance(e,ProofError) else type(e).__name__
         print("PUBLIC_HTTPS_MCP_E2E_FAILED="+str(label),file=sys.stderr)
         sys.exit(2)
+

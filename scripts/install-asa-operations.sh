@@ -18,17 +18,34 @@ c=json.loads(pathlib.Path(sys.argv[1]).read_text());i=c['installation']
 assert pathlib.Path(i['root']).is_absolute() and pathlib.Path(i['root']).resolve()==pathlib.Path(i['root'])
 assert i['profile'] in ('production','staging') and isinstance(i['id'],str) and i['id']
 assert i['project'] and all(x.isalnum() or x in '_-' for x in i['project'])
-assert pwd.getpwuid(i['owner_uid']).pw_uid!=0
-assert pathlib.Path(i['root']).stat().st_uid==i['owner_uid']
 sys.path.insert(0,sys.argv[2])
+from asa_ops.host_profile import host_only, service_uid, validate
+if host_only(c):
+    validate(c,sys.argv[1])
+    from asa_ops.admin_executor import root_installation_identity
+    identity=root_installation_identity({'root':i['root'], 'installation_project':i['project'], 'installation_profile':i['profile']})
+    assert identity['instanceId']==i['installation_instance_id']
+else:
+    assert pwd.getpwuid(i['owner_uid']).pw_uid!=0
+    assert pathlib.Path(i['root']).stat().st_uid==i['owner_uid']
+assert pwd.getpwuid(service_uid(c)).pw_uid!=0
 from asa_ops.maintenance import validate_service_state
-validate_service_state(i['state_root'],i['owner_uid'])
+validate_service_state(i['state_root'],service_uid(c))
 assert 1024<=c['port']<=65535
 assert c['official_command']==['/opt/server-settings/bin/mcp-1panel','-transport','stdio','-access-level','full']
 PY
-OWNER="$(python3 - "$CONF" <<'PY'
+OWNER="$(python3 - "$CONF" "$SOURCE/scripts" <<'PY'
 import json,pathlib,pwd,sys
-print(pwd.getpwuid(json.loads(pathlib.Path(sys.argv[1]).read_text())['installation']['owner_uid']).pw_name)
+sys.path.insert(0,sys.argv[2])
+from asa_ops.host_profile import service_uid
+print(pwd.getpwuid(service_uid(json.loads(pathlib.Path(sys.argv[1]).read_text()))).pw_name)
+PY
+)"
+MODE="$(python3 - "$CONF" "$SOURCE/scripts" <<'PY'
+import json,pathlib,sys
+sys.path.insert(0,sys.argv[2])
+from asa_ops.host_profile import mode
+print(mode(json.loads(pathlib.Path(sys.argv[1]).read_text())))
 PY
 )"
 STATE_ROOT="$(python3 - "$CONF" <<'PY'
@@ -72,8 +89,10 @@ text=text.replace('Group=admins','Group='+grp.getgrgid(pwd.getpwnam(sys.argv[2])
 target=pathlib.Path('/etc/systemd/system/asa-operations.service')
 target.write_text(text);target.chmod(0o644)
 PY
-install -m 0644 "$SOURCE/scripts/prepare-asa-maintenance.py" /opt/server-settings/asa-operations/prepare-asa-maintenance.py
-python3 /opt/server-settings/asa-operations/prepare-asa-maintenance.py --config "$CONF" --apply
+if [[ "$MODE" != host-admin-only ]]; then
+  install -m 0644 "$SOURCE/scripts/prepare-asa-maintenance.py" /opt/server-settings/asa-operations/prepare-asa-maintenance.py
+  python3 /opt/server-settings/asa-operations/prepare-asa-maintenance.py --config "$CONF" --apply
+fi
 python3 -m compileall -q /opt/server-settings/asa-operations/asa_ops
 systemctl daemon-reload
 systemctl enable --now asa-operations.service

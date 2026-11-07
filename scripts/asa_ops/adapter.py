@@ -515,6 +515,9 @@ def main():
     # Suppress manager prints in JSON output; subprocess output is captured by
     # worker in a private file and never returned directly over MCP.
     try:
+        from .host_profile import host_only
+        if host_only(config):
+            raise OpsError('CAPABILITY_DISABLED', 'Host-only mode does not run the ASA lifecycle adapter')
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             if action == 'plan':
                 from contextlib import ExitStack

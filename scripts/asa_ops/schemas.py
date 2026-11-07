@@ -61,12 +61,21 @@ def input_schema(name, installation_id='asa-test'):
     return schema
 
 
-def tools(installation_id='asa-test', host_admin_enabled=False, cloud_storage_enabled=False):
-    return [{'name': name, 'description': DESCRIPTIONS[name], 'inputSchema': input_schema(name,installation_id), 'outputSchema': OUTPUT,
+def tools(installation_id='asa-test', host_admin_enabled=False, cloud_storage_enabled=False, operations_mode='lifecycle'):
+    from .host_profile import HOST_ONLY, HOST_TOOLS, mode
+    mode({'operations_mode': operations_mode})
+    descriptions = dict(DESCRIPTIONS)
+    if operations_mode == HOST_ONLY:
+        descriptions['asa_admin_execute'] = DESCRIPTIONS['asa_admin_execute'].replace(
+            'configured test host', 'configured school VM').replace(
+            'Prefer update_plan/start for normal releases.',
+            'This host-only profile does not implement lifecycle update/restore tools; use the separately approved ASA deployment procedure.')
+    return [{'name': name, 'description': descriptions[name], 'inputSchema': input_schema(name,installation_id), 'outputSchema': OUTPUT,
              'annotations': {'readOnlyHint': name in READ, 'destructiveHint': name not in READ,
                              'idempotentHint': True, 'openWorldHint': name in ('asa_admin_execute','asa_cloud_transfer')}}
             for name, schema in INPUTS.items()
-            if (host_admin_enabled or name not in ('asa_admin_execute', 'asa_admin_status'))
+            if (operations_mode != HOST_ONLY or name in HOST_TOOLS)
+            and (host_admin_enabled or name not in ('asa_admin_execute', 'asa_admin_status'))
             and (cloud_storage_enabled and host_admin_enabled or name != 'asa_cloud_transfer')]
 
 
