@@ -1,0 +1,185 @@
+{
+  "format": "x-prep02b-executed-evidence-v1",
+  "execution_script_sha256": "9e880af5342e33adaaf2b0e914474ece74368ef36e63cd0c81ff14567fb6e08c",
+  "transport_sha256": "8405df3105dabb3b9a4aec0af36e4afd0224284fe63a717b614d03468e2b3b4d",
+  "execution": {
+    "operation_id": "41c072225a7a41e49cbf40420747360b",
+    "started_at_utc": "2026-11-07T23:28:12.847418+00:00",
+    "completed_at_utc": "2026-11-07T23:29:20.970792+00:00",
+    "completed_at_moscow": "2026-11-08T02:29:20.970792+03:00",
+    "exit_code": 0,
+    "duration_seconds": 68.111,
+    "timed_out": false
+  },
+  "receipt": {
+    "receipt_path": "/var/lib/asa-restore-rehearsal/xprep02b-accepted-82838b66d2af45dbafb0cae9c9b3d3dc.json",
+    "status": "TWO_ISOLATED_SOURCE_RECOVERY_SETS_VERIFIED",
+    "at": "2026-11-07T23:29:20.916649+00:00",
+    "hostname": "asa-school-01",
+    "target_school_instance": "fc0ba60fe1d946bba1694d73557cc11f",
+    "accepted_decryption_operation": "450e12ff02024db1aca70e03793e35ca",
+    "canonical_source_commit": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "canonical_source_files_verified": 46,
+    "primitives_source_commit": "40ca6116a55f4426851d6857574bfa4d2dc57596",
+    "primitives_blob": "974b266b1868aa2de00aa04b0a0f4172496ce39e",
+    "primitives_sha256": "bfa446321759c68626e17260dd7dccb7c1740770140feb1760bdfccdc6bd56c3",
+    "primitives_staged_path": "/var/lib/server-settings/xprep02b-tools/40ca6116a55f4426851d6857574bfa4d2dc57596/isolated-asa-restore-rehearsal.py",
+    "pulled_missing_h04_minio": true,
+    "pulled_missing_target_minio": true,
+    "target_minio_binary_proof": {
+      "image_reference": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "image_id": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "binaries": {
+        "/usr/local/bin/minio": "fa42dfb43019e71731c10d70cc24057f6af63f22d76c4722614056514739fc97",
+        "/usr/local/bin/mc": "9a9e7d32c175f2804d6880d5ad3623097ea439f0e0304aa6039874d0f0c493d8"
+      },
+      "entrypoint": [
+        "/usr/local/bin/minio"
+      ],
+      "server_started": false
+    },
+    "sources": [
+      {
+        "source": "school",
+        "source_instance": "fc0ba60fe1d946bba1694d73557cc11f",
+        "source_manifest_sha256": "ca2b3504b583dceb7a472e7862bb851e1d50cf443101c8c87b2a1452516cf1a6",
+        "source_archive_sha256": "73736834f6fd0be079527b6f4e61045743a24e86b182ed69d28aec4ad5a25839",
+        "source_path": "/var/backups/asa-school-recovery/unpacked/school__asa-school-01-20261107T222924Z-ee24f94c/20261107T222924Z-ee24f94c",
+        "source_revision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+        "source_schema": 300,
+        "source_postgres_image_id": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+        "source_minio_image_id": "sha256:7dda482722abc56bef951fc9bb2f50f0c4f07cb032fcf13adea033257cb1919d",
+        "postgres_restored": true,
+        "acl_rls_verified": true,
+        "counts": {
+          "accounts": 96,
+          "projects": 2214,
+          "schema": 300
+        },
+        "object_files_sha256_verified": 2324,
+        "s3_buckets_listed": 1,
+        "s3_objects_listed": 2112,
+        "s3_sample_gets": 1,
+        "source_binaries": {
+          "/usr/local/bin/minio": "fa42dfb43019e71731c10d70cc24057f6af63f22d76c4722614056514739fc97",
+          "/usr/local/bin/mc": "9a9e7d32c175f2804d6880d5ad3623097ea439f0e0304aa6039874d0f0c493d8"
+        },
+        "source_entrypoint": [
+          "/usr/local/bin/minio"
+        ],
+        "target_binary_entrypoint_equal": true,
+        "target_source_minio_compatibility_basis": "exact binary and entrypoint equality",
+        "source_unchanged": true,
+        "application_journeys_verified": false,
+        "source_row_fingerprint_equality": false,
+        "removed_owned_resources": {
+          "container_ids": [
+            "8cd334482b04a5f72d9ef5e57078d4020e835726276c596976f183532ec48b1a",
+            "76484b0830966d83d4aaeae8571522688ec393d301f1e3923ce5fad1f0482392",
+            "4e9c54abfdd28c4ab620c98c372df2f55289c1ddf9eb128e32743099824f66b1",
+            "16760d8398509c42a11ffb6f6c3b88c1c7f44a11dc1076daf79073c21de77936"
+          ],
+          "volume_names": [
+            "asa-rehearsal-pg-8009fd1a6e7e4846ab286af185b013cd",
+            "asa-rehearsal-objects-8009fd1a6e7e4846ab286af185b013cd"
+          ],
+          "nonce": "8009fd1a6e7e4846ab286af185b013cd"
+        },
+        "isolated_resources_removed": true
+      },
+      {
+        "source": "h04",
+        "source_instance": "5ceaf3d6a2e4438086c54358fc9e175d",
+        "source_manifest_sha256": "cbc1d1aadb776784708ad8ed11129735ba5427c9fb0a22914c66979a73d44a0b",
+        "source_archive_sha256": "4f2300233ec06cbbb3d30d4aa246fde744e7a7c59a0ae6fc1257f9cd05ba1642",
+        "source_path": "/var/backups/asa-school-recovery/unpacked/legacy__asa-lab-20261106T231505Z-14a7bd82/20261106T231505Z-14a7bd82",
+        "source_revision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+        "source_schema": 304,
+        "source_postgres_image_id": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+        "source_minio_image_id": "sha256:b92bfffe5a40c7fe3b7a119d040ad70b172f76d8b93b97b3834c7d4318953207",
+        "postgres_restored": true,
+        "acl_rls_verified": true,
+        "counts": {
+          "accounts": 98,
+          "projects": 2332,
+          "schema": 304
+        },
+        "object_files_sha256_verified": 3197,
+        "s3_buckets_listed": 1,
+        "s3_objects_listed": 2980,
+        "s3_sample_gets": 1,
+        "source_binaries": {
+          "/usr/local/bin/minio": "fa42dfb43019e71731c10d70cc24057f6af63f22d76c4722614056514739fc97",
+          "/usr/local/bin/mc": "9a9e7d32c175f2804d6880d5ad3623097ea439f0e0304aa6039874d0f0c493d8"
+        },
+        "source_entrypoint": [
+          "/usr/local/bin/minio"
+        ],
+        "target_binary_entrypoint_equal": true,
+        "target_source_minio_compatibility_basis": "exact binary and entrypoint equality",
+        "source_unchanged": true,
+        "application_journeys_verified": false,
+        "source_row_fingerprint_equality": false,
+        "removed_owned_resources": {
+          "container_ids": [
+            "7d4fcc56a91422c46afff12fe8d05502782b845507c44f742d4958e7fd2df58c",
+            "4ad745f55598ade210785a5246d6a6b94cb154c185d12f45ec5d651cd8889c23",
+            "1da2ff994c0821be6148a6705cf2466caf862179a38f0368675f978b8765e096"
+          ],
+          "volume_names": [
+            "asa-rehearsal-pg-a6722b6b7cc74a26ba2ba0b650bcfaa2",
+            "asa-rehearsal-objects-a6722b6b7cc74a26ba2ba0b650bcfaa2"
+          ],
+          "nonce": "a6722b6b7cc74a26ba2ba0b650bcfaa2"
+        },
+        "isolated_resources_removed": true
+      }
+    ],
+    "source_receipts": [
+      {
+        "source": "school",
+        "path": "/var/lib/asa-restore-rehearsal/xprep02b-source-82838b66d2af45dbafb0cae9c9b3d3dc-school.json"
+      },
+      {
+        "source": "h04",
+        "path": "/var/lib/asa-restore-rehearsal/xprep02b-source-82838b66d2af45dbafb0cae9c9b3d3dc-h04.json"
+      }
+    ],
+    "coordination_lock_order": [
+      "school_nightly",
+      "canonical_operation",
+      "isolated_rehearsal"
+    ],
+    "target_minio_recovery_binary_compatible": true,
+    "live_release": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "live_schema": 300,
+    "live_container_ids_images_mounts_env_unchanged": true,
+    "live_database_restored": false,
+    "canonical_volumes_mounted": false,
+    "published_ports": false,
+    "diagnostic_history_restored": false,
+    "user_journeys_verified": false,
+    "source_h04_contacted": false
+  },
+  "rootAcceptance": {
+    "status": "ACCEPTED",
+    "reviewer": "controller /root",
+    "durable_result_read_independently": true,
+    "accepted_scope": [
+      "Two fixed cloud-decrypted source recovery sets restored into new network-none PostgreSQL and MinIO containers.",
+      "Canonical PostgreSQL restore, ACL/RLS checks and aggregate schema/account/project counts.",
+      "Every physical MinIO file from the source manifest verified by SHA256 after copy, S3 listing and one actual object GET per source.",
+      "Actual source/target minio and mc binary SHA256 plus entrypoint equality.",
+      "All seven owned containers and four owned volumes removed; original sources and canonical live X unchanged."
+    ],
+    "not_accepted_by_this_slice": [
+      "Full application user journeys.",
+      "Equality of every source/live database row fingerprint.",
+      "Production H04 data import into live X.",
+      "Live release update or production domain cutover.",
+      "Native target MinIO server startup; compatibility evidence is exact binary and entrypoint equality."
+    ]
+  },
+  "raw_operation_file": "xprep02b_operation_41c072225a7a41e49cbf40420747360b.json",
+  "live_operations_stopped_after_result": true
+}
