@@ -1,5 +1,57 @@
 # VM100: прямой MCP с полным администрированием узла
 
+## Фактический результат: серверная приёмка PASS
+
+**07.11.2026 21:40:21 UTC / 08.11.2026 00:40:21 МСК** публичный endpoint
+`https://x.asa-lab.ru/mcp` прошёл полную серверную приёмку с **16 инструментами
+и реальным выполнением команды от UID0**. Установленный и проверенный source SHA —
+`1d87c1c1578ae85ad982d1ac6f050ce4af5b700f`. Последующее обновление этой документации
+фиксирует результаты; код на сервере остаётся именно этой версии.
+
+Серверная сторона готова к подключению MCP в ChatGPT. **Подключение приложения
+в ChatGPT ещё не принято:** автоматизация интерфейса остановилась на ограничении
+доступа browser к host; владелец должен добавить OAuth-подключение и подтвердить
+его в своём аккаунте. Успешная внешняя OAuth/MCP приёмка не считается этим
+пользовательским действием. Перенос ASA и нагрузочная проверка не выполнялись.
+
+| Проверка на VM100 | Наблюдаемый результат |
+| --- | --- |
+| Доставка | SHA256 архива и manifest всех 35 source files совпали с опубликованной версией |
+| Реальная граница полномочий | `test_host_admin_profile.py`: 23/23 PASS, 0 SKIP, 0 failures, 0.746 s; семь локально пропущенных UID-проверок закрыты на VM100 |
+| Старый gateway | Target исправлен на base `http://127.0.0.1:39443`; публичная OAuth/11-tool baseline PASS до switch |
+| Приватный backend | 16 tools, root UID0, официальный `get_system_info` получил API code 200 |
+| Публичный MCP | OAuth S256/PKCE, resource `/mcp`, stateless initialize, exact16, hostname/installation identity PASS; запросы без авторизации и с неверным token получили 401 |
+| Root-команда | Собственный marker записан однократно; повтор idempotency key вернул прежнюю операцию; независимое чтение и отдельный cleanup PASS |
+| Журналы | `operation_get/list` и operation logs проверены; marker удалён, durable root audit сохранён |
+| Службы | Backend, executor socket, OAuth gateway, legacy 1Panel MCP и FRP: active + enabled |
+| Локальные порты | `39443`, `39446`, `39450` слушают только `127.0.0.1` |
+| Service account | UID995, только собственная группа `asa-school-mcp-admin`; чтение ASA `.env` от этого UID отклоняется |
+| Private files | Socket `0600`; root audit и service state `0700`; `asa-operations.env` root-owned `0600` |
+| OAuth | Поля сохранены, кроме предусмотренной замены private backend Bearer |
+| Приложение | Все 8 container IDs, start times, restart counts и images совпали до/после; metadata защищённых файлов совпала; health ready/revision/schema остались прежними |
+
+Health до и после показывает revision `cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa`,
+schema `300`, database up, credential configuration valid и synchronized=true.
+При этом `artifactIntegrity=unknown` сохранён как наблюдаемый факт: ответ ready
+не подменяет проверку происхождения артефакта или готовности к production migration.
+
+Операции публичной приёмки: write `38eb10a112694785a7e1f65652be95ca`,
+независимый read `57b5d1d65a374438bcc64509f436c80a`, cleanup
+`e9368a20ba8a4c3cb7a0bbe0e2a90140`. Они относятся к собственному тестовому marker,
+а не к данным ASA. Добавлен тестовый OAuth client; токены и пароль не опубликованы.
+
+**Не заявлено:** фактическое подключение ChatGPT, специализированные ASA
+update/restore/cloud tools, обновление приложения, миграция и нагрузочные тесты.
+Полный root shell работает; специализированный lifecycle остаётся выключенным.
+Откат проверен unit-тестами, рабочая 11-tool baseline принята до switch;
+**live rollback после успешного switch не выполнялся**. Bootstrap использовал
+существующий pinned SSH → Proxmox → QEMU Guest Agent, без нового туннеля и
+изменений tailnet policy.
+
+Первичный очищенный снимок: [school-host-admin-live.json](../snapshots/2026-11-07/school-host-admin-live.json).
+Исторический [candidate snapshot](../snapshots/2026-11-07/school-host-admin-candidate.json)
+сохраняет состояние до развёртывания и не переписан задним числом.
+
 ## Назначение и границы
 
 Кандидат добавляет явный профиль `operations_mode=host-admin-only` в существующий
