@@ -7,10 +7,13 @@ import sys
 import time
 
 from .store import Store, OpsError, process_identity, digest
+from . import host_profile
 
 
 def adapter(config_path, action, payload, store=None, opid=None):
     config = json.loads(Path(config_path).read_text())
+    if host_profile.host_only(config):
+        raise OpsError('CAPABILITY_DISABLED', 'Host-only mode cannot import or execute the ASA lifecycle adapter')
     root = Path(config['installation']['state_root'])
     # Private payload is server-generated, not a caller-selected file.
     import tempfile
@@ -45,14 +48,25 @@ def adapter(config_path, action, payload, store=None, opid=None):
 
 def work(config_path, opid, action):
     config = json.loads(Path(config_path).read_text())
+    host_only = host_profile.host_only(config)
+    if host_only:
+        host_profile.validate(config, config_path, runtime=True)
     store = Store(config['installation']['state_root'])
     record = store.get(opid)
     store.update(opid, status='running', pid=os.getpid(), process_identity=process_identity(os.getpid()), phase=action)
     store.event(opid, action, 'Server worker started; reconnect using this operation_id')
     try:
         planned = store.get_plan(record['plan_id'])
-        from .maintenance import check_generation
-        check_generation(config['installation']['root'],planned)
+        if host_only:
+            if action != 'admin' or planned.get('kind') != 'admin':
+                raise OpsError('CAPABILITY_DISABLED', 'Host-only worker accepts only administration commands')
+            if planned.get('installation_instance_id') != config['installation']['installation_instance_id']:
+                raise OpsError('STALE_INSTALLATION', 'Administration plan belongs to another installation')
+            # The root executor re-reads authoritative application identity for
+            # every execute. The service must not read the private checkout.
+        else:
+            from .maintenance import check_generation
+            check_generation(config['installation']['root'],planned)
         if action == 'admin':
             from .admin import request
             result = request(config, {'action': 'execute', 'operation_id': opid,
@@ -90,14 +104,16 @@ def work(config_path, opid, action):
     except Exception as exc:
         code = getattr(exc, 'code', type(exc).__name__)
         # If a manager switch began, keep the installation locked for recovery.
-        state = Path(config['installation']['root'])/'.asa'
-        recovering = any((state/n).exists() for n in ('maintenance.json', 'failed-switch.json'))
-        receipt = state/'last-operation.json'
-        if receipt.exists():
-            try:
-                recovering = recovering or json.loads(receipt.read_text()).get('status') == 'failed_switch'
-            except (OSError, ValueError):
-                recovering = True  # an unreadable receipt must not release a possibly interrupted switch
+        recovering = False
+        if not host_only:
+            state = Path(config['installation']['root'])/'.asa'
+            recovering = any((state/n).exists() for n in ('maintenance.json', 'failed-switch.json'))
+            receipt = state/'last-operation.json'
+            if receipt.exists():
+                try:
+                    recovering = recovering or json.loads(receipt.read_text()).get('status') == 'failed_switch'
+                except (OSError, ValueError):
+                    recovering = True  # an unreadable receipt must not release a possibly interrupted switch
         status = 'recovery_required' if recovering or action == 'admin' else 'failed'
         store.update(opid, status=status, phase='error', result={'error': {'code': code,
                      'message': str(exc) if isinstance(exc, OpsError) else 'Inspect server operation stage'}})

@@ -1,0 +1,159 @@
+{
+  "format": "asa-school-host-admin-live-acceptance-v1",
+  "deployed_source_sha": "1d87c1c1578ae85ad982d1ac6f050ce4af5b700f",
+  "pull_request": "https://github.com/spikeal8-maker/Server-setings/pull/72",
+  "archive_sha256": "9c75b5b7f9c306228c5a67f4d16f0f7696cd01fce255d0b890f9cd457b5a8e98",
+  "source_files_verified": 35,
+  "review_tests": {
+    "run": 96,
+    "passed": 89,
+    "skipped": 7,
+    "failures": 0,
+    "skip_reason": "Review environment mapped only UID0; seven genuine UID boundary tests deferred to VM100."
+  },
+  "live_profile_tests": {
+    "run": 23,
+    "passed": 23,
+    "skipped": 0,
+    "failures": 0,
+    "duration_seconds": 0.746
+  },
+  "bootstrap": {
+    "route": "Existing D2-R2 pinned SSH 127.0.0.1:14626 to Proxmox, then QEMU Guest Agent VM100",
+    "new_tunnel_created": false,
+    "tailnet_policy_changed": false
+  },
+  "route_repair": {
+    "previous_private_target": "http://127.0.0.1:39443/mcp",
+    "corrected_baseline_target": "http://127.0.0.1:39443",
+    "public_oauth_11_tool_baseline": "PASS"
+  },
+  "private_acceptance": {
+    "status": "PASS",
+    "tools": 16,
+    "root_uid": 0,
+    "official_get_system_info_api_code": 200
+  },
+  "public_acceptance": {
+    "status": "PASS",
+    "checked_at_utc": "2026-11-07T21:40:21.831428+00:00",
+    "endpoint": "https://x.asa-lab.ru/mcp",
+    "hostname": "asa-school-01",
+    "installation_id": "asa-school-vm100",
+    "instance_id_sha256": "f72a357cf00d81931b09fd52dda6d8a433ed91d88430d99d44bc5918aa753ccb",
+    "tool_count": 16,
+    "oauth_s256_flow": true,
+    "token_resource": "https://x.asa-lab.ru/mcp",
+    "unauthenticated_and_invalid_token_http": 401,
+    "mcp_session": "stateless",
+    "root_uid": 0,
+    "idempotent_replay": true,
+    "marker_removed": true,
+    "operations": {
+      "write": "38eb10a112694785a7e1f65652be95ca",
+      "read": "57b5d1d65a374438bcc64509f436c80a",
+      "cleanup": "e9368a20ba8a4c3cb7a0bbe0e2a90140"
+    },
+    "operation_list_verified": true,
+    "operation_logs_verified": true,
+    "chatgpt_connected": false,
+    "asa_data_changed": false,
+    "configuration_changed": false,
+    "oauth_test_client_registered": true,
+    "root_audit_retained": true
+  },
+  "service_postcheck": {
+    "units": {
+      "asa-operations.service": {
+        "active": "active",
+        "enabled": "enabled"
+      },
+      "asa-admin-executor.socket": {
+        "active": "active",
+        "enabled": "enabled"
+      },
+      "asa-school-mcp-oauth-gateway.service": {
+        "active": "active",
+        "enabled": "enabled"
+      },
+      "server-settings-1panel-mcp.service": {
+        "active": "active",
+        "enabled": "enabled"
+      },
+      "asa-frpc.service": {
+        "active": "active",
+        "enabled": "enabled"
+      }
+    },
+    "service_uid": 995,
+    "service_groups": [
+      "asa-school-mcp-admin"
+    ],
+    "private_paths": [
+      {
+        "path": "/run/asa-admin-executor/control.sock",
+        "uid": 995,
+        "gid": 985,
+        "mode": "0o600"
+      },
+      {
+        "path": "/var/lib/server-settings/asa-admin-executor",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o700"
+      },
+      {
+        "path": "/var/lib/server-settings/asa-operations",
+        "uid": 995,
+        "gid": 985,
+        "mode": "0o700"
+      },
+      {
+        "path": "/etc/server-settings/asa-operations.env",
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600"
+      }
+    ],
+    "listeners": [
+      "127.0.0.1:39450",
+      "127.0.0.1:39446",
+      "127.0.0.1:39443"
+    ],
+    "application_env_denied_to_service": true,
+    "oauth_fields_preserved_except_private_bearer": true
+  },
+  "application_invariants": {
+    "containers_identical": true,
+    "protected_file_metadata_identical": true,
+    "health_identical": true,
+    "container_count": 8,
+    "health": {
+      "status": "ready",
+      "dependencies": {
+        "database": "up",
+        "credentialConfiguration": "valid"
+      },
+      "deployment": {
+        "revision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+        "builtAt": null,
+        "schemaVersion": 300,
+        "expectedSchemaVersion": 300,
+        "synchronized": true,
+        "artifactIntegrity": "unknown",
+        "artifactVerifiedAt": null
+      }
+    }
+  },
+  "boundaries": {
+    "chatgpt_owner_connection_accepted": false,
+    "chatgpt_ui_automation": "Blocked by browser host restrictions; owner action required.",
+    "specialized_asa_lifecycle_tools_enabled": false,
+    "full_root_shell_enabled": true,
+    "production_migration_performed": false,
+    "application_update_performed": false,
+    "load_testing_performed": false,
+    "rollback_live_exercised": false,
+    "rollback_baseline_authenticated_before_switch": true
+  }
+}

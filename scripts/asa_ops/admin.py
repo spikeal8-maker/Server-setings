@@ -34,6 +34,10 @@ def request(config, payload):
 
 def inventory(config):
     """Metadata only: deliberately exclude environment, mounts and user records."""
+    from .host_profile import host_only
+    if host_only(config):
+        # The dedicated host-only service has no Docker-group membership.
+        return request(config, {'action': 'inventory'})
     result = subprocess.run(['docker', 'ps', '-a', '--format', '{{json .}}'],
                             capture_output=True, text=True, timeout=30)
     if result.returncode:

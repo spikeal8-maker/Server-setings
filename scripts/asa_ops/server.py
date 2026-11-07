@@ -15,6 +15,7 @@ from .schemas import INPUTS, tools, validate, input_schema
 from .store import Store, OpsError, process_identity
 from .worker import adapter
 from .maintenance import check_generation
+from . import host_profile
 
 
 class Official:
@@ -73,6 +74,8 @@ class Controller:
     def __init__(self, config_path, official=None):
         self.config_path = str(Path(config_path).resolve())
         self.config = json.loads(Path(config_path).read_text())
+        if host_profile.host_only(self.config):
+            host_profile.validate(self.config, config_path, runtime=True)
         self.store = Store(self.config['installation']['state_root'])
         self.official = official or Official(self.config['official_command'])
         self.lock = threading.Lock()
@@ -97,6 +100,8 @@ class Controller:
         return self.store.get(opid)
 
     def dispatch(self, name, args):
+        # Capability denial is enforced on direct calls, not just tools/list.
+        host_profile.allowed(self.config, name)
         validate(input_schema(name,self.config['installation']['id']), args)
         if name == 'asa_restore_rehearse':
             # Reject before installation checks, reconciliation or worker launch.
@@ -146,7 +151,8 @@ class Controller:
                 reused = self.store.reused(args['idempotency_key'], {'method': name, **args})
                 if reused:
                     return {'operation': reused, 'reused': True}
-                generation = instance(self.config['installation']['root'])
+                generation = (host_profile.executor_identity(self.config) if host_profile.host_only(self.config)
+                              else instance(self.config['installation']['root']))
                 if not generation:
                     raise OpsError('MAINTENANCE_NOT_CONFIGURED', 'Installation identity is missing')
                 planned = self.store.plan(args['installation_id'], {
@@ -267,8 +273,17 @@ class Controller:
     def rpc(self, request):
         method, params = request.get('method'), request.get('params') or {}
         if method == 'initialize':
-            return {'protocolVersion': '2025-03-26', 'capabilities': {'tools': {'listChanged': False}},
-                    'serverInfo': {'name': 'asa-1panel-operations', 'version': '1.0.0'}}
+            result = {'protocolVersion': '2025-03-26', 'capabilities': {'tools': {'listChanged': False}},
+                      'serverInfo': {'name': 'asa-1panel-operations', 'version': '1.0.0'}}
+            if host_profile.host_only(self.config):
+                result['serverInfo'] = {'name': 'asa-school-host-admin', 'version': '1.0.0'}
+                result['instructions'] = (
+                    'Owner-authorized full root administration of '+self.config['hostname']+
+                    ' only; installation_id='+self.config['installation']['id']+'. '
+                    'Identify the host with asa_admin_status before changes. Commands are durable; '
+                    'poll asa_operation_get and reuse the same idempotency_key after a lost response. '
+                    'Never print credentials. ASA lifecycle update/restore and cloud transport are not implemented by this profile.')
+            return result
         if method == 'ping':
             return {}
         if method == 'tools/list':
@@ -277,7 +292,8 @@ class Controller:
                 if tool.get('name')=='list_databases':
                     tool['description']='List registered 1Panel database instances. Compose PostgreSQL is inventoried separately by ASA runtime_identity.'
             return {'tools': result['tools']+tools(self.config['installation']['id'], self.config.get('host_admin_enabled') is True,
-                                                 self.config.get('cloud_storage_enabled') is True)}
+                                                 self.config.get('cloud_storage_enabled') is True,
+                                                 host_profile.mode(self.config))}
         if method == 'tools/call':
             name = params.get('name')
             if name=='list_databases':

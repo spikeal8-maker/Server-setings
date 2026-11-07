@@ -30,12 +30,40 @@ def trusted(path, mode, directory=False):
             and st.st_uid == 0 and stat.S_IMODE(st.st_mode) == mode, 'ADMIN_STORAGE_IDENTITY')
 
 
+def root_installation_identity(config):
+    """Attest an already-existing root-owned checkout; never import/write it."""
+    root = Path(config['root'])
+    require(root.is_absolute() and root.resolve() == root, 'ADMIN_INSTALLATION_PATH')
+    for path, directory in ((root, True), (root / '.asa', True),
+                            (root / '.asa/installation.json', False)):
+        st = path.lstat()
+        require((stat.S_ISDIR if directory else stat.S_ISREG)(st.st_mode)
+                and st.st_uid == 0 and not st.st_mode & 0o022,
+                'ADMIN_INSTALLATION_TRUST')
+    for parent in root.parents:
+        st = parent.lstat()
+        require(stat.S_ISDIR(st.st_mode) and st.st_uid == 0
+                and not st.st_mode & 0o022, 'ADMIN_INSTALLATION_PARENT')
+    current = json.loads((root / '.asa/installation.json').read_text())
+    require(isinstance(current.get('instanceId'), str)
+            and re.fullmatch(r'[a-f0-9]{32}', current['instanceId']), 'ADMIN_INSTALLATION_IDENTITY')
+    require(current.get('project') == config['installation_project']
+            and current.get('profile') == config['installation_profile'], 'ADMIN_INSTALLATION_PROFILE')
+    return current
+
+
 def authorize(config, payload, peer_uid):
     require(config.get('enabled') is True, 'ADMIN_DISABLED')
     require(config['hostname'] == socket.gethostname(), 'ADMIN_HOST')
     require(peer_uid == config['owner_uid'], 'ADMIN_PEER')
     require(payload.get('installation_id') == config['installation_id'], 'ADMIN_INSTALLATION')
-    current = json.loads((Path(config['root']) / '.asa/installation.json').read_text())
+    mode = config.get('operations_mode', 'lifecycle')
+    require(mode in ('lifecycle', 'host-admin-only'), 'ADMIN_PROFILE')
+    if mode == 'host-admin-only':
+        require(type(config['owner_uid']) is int and config['owner_uid'] > 0, 'ADMIN_PEER')
+        current = root_installation_identity(config)
+    else:
+        current = json.loads((Path(config['root']) / '.asa/installation.json').read_text())
     require(current.get('instanceId') == config['installation_instance_id'], 'STALE_INSTALLATION')
     if payload.get('action') == 'execute':
         require(payload.get('installation_instance_id') == config['installation_instance_id'], 'STALE_INSTALLATION')
@@ -87,11 +115,27 @@ def save(path, value):
 
 
 def execute(config, payload, state=STATE):
-    require(payload.get('action') in ('execute', 'status'), 'ADMIN_ACTION')
+    require(payload.get('action') in ('execute', 'status', 'inventory'), 'ADMIN_ACTION')
+    if payload['action'] == 'inventory':
+        require(config.get('operations_mode') == 'host-admin-only', 'ADMIN_PROFILE')
+        require(set(payload) == {'action', 'installation_id'}, 'ADMIN_ARGUMENTS')
+        result = subprocess.run(['docker', 'ps', '-a', '--format', '{{json .}}'],
+                                capture_output=True, text=True, timeout=30)
+        require(result.returncode == 0, 'ADMIN_DOCKER')
+        records = [json.loads(line) for line in result.stdout.splitlines() if line]
+        fields = ('ID', 'Names', 'Image', 'State', 'Status', 'Ports', 'Networks', 'CreatedAt', 'RunningFor')
+        return {'hostname': socket.gethostname(), 'executor_uid': os.geteuid(),
+                'installation_id': config['installation_id'],
+                'installation_instance_id': config['installation_instance_id'],
+                'root_administration_enabled': True, 'containers_total': len(records),
+                'containers_truncated': len(records) > 200,
+                'containers': [{k: row[k] for k in fields if k in row} for row in records[:200]]}
     opid = payload.get('operation_id')
     if payload['action'] == 'status' and not opid:
         return {'enabled': True, 'hostname': socket.gethostname(), 'uid': os.geteuid(),
-                'installation_id': config['installation_id'], 'authority': 'root shell; owner-authorized'}
+                'installation_id': config['installation_id'],
+                'installation_instance_id': config['installation_instance_id'],
+                'authority': 'root shell; owner-authorized'}
     require(isinstance(opid, str) and re.fullmatch('[a-f0-9]{32}', opid), 'ADMIN_OPERATION_ID')
     target = state / opid
     if payload['action'] == 'status':
@@ -118,8 +162,8 @@ def execute(config, payload, state=STATE):
     save(target / 'request.json', payload)
     save(target / 'state.json', current)  # durable root audit before executing anything
     start = time.monotonic()
-    output = bytearray()
     timed_out = False
+    raw_truncated = False
     with open(target / 'output.private.log', 'xb') as raw:
         os.chmod(target / 'output.private.log', 0o600)
         child = subprocess.Popen(['/bin/bash', '--noprofile', '--norc', '-c', command], cwd=cwd,
@@ -142,8 +186,7 @@ def execute(config, payload, state=STATE):
                     break
                 available = max(0, MAX_OUTPUT - raw.tell())
                 raw.write(block[:available])
-                if len(output) < 32768:
-                    output.extend(block[:32768-len(output)])
+                raw_truncated = raw_truncated or len(block) > available
         selector.close()
         # A shell that closes stdout can still be running. Its remaining deadline applies.
         try:
@@ -164,9 +207,15 @@ def execute(config, payload, state=STATE):
         child.stdout.close()
         raw.flush()
         os.fsync(raw.fileno())
+    # Redact before bounding the public response. Truncating first can reveal a
+    # prefix of a known credential that straddles the 32 KiB response boundary.
+    with (target / 'output.private.log').open('rb') as saved_output:
+        bounded_output = saved_output.read(MAX_OUTPUT)
+    sanitized = redact(bounded_output.decode('utf-8', errors='replace'), config)
+    encoded = sanitized.encode('utf-8')
     current.update(status='complete', exit_code=child.returncode, timed_out=timed_out,
-                   output=redact(output.decode('utf-8', errors='replace'), config),
-                   output_may_be_truncated=len(output) == 32768,
+                   output=encoded[:32768].decode('utf-8', errors='ignore'),
+                   output_may_be_truncated=raw_truncated or len(encoded) > 32768,
                    duration_seconds=round(time.monotonic()-start, 3))
     save(target / 'state.json', current)
     return {k: v for k, v in current.items() if k != 'request_hash'}

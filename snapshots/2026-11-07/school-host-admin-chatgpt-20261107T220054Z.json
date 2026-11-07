@@ -1,0 +1,94 @@
+{
+  "format": "asa-school-host-admin-chatgpt-acceptance-v1",
+  "checked_at_utc": "2026-11-07T22:00:54.041643+00:00",
+  "checked_at_moscow": "2026-11-08T01:00:54+03:00",
+  "deployed_source_sha": "1d87c1c1578ae85ad982d1ac6f050ce4af5b700f",
+  "plugin_name": "ASA Lab — школа VM100",
+  "tool_prefix": "mcp__codex_apps__asa_lab_________vm100__asa_lab_vm100_",
+  "endpoint": "https://x.asa-lab.ru/mcp",
+  "discovered_tool_count": 16,
+  "discovered_tools": [
+    "asa_admin_execute",
+    "asa_admin_status",
+    "asa_host_inventory",
+    "asa_operation_get",
+    "asa_operation_list",
+    "create_database",
+    "create_ssl",
+    "create_website",
+    "get_dashboard_info",
+    "get_system_info",
+    "install_mysql",
+    "install_openresty",
+    "list_databases",
+    "list_installed_apps",
+    "list_ssls",
+    "list_websites"
+  ],
+  "chatgpt_connected": true,
+  "direct_chatgpt_tool_call": true,
+  "ssh_rdc_h03_used_for_this_acceptance": false,
+  "admin_status": {
+    "ok": true,
+    "enabled": true,
+    "hostname": "asa-school-01",
+    "uid": 0,
+    "installation_id": "asa-school-vm100",
+    "authority": "root shell; owner-authorized"
+  },
+  "system_info": {
+    "code": 200,
+    "data": {
+      "diskSize": 189151854592,
+      "kernelArch": "amd64",
+      "kernelVersion": "6.8.0-147-generic",
+      "os": "linux",
+      "platform": "ubuntu",
+      "platformFamily": "debian"
+    },
+    "message": ""
+  },
+  "root_operation": {
+    "kind": "admin",
+    "plan_id": "3ad93fad664b4b3580c1cc08728a5fc9",
+    "status": "success",
+    "phase": "complete",
+    "created": "2026-11-07T22:00:53.877276+00:00",
+    "updated": "2026-11-07T22:00:54.041643+00:00",
+    "operation_id": "749d1a3bd71849a4a97c4da8422faf7e",
+    "installation_id": "asa-school-vm100",
+    "result": {
+      "status": "complete",
+      "operation_id": "749d1a3bd71849a4a97c4da8422faf7e",
+      "started_at": "2026-11-07T22:00:53.995511+00:00",
+      "command_pid": 533785,
+      "exit_code": 0,
+      "timed_out": false,
+      "output": "{\"hostname\": \"asa-school-01\", \"uid\": 0}\n",
+      "output_may_be_truncated": false,
+      "duration_seconds": 0.037
+    },
+    "log": {
+      "cursor": 237,
+      "lines": [
+        {
+          "at": "2026-11-07T22:00:53.934762+00:00",
+          "phase": "admin",
+          "message": "Server worker started; reconnect using this operation_id"
+        },
+        {
+          "at": "2026-11-07T22:00:54.046456+00:00",
+          "phase": "success",
+          "message": "Operation finished: success"
+        }
+      ]
+    }
+  },
+  "boundaries": {
+    "command_read_only": true,
+    "operation_audit_written": true,
+    "application_deployment_changed": false,
+    "production_migrated": false,
+    "specialized_asa_lifecycle_tools_enabled": false
+  }
+}

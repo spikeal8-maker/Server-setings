@@ -1,0 +1,92 @@
+{
+  "format": "school-host-admin-source-candidate-v1",
+  "checked_at": "2026-11-07",
+  "repository": "spikeal8-maker/Server-setings",
+  "base_commit": "72dba1f36c9513267fc1a3ebe598be4ed98df5ed",
+  "scope": "Source candidate for existing VM100 MCP; exact commit and independent review outcome belong to the PR",
+  "target": {
+    "hostname": "asa-school-01",
+    "installation_id": "asa-school-vm100",
+    "application_root": "/srv/asa-lab",
+    "application_owner_uid": 0,
+    "application_mode": "0700",
+    "compose_project": "asa-lab-school",
+    "public_endpoint": "https://x.asa-lab.ru/mcp",
+    "oauth_gateway_loopback": "127.0.0.1:39450",
+    "existing_official_backend": "127.0.0.1:39443",
+    "candidate_private_backend": "127.0.0.1:39446"
+  },
+  "profile": {
+    "operations_mode": "host-admin-only",
+    "service_account": "asa-school-mcp-admin",
+    "separate_nonroot_service_uid": true,
+    "supplementary_groups": [],
+    "official_tools": 11,
+    "host_tools": [
+      "asa_host_inventory",
+      "asa_admin_status",
+      "asa_admin_execute",
+      "asa_operation_get",
+      "asa_operation_list"
+    ],
+    "lifecycle_and_cloud_direct_dispatch": "CAPABILITY_DISABLED",
+    "authoritative_identity": "Existing root-owned metadata, rechecked by root executor",
+    "default_lifecycle_uid_guards": "preserved",
+    "known_credentials_redacted_before_response_cap": true,
+    "raw_log_max_bytes": 8388608,
+    "public_output_max_bytes": 32768
+  },
+  "local_validation": {
+    "tests_run": 96,
+    "tests_passed": 89,
+    "tests_skipped": 7,
+    "failures": 0,
+    "errors": 0,
+    "suites": {
+      "test_host_admin.py": {"run": 7, "passed": 7},
+      "test_asa_operations.py": {"run": 20, "passed": 20},
+      "test_maintenance.py": {"run": 7, "passed": 7},
+      "test_school_host_admin_acceptance.py": {"run": 22, "passed": 22},
+      "test_school_host_admin_install.py": {"run": 17, "passed": 17},
+      "test_host_admin_profile.py": {"run": 23, "passed": 16, "skipped": 7}
+    },
+    "skip_reason": "Local uid_map/gid_map expose only 0; CHOWN/SETUID/SETGID capabilities are unavailable",
+    "before_enrollment_gate": "Run test_host_admin_profile.py as root on VM100; require all 23 tests without skips",
+    "lost_worker_recovery_and_same_key_no_replay": "PASS with real local Store and mocked root audit, without application reads",
+    "secret_crossing_32768_byte_boundary": "PASS using synthetic secrets and real root executor",
+    "raw_output_greater_than_8_mib": "PASS; private raw log capped, sanitized response capped",
+    "installer_route_switch_rollback_transactions": "PASS using root-owned fixtures and mocked systemctl",
+    "source_manifest_and_git_head_binding": "PASS",
+    "syntax_and_default_plans": "PASS"
+  },
+  "operator_reported_prerequisite": {
+    "host": "asa-school-01",
+    "package": "acl",
+    "version": "2.3.2-1build1.1",
+    "new_packages": 1,
+    "upgrades": 0,
+    "removals": 0,
+    "existing_services_restarted": false
+  },
+  "deployment_sequence": [
+    "Review exact source commit and verify trusted portable bundle",
+    "Run isolated root/service UID profile tests on VM100",
+    "Repair known 39443/mcp gateway target to base 39443",
+    "Accept existing public OAuth plus exact 11 tools",
+    "Enroll private host-only backend and verify exact 16 tools/root identity",
+    "Switch existing gateway backend and private bearer only",
+    "Accept public OAuth plus exact 16 tools and root marker/no replay/cleanup"
+  ],
+  "rollback": "Restore preserved gateway environment and remove owned drop-in; return to corrected 39443 base target, retain backend/audit",
+  "evidence_boundary": {
+    "independent_review": "Required before publication; exact result recorded in PR",
+    "github_ci": "NOT_CLAIMED",
+    "live_host_admin_deployment": "NOT_RUN",
+    "public_16_tool_acceptance": "NOT_RUN",
+    "chatgpt_connected": false,
+    "asa_application_changed": false,
+    "user_data_changed": false,
+    "migration_or_100_user_load_test": "NOT_RUN",
+    "production_ready": false
+  }
+}
