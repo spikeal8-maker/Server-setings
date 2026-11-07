@@ -1,0 +1,231 @@
+{
+  "format": "asa-school-x-prep01-evidence-v1",
+  "recorded_at_utc": "2026-11-07T22:31:05.662922+00:00",
+  "recorded_at_moscow": "2026-11-08T01:31:05+03:00",
+  "scope": "School VM100 current-X baseline full backup, encryption, Yandex full ciphertext roundtrip; download one legacy candidate only.",
+  "controller_review": {
+    "controller": "root",
+    "apply_ac_script_sha256": "463844f911dfefeccdbc8d6dc8540975301c160277bd337225fcd84353428816",
+    "apply_d_script_sha256": "10c534bd99baed2dd3c93ca90e464fa23dcce14abcc31b039c7dd7aafba4d3d4",
+    "root_independently_accepted_ac": true
+  },
+  "identity": {
+    "installation_id": "asa-school-vm100",
+    "hostname": "asa-school-01",
+    "installation_instance_id": "fc0ba60fe1d946bba1694d73557cc11f",
+    "project": "asa-lab-school",
+    "root": "/srv/asa-lab",
+    "profile": "production",
+    "runtime_revision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "runtime_schema": 300,
+    "automatic_updates": false
+  },
+  "operations": [
+    {
+      "operation_id": "6b3a79532f3747e483293f0cdd34f334",
+      "purpose": "read-only identity and backup layout",
+      "status": "success",
+      "started_at": "2026-11-07T22:18:34.207250+00:00",
+      "completed_at": "2026-11-07T22:18:34.440465+00:00",
+      "exit_code": 0,
+      "duration_seconds": 0.224
+    },
+    {
+      "operation_id": "4aee0d65e47c4bd78b17ef10a626b038",
+      "purpose": "read-only Yandex quota/list and local manifest metadata",
+      "status": "success",
+      "started_at": "2026-11-07T22:19:33.694177+00:00",
+      "completed_at": "2026-11-07T22:19:37.158637+00:00",
+      "exit_code": 0,
+      "duration_seconds": 3.455
+    },
+    {
+      "operation_id": "df2852bb716c493ba6cabc4741fa1eb1",
+      "purpose": "read-only canonical doctor, cloud slot preflight and local cipher SHA",
+      "status": "success",
+      "started_at": "2026-11-07T22:20:54.907009+00:00",
+      "completed_at": "2026-11-07T22:20:58.778053+00:00",
+      "exit_code": 0,
+      "duration_seconds": 3.862
+    },
+    {
+      "operation_id": "575c629d82fc4de588bc5c1caa6db05e",
+      "purpose": "current-X full backup / verify / age / upload / full cloud download SHA",
+      "status": "success",
+      "started_at": "2026-11-07T22:29:20.009438+00:00",
+      "completed_at": "2026-11-07T22:30:19.078329+00:00",
+      "exit_code": 0,
+      "duration_seconds": 59.06
+    },
+    {
+      "operation_id": "02219b5abe2d4aa480ae7a7ce42b3757",
+      "purpose": "one encrypted legacy candidate download, no decrypt or import",
+      "status": "success",
+      "started_at": "2026-11-07T22:30:49.238073+00:00",
+      "completed_at": "2026-11-07T22:31:05.684646+00:00",
+      "exit_code": 0,
+      "duration_seconds": 16.439
+    }
+  ],
+  "preflight": {
+    "canonical_doctor_exit": 0,
+    "expected_instance_project_profile_matched": true,
+    "no_maintenance_failed_switch_or_pending_release": true,
+    "canonical_tracked_checkout_clean": true,
+    "server_settings_checkout": {
+      "head": "8ae8d4bcd578bb05598ecb487b242772383d0ab3",
+      "existing_modified_document_count": 2,
+      "untouched": true
+    },
+    "installed_tooling_git_blob_sha1": {
+      "tools/asa_manager.py": "c9c7407fb30eaf86c08c786a74857e50c1fd3fec",
+      "tools/deployment/backup.py": "19715752a2f0f73eec2df5be9cb40d2652c80a0a",
+      "scripts/school-nightly-database-backup.py": "db883469c107dc9d5459fec33b5a76e91bfe9fa5",
+      "scripts/school_yandex_app_folder.py": "f6de5a1a338a8ce9d848b51bf32496d4dc37ad4c",
+      "scripts/cloud_storage.py": "9264f512f2e5f4e974cb17f04973c231486f0aea",
+      "scripts/school-yandex-restore.py": "33491667cc0181fa55852ec3ba769d0b2c56ee77"
+    },
+    "timer": {
+      "NextElapseUSecRealtime": "Sun 2026-11-08 00:20:00 UTC",
+      "LastTriggerUSec": "Sat 2026-11-07 00:20:22 UTC",
+      "Result": "success",
+      "LoadState": "loaded",
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "UnitFileState": "enabled"
+    },
+    "timer_schedule": "daily 03:20 Europe/Moscow",
+    "scheduled_service_previous_exit": "0",
+    "timer_changed": false,
+    "panel_cronjob_number": 0,
+    "panel_dashboard_code": 200,
+    "yandex_credential_metadata": {
+      "configured": true,
+      "provider": "yandex",
+      "has_refresh_token": true,
+      "expiry": "2027-11-01T07:18:15.621556Z",
+      "expires_in": null,
+      "scope": null,
+      "token_type": "OAuth"
+    },
+    "yandex_access_scope_caveat": "Scope list is absent in stored token; official quota/list and existing application-folder write-slot preflight returned success. No broader write scope inferred.",
+    "yandex_quota": {
+      "http": 200,
+      "total_space": 2209760673792,
+      "used_space": 1150132523070,
+      "trash_size": 194326762,
+      "max_file_size": 53687091200,
+      "is_paid": true
+    },
+    "yandex_school_archive_count_before": 9,
+    "yandex_school_old_probe_count_before": 1,
+    "yandex_legacy_file_count_before": 45,
+    "official_yandex_read_http": 200,
+    "cloud_write_slot_preflight_exit": 0,
+    "disk_free_bytes_before": 189150961664,
+    "previous_school_backup_receipt": {
+      "status": "verified_cloud_sha256",
+      "trigger": "scheduled",
+      "project": "[REDACTED]",
+      "createdAt": "2026-11-07T00:21:16.208909+00:00",
+      "archive": "asa-school-01-20261107T002053Z-6c2b808a.tar.age",
+      "size": 231275848,
+      "sha256": "629bb795ced7353028921e98a25eaa01588b41d52dfb9a9351533654be69025d",
+      "remote": "app:/School-VM100/Database-Backups",
+      "restore_rehearsal": false
+    },
+    "previous_local_cipher_verified": {
+      "name": "asa-school-01-20261107T002053Z-6c2b808a.tar.age",
+      "bytes": 231275848,
+      "sha256": "629bb795ced7353028921e98a25eaa01588b41d52dfb9a9351533654be69025d",
+      "matches_receipt": true,
+      "age_header": true
+    }
+  },
+  "current_x_backup": {
+    "status": "X_BASELINE_CLOUD_SHA256_VERIFIED",
+    "at": "2026-11-07T22:30:19.051115+00:00",
+    "hostname": "asa-school-01",
+    "installation_instance_id": "fc0ba60fe1d946bba1694d73557cc11f",
+    "project_matches_school": true,
+    "profile": "production",
+    "backup_path": "/srv/asa-lab/backups/20261107T222924Z-ee24f94c",
+    "manifest_sha256": "ca2b3504b583dceb7a472e7862bb851e1d50cf443101c8c87b2a1452516cf1a6",
+    "runtime_revision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "runtime_schema": 300,
+    "manifest_files": 2332,
+    "postgres_dump_bytes": 34494094,
+    "postgres_dump_sha256": "4dc467dffb5f7ce207ef471c5afcbecb22ba0f231a977d9da5cd8c65727992e3",
+    "object_files": 2324,
+    "object_bytes": 187158561,
+    "postgres_acl_relations": 220,
+    "canonical_verify_backup": true,
+    "export_private_root_700_files_600": true,
+    "export_retained": true,
+    "archive_path": "/var/backups/asa-school-nightly/archives/asa-school-01-20261107T222924Z-ee24f94c.tar.age",
+    "archive_bytes": 231245112,
+    "archive_sha256": "73736834f6fd0be079527b6f4e61045743a24e86b182ed69d28aec4ad5a25839",
+    "remote": "app:/School-VM100/Database-Backups/asa-school-01-20261107T222924Z-ee24f94c.tar.age",
+    "cloud_full_download_sha256_verified": true,
+    "decryption_verified": false,
+    "isolated_restore_verified": false,
+    "live_database_restored": false,
+    "live_revision_schema_unchanged": true,
+    "container_ids_images_mounts_unchanged": true,
+    "private_env_unchanged": true,
+    "diagnostic_history_included": false,
+    "private_log_path": "/var/backups/asa-school-nightly/x-prep01-20261107T222922Z-94934483.log"
+  },
+  "legacy_candidate": {
+    "status": "ENCRYPTED_CANDIDATE_DOWNLOADED_SOURCE_NOT_VERIFIED",
+    "at": "2026-11-07T22:31:05.662922+00:00",
+    "remote": "disk:/ASA-Backups/asa-lab-20261106T231505Z-14a7bd82.tar.age",
+    "remote_created": "2026-11-06T23:16:52+00:00",
+    "remote_modified": "2026-11-06T23:16:52+00:00",
+    "local_path": "/var/backups/asa-school-recovery/incoming/legacy__asa-lab-20261106T231505Z-14a7bd82.tar.age",
+    "archive_bytes": 259877000,
+    "archive_sha256": "4f2300233ec06cbbb3d30d4aa246fde744e7a7c59a0ae6fc1257f9cd05ba1642",
+    "cloud_full_download_sha256_verified": true,
+    "age_envelope": true,
+    "decryption_verified": false,
+    "manifest_verified": false,
+    "production_host_identity_verified": false,
+    "restored": false,
+    "live_database_modified": false
+  },
+  "remaining_acceptance_gates": [
+    "Decrypt the current-X cloud ciphertext using owner-held external age identity and verify the recovered full manifest.",
+    "Run separately authorized isolated PostgreSQL and MinIO restore rehearsal; ciphertext checksum alone is not recovery acceptance.",
+    "Decrypt the legacy candidate and bind its configuration/installation.json instanceId plus manifest release/schema to authoritative H04 source evidence. Filename and asa-lab-dev project alone are insufficient.",
+    "Fresh H04 local backup E:\\ASA\\20261107T082853Z-037d9faa is newer than the downloaded cloud candidate, according to independent controller issue1008; this slice does not certify equivalence or upload that local backup."
+  ],
+  "changes_made": [
+    "Created one consistent canonical current-X export; retained it privately under /srv/asa-lab/backups.",
+    "Normalized only the newly created export copy to root-owned directories0700/files0600; file content hashes passed canonical verification.",
+    "Created one age ciphertext locally and immutably uploaded it to the existing school application folder.",
+    "Downloaded the new school ciphertext as a stream and matched its full SHA256 before updating existing latest-success.json.",
+    "Created one root-private operational log.",
+    "Downloaded exactly one existing legacy ciphertext to the existing private incoming directory."
+  ],
+  "exclusions": {
+    "production_h04_touched": false,
+    "production_domain_cutover": false,
+    "release_update": false,
+    "db_restore": false,
+    "live_database_replaced": false,
+    "live_volume_change": false,
+    "ssh_network_pve_change": false,
+    "timer_change": false,
+    "source_code_patch": false,
+    "credential_rotation": false,
+    "private_age_identity_copied": false,
+    "diagnostic_history_backup": false
+  },
+  "notes": [
+    "The canonical backup temporarily stopped existing Web/API/Scratch/MinIO writers; PostgreSQL stayed running. The original containers restarted via the manager finally block.",
+    "Post-backup doctor passed; running release/schema, container IDs/images/mounts and private.env bytes remained unchanged.",
+    "Live operations ended after the candidate download. Next steps require a separate controller-reviewed bounded task.",
+    "All evidence here is sanitized metadata; it contains no tokens, private env values, private age key or user records."
+  ]
+}
+
