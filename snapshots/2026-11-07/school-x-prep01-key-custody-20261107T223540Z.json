@@ -1,0 +1,51 @@
+{
+  "scope": "Read-only existing recovery key custody and H04 installation provenance",
+  "observed_at_utc": "2026-11-07T22:35:40.6820329Z",
+  "private_key_material_included": false,
+  "decryption_performed": false,
+  "configuration_changes": false,
+  "school_public_recipient": {
+    "path": "/etc/server-settings/age-recipients.txt",
+    "owner_uid": 0,
+    "mode": "0600",
+    "normalized_ascii_sha256": "32c01d34f5d6e30bdeb5d2e96c9d948251d2a33fdd88a3509cd3e79c8f590fcc",
+    "operation_id": "b9e9b272301843a286250229d4226397",
+    "operation_status": "success"
+  },
+  "existing_owner_identity": {
+    "host": "D2-R2",
+    "rdc_device_id": "c520bc86-39ac-41d3-94b0-579b7634e598",
+    "path": "F:\\ASA-recovery\\asa-cloud-age-identity.txt",
+    "bytes": 189,
+    "last_modified_utc": "2026-09-24T19:49:31.2205562Z",
+    "drive_type": "removable",
+    "drive_label": "28gb",
+    "file_system": "NTFS",
+    "reparse_point": false,
+    "public_derivation_process_pid": 38424,
+    "public_recipient_matches_school": true,
+    "normalized_public_recipient_sha256": "32c01d34f5d6e30bdeb5d2e96c9d948251d2a33fdd88a3509cd3e79c8f590fcc",
+    "age_keygen_binary_sha256": "1549c7049be32695594bedd09bbd352a94b6013a9d5c43364f3c6cd7a09ab61c",
+    "custody_finding": "Identity inherits an Allow Everyone FullControl ACE; DACL is not protected. No ACL modification was performed.",
+    "source_path_reference": "C:\\Users\\spike\\AppData\\Local\\ASA-Lab\\SchoolSSH\\verify_legacy_yandex_age_stream_readonly.py",
+    "historical_legacy_archive_in_documentation": "asa-lab-20261029T231505Z-36ab7eb5.tar.age",
+    "new_legacy_archive_decryption_not_yet_verified": true
+  },
+  "h04_authoritative_identity": {
+    "host": "DESKTOP-R0HSMSA",
+    "rdc_device_id": "02e631fd-c584-4658-9f7b-43b7a16dddb6",
+    "read_only_process_pid": 24752,
+    "at_utc": "2026-11-07T22:35:40.6820329Z",
+    "live_metadata_path": "F:\\Asa-Lab\\asa-lab\\.asa\\installation.json",
+    "completed_backup_metadata_path": "E:\\ASA\\20261107T082853Z-037d9faa\\configuration\\installation.json",
+    "both_instance_ids": "5ceaf3d6a2e4438086c54358fc9e175d",
+    "project": "asa-lab-dev",
+    "profile": "production",
+    "automatic_updates": false,
+    "completed_backup_manifest_sha256": "31daf45d78781d07777ed9a7f7ad93dc927338147df0c86d57e206aceac33d6a",
+    "manifest_hash_matches_issue_1008": true,
+    "completed_backup_runtime_revision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+    "completed_backup_schema": 304,
+    "database_or_runtime_mutation_performed": false
+  }
+}
