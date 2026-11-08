@@ -1,0 +1,75 @@
+{
+  "operationId": "e00402ca4d064cb498698daf74fa65d8",
+  "nativeExitCode": 2,
+  "durationSeconds": 5.557,
+  "actual": {
+    "actualMinioServerStarted": false,
+    "automaticRetry": false,
+    "canonicalFilesWritten": false,
+    "canonicalVolumesMounted": false,
+    "cleanupComplete": true,
+    "cleanupErrors": [],
+    "code": "COPY_OUT_METADATA_ROUNDTRIP",
+    "copyOut": {
+      "allDirectoryMetadataEqual": false,
+      "allFileBytesAndMetadataEqual": false,
+      "destinationInitiallyCreatedMode": "700",
+      "rootMetadata": {
+        "gid": 0,
+        "mode": 448,
+        "uid": 0
+      }
+    },
+    "databaseFencingEvaluated": false,
+    "databaseQueries": 0,
+    "evidenceDirectory": "/var/lib/server-settings/xprep04-object-roundtrip/object-copy-d0890b1b16c646eaafa25f06c3de4c75",
+    "failureRootOwnerMode": "1000:1000:755",
+    "minioImage": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+    "network": "none",
+    "ownedHelperRemoved": true,
+    "ownedTargetRemoved": true,
+    "ownedVolumeRemoved": true,
+    "phase": "exact-restore-A-from-copy-out",
+    "productionGlobalsModified": false,
+    "realEnvironmentLoaded": false,
+    "replaceB": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "restoreA": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "runId": "object-copy-d0890b1b16c646eaafa25f06c3de4c75",
+    "s3RecoveryEvaluated": false,
+    "seedA": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "sessionsAdapter": "zero-for-object-only-test",
+    "sessionsAdapterCalls": 2,
+    "sourceSha256": "c312717570d17dffe9390ec1ab3c4fea58c4bc3d0e13f81e97396f6cdc1cc2a9",
+    "status": "STOP_NO_RETRY"
+  },
+  "interpretation": {
+    "nativeOverallStatus": "STOP_NO_RETRY",
+    "failingGate": "Additional host copy-out metadata equality to original source fixture",
+    "copyOutHostRoot": "0:0:0700",
+    "actualReplaceBAllBytesAndMetadataPass": true,
+    "actualRestoreAAllBytesAndMetadataPass": true,
+    "actualRestoredRootOwnerMode": "1000:1000:755",
+    "observedRollbackCopyFailure": false,
+    "automaticRetry": false,
+    "allOwnedDockerResourcesRemoved": true,
+    "productionFencingOrS3NotEvaluated": true
+  }
+}

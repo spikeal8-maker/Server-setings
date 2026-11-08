@@ -1,0 +1,85 @@
+{
+  "status": "ROOT_ACCEPTED_TARGETED_OBJECT_COPY_RESTORE_PROOF_WITH_HOST_METADATA_DELTA",
+  "recordedAt": "2026-11-08T04:05:28.396280+00:00",
+  "reviewer": "/root",
+  "reviewBasis": "Parent independently read the actual durable operation via asa_operation_get and explicitly accepted this narrow proof.",
+  "operationId": "e00402ca4d064cb498698daf74fa65d8",
+  "actualCompletionAt": "2026-11-08T04:03:46.932958+00:00",
+  "nativeOutcomePreserved": {
+    "status": "failed",
+    "exitCode": 2,
+    "testStatus": "STOP_NO_RETRY",
+    "code": "COPY_OUT_METADATA_ROUNDTRIP",
+    "sourceArtifactsRewritten": false,
+    "extraHostMetadataEqualityRequiredForRestoreContract": false
+  },
+  "acceptedScope": {
+    "sequence": "seed A -> frozen copy_out A -> frozen replace_volume B -> frozen replace_volume restore A",
+    "frozenOperatorSha256": "c312717570d17dffe9390ec1ab3c4fea58c4bc3d0e13f81e97396f6cdc1cc2a9",
+    "minioImage": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+    "seedA": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "replaceB": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "restoreA": {
+      "allFileBytesEqual": true,
+      "allFileDirectoryMetadataEqual": true,
+      "directories": 4,
+      "files": 3,
+      "rootOwnerMode": "1000:1000:755"
+    },
+    "everyFileByteVerified": true,
+    "everyFileAndDirectoryUidGidModeVerified": true,
+    "observedRollbackCopyFailure": false
+  },
+  "documentedHostMetadataDelta": {
+    "copyOutHostRootUid": 0,
+    "copyOutHostRootGid": 0,
+    "copyOutHostRootModeOctal": "0700",
+    "hostFileBytesAndMetadataEquality": false,
+    "hostDirectoryMetadataEquality": false,
+    "interpretation": "The host copy-out metadata differs from the source fixture; exact replace and restore nevertheless preserve every tested byte and all required container-side metadata."
+  },
+  "dependencyAdapterScope": {
+    "sessionsAdapterCalls": 2,
+    "sessionsReturnedZeroOnlyForDisposableObjectTest": true,
+    "databaseQueries": 0,
+    "productionGlobalsModified": false
+  },
+  "cleanup": {
+    "complete": true,
+    "errors": [],
+    "ownedHelperRemoved": true,
+    "ownedStoppedTargetRemoved": true,
+    "ownedVolumeRemoved": true
+  },
+  "notEstablished": {
+    "postgresqlFencing": true,
+    "s3Recovery": true,
+    "fullLiveRollback": true
+  },
+  "canonicalResourcesUsed": false,
+  "rerunNeeded": false,
+  "productionCopyCodeFixNeededForThisFinding": false,
+  "privateEvidenceDirectory": "/var/lib/server-settings/xprep04-object-roundtrip/object-copy-d0890b1b16c646eaafa25f06c3de4c75",
+  "localEvidence": [
+    {
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04-object-roundtrip/actual-object-roundtrip-e00402ca4d064cb498698daf74fa65d8.json",
+      "sha256": "39b444efbccd396eeadfbcf92f611ea67de723e9e0cf4d167cba8559bb02ebae"
+    },
+    {
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04-object-roundtrip/actual-object-roundtrip-safe.json",
+      "sha256": "75562db8ff8de97dd3ee8f33dca9df6b43e96470abf77fa03cb2ae414f2db149"
+    }
+  ]
+}

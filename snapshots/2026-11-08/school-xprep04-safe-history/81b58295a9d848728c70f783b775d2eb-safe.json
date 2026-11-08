@@ -1,0 +1,125 @@
+{
+  "format": "asa-school-xprep04-safe-operation-v1",
+  "operationId": "81b58295a9d848728c70f783b775d2eb",
+  "nativeStatus": "success",
+  "startedAt": "2026-11-08T04:01:23.190951+00:00",
+  "completedAt": "2026-11-08T04:01:24.555141+00:00",
+  "exitCode": 0,
+  "durationSeconds": 1.354,
+  "timedOut": false,
+  "outputTruncated": false,
+  "receiptStatus": "AVAILABILITY_LIFECYCLE_READONLY_CAPTURED",
+  "facts": {
+    "recoveryOperationId": "c5ea6d1b76f94ea9931d246702e73834",
+    "recoveryPhase": "availability_stopped_for_review",
+    "recoveryEventPhases": [
+      "availability_preconditions_passed",
+      "minio_start_requested",
+      "api_start_requested",
+      "availability_stopped_for_review"
+    ],
+    "nonwriterLifecycleChangedServices": [
+      "migration",
+      "minio-init"
+    ],
+    "sixServicesHealthy": true,
+    "bothOneshotsExitedZero": true,
+    "databases": {
+      "105346": {
+        "allowConnections": true,
+        "connections": 0,
+        "nameMatches": true,
+        "sameOriginalCatalog": true
+      },
+      "117178": {
+        "allowConnections": true,
+        "connections": 0,
+        "nameMatches": true,
+        "sameOriginalCatalog": true
+      },
+      "26362": {
+        "allowConnections": true,
+        "connections": 1,
+        "nameMatches": true,
+        "sameOriginalCatalog": true
+      }
+    },
+    "closedState": {
+      "accounts": 96,
+      "aiDisabled": false,
+      "aiJobsInactive": true,
+      "botsDisabled": false,
+      "emailIntentsClosed": true,
+      "pairingsClosed": true,
+      "projects": 2214,
+      "schema": 307,
+      "sessionsClosed": false,
+      "smtpDisabled": true,
+      "studentSeats": 513
+    },
+    "priorClosedStateMatched": true,
+    "markersPresent": {
+      "failed-switch.json": false,
+      "maintenance.json": true,
+      "release-selection.json": false
+    },
+    "originalMaintenanceMarkerOwned": true,
+    "protectedFilesPreserved": true,
+    "sourceFingerprintsPreserved": true,
+    "sourceFingerprintCount": 55,
+    "originalFailureJournalUnchanged": true,
+    "s3ReadProofRecordedBeforeApiStart": {
+      "notificationDestinations": 0,
+      "objectsListed": 2112,
+      "replicationElements": 0,
+      "replicationRules": 0,
+      "sampleGets": 1,
+      "versioningEnabled": false,
+      "versioningSuspended": false
+    },
+    "ownedTransferContainers": 0,
+    "originalObjectCopyExists": false,
+    "originalDatabaseProofExists": false,
+    "markerRemoved": false,
+    "sameEightIdentities": true,
+    "nonwriterLifecycleDeltas": {
+      "migration": {
+        "changedFields": [
+          "startedAt"
+        ],
+        "beforeStartedAt": "2026-11-08T00:20:41.516910448Z",
+        "afterStartedAt": "2026-11-08T03:54:43.224638329Z",
+        "exitCode": 0
+      },
+      "minio-init": {
+        "changedFields": [
+          "startedAt"
+        ],
+        "beforeStartedAt": "2026-11-08T00:20:46.853604764Z",
+        "afterStartedAt": "2026-11-08T03:54:43.064063987Z",
+        "exitCode": 0
+      }
+    },
+    "pgAndSearchLifecycleUnchanged": true,
+    "ledger": {
+      "candidate": {
+        "acceptedBaselineAvailable": true,
+        "matchesAcceptedBaseline": true,
+        "maxVersion": 307,
+        "rows": 301
+      },
+      "live": {
+        "acceptedBaselineAvailable": false,
+        "matchesAcceptedBaseline": null,
+        "maxVersion": 307,
+        "rows": 301
+      },
+      "retained": {
+        "acceptedBaselineAvailable": true,
+        "matchesAcceptedBaseline": true,
+        "maxVersion": 307,
+        "rows": 301
+      }
+    }
+  }
+}

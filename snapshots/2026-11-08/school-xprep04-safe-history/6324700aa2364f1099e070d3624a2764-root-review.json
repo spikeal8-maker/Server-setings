@@ -1,0 +1,17 @@
+{
+  "format": "asa-school-root-review-annotation-v1",
+  "operationId": "6324700aa2364f1099e070d3624a2764",
+  "rootIndependentlyReadDurableOperation": true,
+  "reviewKind": "accepted prior-X availability closure",
+  "reviewProvenance": "Explicit parent /root acceptance messages in this session; original tool result is not modified.",
+  "operationCompletedAt": "2026-11-08T04:08:49.426150+00:00",
+  "reviewTimestampNotSeparatelyRecorded": true,
+  "freshH04LiveRefreshAccepted": false,
+  "productionCutoverAccepted": false,
+  "fullHistoricalOldRowEqualityAccepted": false,
+  "historicalOldLiveLedgerEqualityAccepted": false,
+  "priorXAvailabilityAccepted": true,
+  "exactOwnedMarkerRemovalAccepted": true,
+  "postOneshotS3ReadProofAccepted": true,
+  "documentedException": "migration and minio-init startedAt changed; both exit0; identities unchanged; PG/search lifecycle unchanged."
+}

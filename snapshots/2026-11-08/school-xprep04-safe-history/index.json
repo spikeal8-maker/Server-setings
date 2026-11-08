@@ -1,0 +1,76 @@
+{
+  "format": "asa-school-xprep04-safe-evidence-index-v1",
+  "recordedAtUTC": "2026-11-08T04:11:12.258101+00:00",
+  "scope": "Sanitized operation facts and separate root review annotations; no raw logs, credentials, row values, row fingerprints, or ledger digests. The exact final receipt is reconstructed from the durable safe output and byte-hash verified.",
+  "currentAcceptedState": {
+    "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "liveDatabaseOid": "26362",
+    "sixHealthy": true,
+    "ownMaintenanceMarkerRemoved": true,
+    "freshCandidateOid": "117178",
+    "freshH04LiveRefreshAccepted": false
+  },
+  "files": {
+    "248b299b51f646128128614fdeed4c6b-root-review.json": {
+      "bytes": 621,
+      "sha256": "292b46db4c6661ddaa6e0416bf799fce110bec2842d710d80502af7fe6c94818"
+    },
+    "248b299b51f646128128614fdeed4c6b-safe.json": {
+      "bytes": 1893,
+      "sha256": "97b2b674129857f19f87ef07fcd9cc834cb87e0b595a73de21ef67c7cd23d787"
+    },
+    "6324700aa2364f1099e070d3624a2764-root-review.json": {
+      "bytes": 885,
+      "sha256": "1319a6cb6cbc662ac010bf9b41eaf52a1ad411b29d45879fc721fd8b61a70179"
+    },
+    "6324700aa2364f1099e070d3624a2764-safe.json": {
+      "bytes": 2548,
+      "sha256": "caa89f750d04ca09c53abc385b24dd0ea3d78d2ebcbae6a3c5091fb152d208e3"
+    },
+    "6f4b28362fe340ed8a9c278f99ab7ac5-root-review.json": {
+      "bytes": 609,
+      "sha256": "4db51d43ca6035db1fa3176312e36d0708443574b1768a1d547b57caf19b1ea8"
+    },
+    "6f4b28362fe340ed8a9c278f99ab7ac5-safe.json": {
+      "bytes": 775,
+      "sha256": "842ac1f00e80a2472f57c42b1a28994f39a9eb7d281f107f2e332c48eebc63c0"
+    },
+    "811b6714aca64d67955118a34ce17b8e-root-review.json": {
+      "bytes": 609,
+      "sha256": "4d7a47df8582b9c8b49ffd15235a2e7ae68c9df315fdc4daf13517d95230aeb3"
+    },
+    "811b6714aca64d67955118a34ce17b8e-safe.json": {
+      "bytes": 741,
+      "sha256": "58ff041a95134029bb63bc50b3c87e137ececa225873a00f673d2547d34ca682"
+    },
+    "81b58295a9d848728c70f783b775d2eb-root-review.json": {
+      "bytes": 621,
+      "sha256": "3cc98aa5d4d89b7b538dca2d2bd5efc18b6ec7be8cfb24f26c3b1beedb98a5f4"
+    },
+    "81b58295a9d848728c70f783b775d2eb-safe.json": {
+      "bytes": 3548,
+      "sha256": "cd2a2f3a702274b6f1efadad347938a569aa6e1cb11f0cecb5157110ea8e33f5"
+    },
+    "c5ea6d1b76f94ea9931d246702e73834-root-review.json": {
+      "bytes": 609,
+      "sha256": "17eb9eeda45cf8b59a373b56b8ee546bc9826e42ce45df24f92d73bf65f57d8b"
+    },
+    "c5ea6d1b76f94ea9931d246702e73834-safe.json": {
+      "bytes": 777,
+      "sha256": "5aa0ed546a57268b48497cb6b490ce8593d6b2ff035b7d1e9724ef6af37a4654"
+    },
+    "eee7aaf508224452b14faee37503f618-root-review.json": {
+      "bytes": 621,
+      "sha256": "7b92d622d307632203ff049876252cc4107e4f3acb99b7cf3671872222a365cd"
+    },
+    "eee7aaf508224452b14faee37503f618-safe.json": {
+      "bytes": 1641,
+      "sha256": "3aa6c3bd16abf02caab39d9db41d7600d1852a5c178e956b0d2897039e6417d0"
+    },
+    "prior-x-availability-reconciled-exact-receipt.json": {
+      "bytes": 1650,
+      "sha256": "26abdac38b7f1e36bc736921765bd6bf2d9bea300ed8f4547e14784b451c0ac4"
+    }
+  }
+}

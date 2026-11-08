@@ -1,0 +1,14 @@
+{
+  "status": "BYTE_HASH_MATCHED_PRIVATE_RECEIPT",
+  "privateReceipt": "/var/lib/server-settings/xprep04-reconciliation/xprep04-eb9d-final-reconcile-v1/result.json",
+  "receiptSha256": "af7657e69c34b0797176ee021e2b0ed0bb7d2828e3fb660fb2b27e4f1150d2c2",
+  "redactedSourceOutputKeptUnchanged": true,
+  "reconstructedOnlyField": "project",
+  "fieldSource": "Frozen ca5b5b11 operator literal PROJECT",
+  "droppedOutputOnlyFields": [
+    "receiptSha256",
+    "privateReceipt"
+  ],
+  "canonicalSerialization": "Python json.dumps sorted keys, ensure_ascii=False, compact separators, final newline",
+  "bytes": 3045
+}

@@ -1,0 +1,22 @@
+{
+  "format": "asa-school-xprep04-safe-operation-v1",
+  "operationId": "6f4b28362fe340ed8a9c278f99ab7ac5",
+  "nativeStatus": "failed",
+  "startedAt": "2026-11-08T03:44:42.636183+00:00",
+  "completedAt": "2026-11-08T03:45:10.696406+00:00",
+  "exitCode": 2,
+  "durationSeconds": 28.05,
+  "timedOut": false,
+  "outputTruncated": false,
+  "receiptStatus": "STOP_REVIEW_REQUIRED",
+  "facts": {
+    "code": "NATIVE_COMMAND_FAILED",
+    "phase": "old_database_fence_requested",
+    "runId": "xprep04-20261108t034237z-8d08afdbb3ad4d13",
+    "cleanup": "NOT_NEEDED",
+    "automaticRetry": false,
+    "automaticRollback": false,
+    "privateEvidence": "/var/lib/server-settings/xprep04/xprep04-20261108t034237z-8d08afdbb3ad4d13",
+    "serverPhaseNotPresentInNativeOutput": false
+  }
+}

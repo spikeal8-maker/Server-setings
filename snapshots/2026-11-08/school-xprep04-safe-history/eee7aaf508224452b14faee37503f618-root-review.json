@@ -1,0 +1,13 @@
+{
+  "format": "asa-school-root-review-annotation-v1",
+  "operationId": "eee7aaf508224452b14faee37503f618",
+  "rootIndependentlyReadDurableOperation": true,
+  "reviewKind": "accepted read-only observed facts",
+  "reviewProvenance": "Explicit parent /root acceptance messages in this session; original tool result is not modified.",
+  "operationCompletedAt": "2026-11-08T03:42:09.196856+00:00",
+  "reviewTimestampNotSeparatelyRecorded": true,
+  "freshH04LiveRefreshAccepted": false,
+  "productionCutoverAccepted": false,
+  "fullHistoricalOldRowEqualityAccepted": false,
+  "historicalOldLiveLedgerEqualityAccepted": false
+}

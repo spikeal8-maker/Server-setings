@@ -1,0 +1,311 @@
+{
+  "allFinalReadOnlyGatesPassed": true,
+  "closedState": {
+    "accounts": 102,
+    "aiDisabled": true,
+    "aiJobsInactive": true,
+    "botsDisabled": true,
+    "emailIntentsClosed": true,
+    "pairingsClosed": true,
+    "projects": 2351,
+    "schema": 307,
+    "sessionsClosed": true,
+    "smtpDisabled": true,
+    "studentSeats": 554
+  },
+  "containers": {
+    "api": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T03:54:41.933617211Z"
+      },
+      "changedLifecycleFields": [
+        "startedAt"
+      ],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T04:17:26.616096939Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "c2287a0757da79a35a1d11b18682380484cbad4f2859b3592ab675153c4dbb18",
+      "imageId": "sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "migration": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": false,
+        "startedAt": "2026-11-08T03:54:43.224638329Z"
+      },
+      "changedLifecycleFields": [],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": false,
+        "startedAt": "2026-11-08T03:54:43.224638329Z"
+      },
+      "exitCode": 0,
+      "health": "unhealthy",
+      "id": "3e05de758c188f8244b932d69d6ea520d26df313fc493691666b6e0e0676be52",
+      "imageId": "sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f",
+      "running": false,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "minio": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T03:54:33.356217958Z"
+      },
+      "changedLifecycleFields": [
+        "startedAt"
+      ],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T04:17:19.229070982Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "12ae3a11689ab46199111b30e5e3f140f4cb9ca06b34c0b01d4984db67595329",
+      "imageId": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "minio-init": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": false,
+        "startedAt": "2026-11-08T03:54:43.064063987Z"
+      },
+      "changedLifecycleFields": [],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": false,
+        "startedAt": "2026-11-08T03:54:43.064063987Z"
+      },
+      "exitCode": 0,
+      "health": null,
+      "id": "b43e58842630a55d9d6783e2e0a70ddf7b4d6f9e2206d7d1fe2fdc794641ffb3",
+      "imageId": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "running": false,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "postgres": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-03T16:12:49.698905702Z"
+      },
+      "changedLifecycleFields": [],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-03T16:12:49.698905702Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "6261ee4d145c302da86ba03ad669171910c775937323d2ecea70b704cfcc62f8",
+      "imageId": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "scratch": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T03:54:42.24747266Z"
+      },
+      "changedLifecycleFields": [
+        "startedAt"
+      ],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T04:17:26.956787246Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "6a75a003e652e4b53704ce932627ad768be9b721fa19390f5c10bf21f5be99e2",
+      "imageId": "sha256:1989cee04b1e42dfbbce4c20861163db6fc0292ae4a00323336dde1449189c88",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "search": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T00:02:30.720632816Z"
+      },
+      "changedLifecycleFields": [],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T00:02:30.720632816Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "740dc50e73509f3ed7cf349c5557e66e8c43a1a14112693be76de98f8c27c519",
+      "imageId": "sha256:9063a01e357c64176319c192b5330963b5195b98346173e6f1fc327abd96040e",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    },
+    "web": {
+      "beforeLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T03:54:47.878159403Z"
+      },
+      "changedLifecycleFields": [
+        "startedAt"
+      ],
+      "currentLifecycle": {
+        "restarts": 0,
+        "running": true,
+        "startedAt": "2026-11-08T04:17:27.266513463Z"
+      },
+      "exitCode": 0,
+      "health": "healthy",
+      "id": "76db7868fe6be8d7f226d1a719d175449b781c0f4915eaa8f45f1d4d53ba4616",
+      "imageId": "sha256:7efdf924ad5fc3b717a49d9fb26c66a0e8f3098f2a6607409c17b1f4dd9a0e37",
+      "running": true,
+      "sameIdImageReferenceLabelsMounts": true
+    }
+  },
+  "databaseOrObjectMutations": false,
+  "databases": {
+    "canonical": {
+      "allowConnections": true,
+      "matchesEnvironmentName": true,
+      "oid": "117178"
+    },
+    "retainedOld": {
+      "activeConnections": 0,
+      "allowConnections": false,
+      "matchesRecordedRollbackName": true,
+      "oid": "26362"
+    },
+    "retainedTest": {
+      "allowConnections": true,
+      "matchesOriginalCatalog": true,
+      "oid": "105346"
+    }
+  },
+  "diagnosticWrites": false,
+  "eventPhases": [
+    "all_preconditions_passed",
+    "maintenance_owned",
+    "writer_stop_requested",
+    "writers_stopped",
+    "old_database_fence_requested",
+    "candidate_fence_requested",
+    "databases_frozen",
+    "transfer_create_requested",
+    "transfer_created",
+    "rollback_object_capture_requested",
+    "last_write_recovery_verified",
+    "fresh_object_replace_requested",
+    "fresh_objects_verified",
+    "database_rename_requested",
+    "database_names_switched",
+    "promoted_candidate_verified",
+    "minio_start_requested",
+    "api_start_requested",
+    "stopped_for_review"
+  ],
+  "failureCode": "SIX_SERVICES_HEALTHY",
+  "failureHealthCauseProven": false,
+  "failurePhase": "api_start_requested",
+  "failureSnapshotNote": "Frozen command captures inspect stdout in memory; no per-service health snapshot is persisted at the SIX_SERVICES_HEALTHY assertion.",
+  "gates": {
+    "bothSourceSetsVerified": true,
+    "canonicalReadiness3e307": true,
+    "databaseAclOwnerLimitUnchanged": true,
+    "eightContainerIdentitiesPreserved": true,
+    "finalDatabaseRouting": true,
+    "lastWriteRollbackFilesVerified": true,
+    "noOtherMarkers": true,
+    "noTransferContainer": true,
+    "nonwriterLifecycleUnchanged": true,
+    "originalStopJournalUnchanged": true,
+    "ownMaintenanceMarker": true,
+    "postStartCountsAndHygiene": true,
+    "protectedFilesPreserved": true,
+    "retained241FullFingerprintPreserved": true,
+    "retainedOldConnectionsZero": true,
+    "retainedRowsAndClusterRolesPreserved": true,
+    "sixServicesHealthy": true,
+    "sourceFingerprintsPreserved": true
+  },
+  "journalPhase": "stopped_for_review",
+  "latestPrivateErrorClassification": [
+    {
+      "bytes": 158,
+      "file": "native-010.stderr.log",
+      "hasErrorToken": false,
+      "healthGuardLiteral": false,
+      "selfDatabaseDisallow": false
+    },
+    {
+      "bytes": 75,
+      "file": "native-011.stderr.log",
+      "hasErrorToken": false,
+      "healthGuardLiteral": false,
+      "selfDatabaseDisallow": false
+    },
+    {
+      "bytes": 79,
+      "file": "native-012.stderr.log",
+      "hasErrorToken": false,
+      "healthGuardLiteral": false,
+      "selfDatabaseDisallow": false
+    }
+  ],
+  "markerRemoved": false,
+  "markersPresent": {
+    "failed-switch.json": false,
+    "maintenance.json": true,
+    "release-selection.json": false
+  },
+  "oldDatabaseProofTables": 241,
+  "operationId": "eb9d72f86c67442290e36ab128ca7003",
+  "originalJournalSha256": "93828f62e170cc305da1a91b2d5ec8808e6e5f72878eec3565c1d5e308fbbed1",
+  "privateCanonicalDatabaseNameField": "liveDatabase",
+  "privateJournal": "/var/lib/server-settings/xprep04/xprep04-20261108t041346z-eee330490ef64e07/state.json",
+  "privateOldDatabaseNameField": "rollbackDatabase",
+  "privateRollbackInventory": "/var/lib/server-settings/xprep04/xprep04-20261108t041346z-eee330490ef64e07/old-objects.inventory.json",
+  "privateRollbackObjects": "/var/lib/server-settings/xprep04/xprep04-20261108t041346z-eee330490ef64e07/old-objects",
+  "privateRollbackProof": "/var/lib/server-settings/xprep04/xprep04-20261108t041346z-eee330490ef64e07/old-database.proof.json",
+  "retainedFingerprintTables": 241,
+  "rollbackAfterMarkerCloseNeedsReviewedAdapter": true,
+  "rollbackObjectBytes": 187358281,
+  "rollbackObjectFiles": 2325,
+  "runId": "xprep04-20261108t041346z-eee330490ef64e07",
+  "s3ReadProofBeforeApiStart": {
+    "notificationDestinations": 0,
+    "objectsListed": 3001,
+    "replicationElements": 0,
+    "replicationRules": 0,
+    "sampleGets": 1,
+    "versioningEnabled": false,
+    "versioningSuspended": false
+  },
+  "servicesRestarted": false,
+  "sourceFingerprintCount": 55,
+  "sourceSets": [
+    {
+      "instanceMatches": true,
+      "manifestAndFilesVerified": true,
+      "schema": 307
+    },
+    {
+      "instanceMatches": true,
+      "manifestAndFilesVerified": true,
+      "schema": 304
+    }
+  ],
+  "status": "POST_SWITCH_GATES_READONLY_CAPTURED"
+}
