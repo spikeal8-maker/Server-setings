@@ -1,0 +1,333 @@
+{
+  "format": "school-native-logging-current-checkpoint-v1",
+  "preparedAtUtc": "2026-11-08T14:25:45.008521+00:00",
+  "status": "LOCAL_DRAFT_COLLECTOR_ACCEPTED_CRON_AND_BURST_UNRESOLVED",
+  "publicationAccepted": false,
+  "actualRuntimeCutoffUtc": "2026-11-08T14:19:02.937530+00:00",
+  "revisions": {
+    "settingsPublishedMain": "ca18ec36097d47d732b33d57d88458e8c111fd31",
+    "settingsInstalledOnVm": "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+    "activeCollectorHostSource": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+    "applicationRuntime": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "databaseSchema": 307
+  },
+  "collector": {
+    "status": "ROOT_ACCEPTED",
+    "adoptionOperationId": "826479b05afe47a6b85a425bcb22d129",
+    "finishedAtUtc": "2026-11-08T14:08:14.903793+00:00",
+    "independentOperationId": "e9f4864d4ea8430cb4921dd27a8dad78",
+    "independentObservedAtUtc": "2026-11-08T14:08:53.035252+00:00",
+    "native": {
+      "autorestart": true,
+      "autostart": true,
+      "currentDigestVerified": true,
+      "cycleCheckedAt": "2026-11-08T14:08:38.441Z",
+      "cycleState": "ok",
+      "heartbeatCheckedAt": "2026-11-08T14:08:48.114Z",
+      "legacyDisabledInactive": true,
+      "manager": "1panel-supervisor",
+      "noncePresent": true,
+      "pid": 2770698,
+      "sourceRevision": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+      "startedAt": "2026-11-08T14:08:08.106Z",
+      "state": "RUNNING"
+    },
+    "stoppedBoundaryStatesCompared": 140,
+    "stoppedStateAndEventCountsUnchanged": true,
+    "liveDatabaseCursorsNondecreasing": 9,
+    "indexInode": 816721,
+    "historicalGapWindows": 16,
+    "historicalGapMetadataUnchangedDuringAdoption": true,
+    "historicalLostEventCountProven": null,
+    "applicationContainersUnchanged": 8,
+    "applicationConfigurationUnchanged": true,
+    "privateMetadataModesPreserved": true,
+    "independentStateRowCount": 143,
+    "independentEventAndPublishedCount": 219431,
+    "independentHistoricalEqualityClaim": false,
+    "safeSnapshot": "school-1panel-collector-adopted-20261108.json"
+  },
+  "nativeCronPreflight": {
+    "operationId": "d51fb8bc550540c0a3c24c31723b872f",
+    "startedAtUtc": "2026-11-08T14:10:17.688802+00:00",
+    "completedAtUtc": "2026-11-08T14:10:17.928191+00:00",
+    "exitCode": 2,
+    "durationSeconds": 0.226,
+    "status": "STOP",
+    "errorCode": "ScheduleError",
+    "failedStage": "identity-and-published-source",
+    "stepMayHaveCommitted": false,
+    "stageExecuted": false,
+    "gatedProbesExecuted": false,
+    "activationExecuted": false,
+    "backupExecutionRequested": false,
+    "legacyBackupSchedulesRetained": true,
+    "legacySchedulesMoscow": {
+      "database": "03:20",
+      "configuration": "04:00"
+    },
+    "rootCause": "UNDER_READONLY_DIAGNOSIS",
+    "automaticRetry": false
+  },
+  "boundedBurst": {
+    "operationId": "6fb61a28ba5143d89e98bd85690ddf11",
+    "startedAtUtc": "2026-11-08T14:17:32.809072+00:00",
+    "completedAtUtc": "2026-11-08T14:19:02.937530+00:00",
+    "exitCode": 2,
+    "durationSeconds": 90.119,
+    "status": "BURST_DRAIN_NOT_PROVEN",
+    "responseCounts": {
+      "200": 296,
+      "401": 2,
+      "403": 2
+    },
+    "successfulReads": 296,
+    "negativeRouteRequests": 4,
+    "authSequence": [
+      401,
+      403,
+      200,
+      403,
+      401
+    ],
+    "authGatePassed": true,
+    "authScopePreservationPassed": true,
+    "foreignControlsIncludingNullOwnersPreserved": true,
+    "cleanupVerified": true,
+    "cleanup": {
+      "accountStatus": "suspended",
+      "auditedStatusReads": 296,
+      "platformAdmin": false,
+      "platformGrantState": "revoked",
+      "unrevokedFamilies": 0,
+      "unrevokedSessions": 0,
+      "unrevokedTokens": 0
+    },
+    "databaseChildCompletionUnknown": false,
+    "ownEventsInCompletedFrozenWindow": 296,
+    "matchedNativeKeys": 0,
+    "observationRows": 0,
+    "publishedRowsMatchedByObserver": 0,
+    "quietSourcesFresh": true,
+    "boundedDrainSnapshots": 6,
+    "drainStopReason": "observation_limit",
+    "noSecondBurst": true,
+    "noCursorOrGapReset": true,
+    "rawEventPayloadRead": false,
+    "diagnosticNextStep": "Read-only comparison of observer source/key with the canonical producer. Cause and successful delivery not yet proven.",
+    "zeroMatchesDoNotProveEventLoss": true,
+    "fullRequiredCoverageAccepted": false
+  },
+  "separateAuthenticatedCoverageObservation": {
+    "observedAtUtc": "2026-11-08T14:18:11.884118+00:00",
+    "requiredSources": 27,
+    "sourceStateCounts": {
+      "incomplete": 3,
+      "ok": 24,
+      "unknown": 0
+    },
+    "nativeState": "ok",
+    "nativeCounters": {
+      "accepted": 7490,
+      "dropped": 0,
+      "failures": 0,
+      "pending": 0,
+      "persisted": 7490
+    },
+    "coverageComplete": false,
+    "requiredCoverageAccepted": false,
+    "nonOkSources": [
+      {
+        "applicable": true,
+        "checkedAgeSeconds": 2.058,
+        "currentFreshnessWithRecordedGap": false,
+        "incomplete": null,
+        "lastCollectedAgeSeconds": 28.227,
+        "maxAgeSeconds": 300,
+        "possibleCoverageGap": null,
+        "reason": "source_pending",
+        "requireThrough": true,
+        "source": "database-events:ai_usage_journal",
+        "sourceState": "pending",
+        "stale": false,
+        "state": "incomplete",
+        "throughAgeSeconds": 28.253
+      },
+      {
+        "applicable": true,
+        "checkedAgeSeconds": 2.024,
+        "currentFreshnessWithRecordedGap": true,
+        "incomplete": null,
+        "lastCollectedAgeSeconds": 2.024,
+        "maxAgeSeconds": 300,
+        "possibleCoverageGap": true,
+        "reason": "source_gap_or_stale",
+        "requireThrough": true,
+        "source": "docker-lifecycle",
+        "sourceState": "ok",
+        "stale": false,
+        "state": "incomplete",
+        "throughAgeSeconds": 2.058
+      },
+      {
+        "applicable": true,
+        "checkedAgeSeconds": 57.009,
+        "currentFreshnessWithRecordedGap": false,
+        "incomplete": null,
+        "lastCollectedAgeSeconds": 57.009,
+        "maxAgeSeconds": 300,
+        "possibleCoverageGap": null,
+        "reason": "source_pending",
+        "requireThrough": true,
+        "source": "metrics",
+        "sourceState": "pending",
+        "stale": true,
+        "state": "incomplete",
+        "throughAgeSeconds": 63.773
+      }
+    ],
+    "notReevaluatedAtDrain": true,
+    "interpretation": "Dated observation only; quiet-source metadata at drain does not replace this authenticated required-source evaluation."
+  },
+  "freshOnlySourceFix": {
+    "status": "ROOT_NORMAL_MERGE_ACCEPTED",
+    "pr": 84,
+    "url": "https://github.com/spikeal8-maker/Server-setings/pull/84",
+    "head": "a608e065a95d2235af86e8ce63a1687ab9af5726",
+    "base": "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+    "main": "ca18ec36097d47d732b33d57d88458e8c111fd31",
+    "tree": "2a49e9bc9f3e8e1367a5cfdad81c251eefd51c4b",
+    "parents": [
+      "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+      "a608e065a95d2235af86e8ce63a1687ab9af5726"
+    ],
+    "mergedAt": "2026-11-08T14:16:28Z",
+    "ciRun": 42488362495,
+    "ciJob": 128755101227,
+    "ciConclusion": "success",
+    "rootIndependentSourceTests": 64,
+    "sourceManifestSha256": "98f158370872652dc1e85ee81c213abb4cf37883b8e5d13a80a7cf0196c62933",
+    "currentVmSettingsRevision": "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+    "currentVmRepinned": false,
+    "cleanLinuxRuntime": "NOT_RUN"
+  },
+  "futureWork": {
+    "nativeCronStageProbesActivation": "NOT_RUN",
+    "nativeMarkerNormalizedZip": "NOT_RUN",
+    "postAdoptionConfigurationArchive": "NOT_RUN",
+    "postAdoptionArchiveCloudDecryptRestore": "NOT_RUN",
+    "firstAutomaticNativeBackup": "NOT_PROVEN",
+    "realCleanLinuxInstall": "NOT_RUN",
+    "currentCompleteAuthenticatedCoverage": "NOT_ACCEPTED",
+    "schoolNetworkClassBrowserRolesCoursesMedia": "PENDING",
+    "finalH04SynchronizationBeforeDomain": "PENDING",
+    "productionDomainCutover": "NOT_RUN",
+    "fullLiveRollback": "NOT_RUN",
+    "AIandVPN": "LATER_SEPARATE_STEP",
+    "overallProductionReadiness": "BLOCKER"
+  },
+  "ageDecryptionBoundary": {
+    "permanentPrivateIdentity": "Owner removable media",
+    "acceptedTransport": [
+      "Existing pinned SSH/QGA stdin",
+      "VM transient sealed memfd",
+      "age"
+    ],
+    "privateKeyTransitsVmMemory": true,
+    "persistentVmPrivateKeyFile": false,
+    "privateKeyInEnvironmentArgumentsLogsGit": false,
+    "descriptorClosedAfterUse": true,
+    "fullyOfflineOnD2": false,
+    "postEmergencyRestoreOAuthChatGPTRegistration": "NEW_LOGIN_REQUIRED",
+    "currentChatGPTAccessRequiresRelogin": false
+  },
+  "sheetCheckpoint": {
+    "spreadsheetId": "12VHlK1sko6g8T_xn_13jjQd_USFkW7tlV73yMRhAjwE",
+    "writeFinishedAtUtc": "2026-11-08 14:20:02 UTC",
+    "readbackAtUtc": "2026-11-08 14:20:47 UTC",
+    "targetsMatched": 16,
+    "neighborsUnchanged": 43,
+    "metadataUnchanged": true,
+    "includedFacts": [
+      "Collector adoption",
+      "PR84 merge without VM deployment",
+      "Cron preflight STOP",
+      "Age key boundary",
+      "Historical live-import qualification"
+    ],
+    "newBurstResultIncluded": false,
+    "nextBurstSheetUpdate": "Deferred by root until readonly diagnosis; no extra Sheet write authorized by this package.",
+    "receiptSha256": "01b8aa6653d5076788a7e4149fb7e224709333cf148c63c16271cf561c6b903a"
+  },
+  "earlierStopHistory": {
+    "transportInvalidArgumentAtUtc": "2026-11-08T13:57:20.541Z",
+    "transportOperationCreated": false,
+    "pathTrustStopOperation": "c7b7e6068c0445c5b2557405679a74e6",
+    "readonlyNoChangeOperation": "152a58e756b94862af68723dedb3a096",
+    "stopReceiptsPreserved": true,
+    "laterSuccessDoesNotEraseEarlierStops": true
+  },
+  "evidenceSources": [
+    {
+      "path": "panel-log-01/actual-adoption-docs-v1/manifest.json",
+      "bytes": 946,
+      "sha256": "e493492703a49b23482ea2888f79fd2837c1e0264119c0eec6c7b2956bea213b"
+    },
+    {
+      "path": "log-fix-01/product-publication/v2/root-merge-acceptance.json",
+      "bytes": 1495,
+      "sha256": "56f6ae776bc824a845f1e02e21dafab12e9235b9bcd6fb972ac2425aed0f70a5"
+    },
+    {
+      "path": "panel-log-01/adopt03-lock-fix-v1/actual-826479b05afe47a6b85a425bcb22d129.json",
+      "bytes": 3373,
+      "sha256": "f502234f74b9a7b904c10ca05a13c08f23654491daeddceb46e966d7c23f722a"
+    },
+    {
+      "path": "panel-log-01/root-native-postadopt-status.actual-e9f4864d4ea8430cb4921dd27a8dad78.json",
+      "bytes": 2729,
+      "sha256": "165f7a5840a3e9cbc6ac48235dcf520f65f6462bdb1e7dff46f459feb990cf59"
+    },
+    {
+      "path": "panel-cron-01/runtime-17d937c0-v2/actual-preflight-stop-d51fb8bc550540c0a3c24c31723b872f.json",
+      "bytes": 4210,
+      "sha256": "c8987bf74514d44dbf8046ea405340199c2e552b41c60f2204cae5fc1f5032c4"
+    },
+    {
+      "path": "log-fix-01/runtime-burst-v2/frozen-execution-v1/actual-run-6fb61a28ba5143d89e98bd85690ddf11.json",
+      "bytes": 17490,
+      "sha256": "9e9c5580b78e11ae967f3d8919ffeeaa2a1dd6fbabef12b3e17f7138c10ce099"
+    },
+    {
+      "path": "panel-log-01/fresh-snapshot-gap-v1/publication/root-merge-acceptance.json",
+      "bytes": 842,
+      "sha256": "591eaa61626ee7d099d3aaaef6c7540dc8373812f80e74278b184531c084bb8a"
+    },
+    {
+      "path": "panel-log-01/fresh-snapshot-gap-v1/publication/publication-receipt.json",
+      "bytes": 4390,
+      "sha256": "7dc1cdd370d0d47bb435281baddf58e307ee66cea305636d2ffea21b7e8237a7"
+    },
+    {
+      "path": "panel-log-01/root-native-adopt02.transport-rejection-v1.json",
+      "bytes": 586,
+      "sha256": "2bededcdcc19d982810a53edbadc98ed2c982d6abf67c5c6153e41b238494127"
+    },
+    {
+      "path": "panel-log-01/root-native-adopt02.actual-stop-c7b7e6068c0445c5b2557405679a74e6.json",
+      "bytes": 1891,
+      "sha256": "a7ab60b800220a5487a32980945fd55ff1e2952062c3a0ab16cce4bb97bd4f0e"
+    },
+    {
+      "path": "panel-log-01/root-adopt-lock-reconciliation.actual-152a58e756b94862af68723dedb3a096.json",
+      "bytes": 3896,
+      "sha256": "1c25389eacea758bb5acaa86a85c9d3f431ef49d7215089e7ac7a3cb3d5c8799"
+    },
+    {
+      "path": "sheet_records/native_collector_adopted_prepare_20261108T141135Z/receipt.json",
+      "bytes": 1604,
+      "sha256": "01b8aa6653d5076788a7e4149fb7e224709333cf148c63c16271cf561c6b903a"
+    }
+  ],
+  "secretsOrPersonalRowDataIncluded": false
+}

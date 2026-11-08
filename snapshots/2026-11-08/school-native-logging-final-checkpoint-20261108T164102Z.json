@@ -1,0 +1,1199 @@
+{
+  "format": "school-native-cron-staged-current-checkpoint-v1",
+  "preparedAtUtc": "2026-11-08T16:58:39.112718+00:00",
+  "factsCutoffUtc": "2026-11-08T16:41:02.826536Z",
+  "publicationStatus": "LOCAL_COMBINED_FINAL_SOURCE_PACKET_ROOT_REVIEW_PENDING",
+  "productionReadiness": "BLOCKER",
+  "revisions": {
+    "settingsPublishedMain": "57ca0440d6360ab9127d9987c9d5e315647174a7",
+    "settingsTree": "4641320d8c80c70e8c7f3b47b2b0e6f3ed1ce4db",
+    "materializedSettingsSource": "57ca0440d6360ab9127d9987c9d5e315647174a7",
+    "collectorHostSource": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+    "applicationRuntime": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "nativeCronInstalledSettingsSource": "57ca0440d6360ab9127d9987c9d5e315647174a7"
+  },
+  "collector": {
+    "adoptionAccepted": true,
+    "nativeManager": "1panel-supervisor",
+    "pid": 2770698,
+    "autostart": true,
+    "autorestart": true,
+    "legacyCollectorDisabledInactive": true,
+    "historicalDockerPossibleGapWindowsPreviouslyAccepted": 16,
+    "historicalLostEvents": null,
+    "historicalGapsReset": false
+  },
+  "burst": {
+    "originalStatus": "BURST_DRAIN_NOT_PROVEN",
+    "originalOperationId": "6fb61a28ba5143d89e98bd85690ddf11",
+    "publicationLaterAccepted": true,
+    "latePublicationOperationId": "e947d2d38f4540e6a7611fbcfc8348ac",
+    "ownEvents": 296,
+    "nativeKeys": 296,
+    "observations": 296,
+    "publishedExactlyOnce": 296,
+    "sourceNullRows": 296,
+    "timeNullRows": 296,
+    "payloadNullRows": 296,
+    "orphanRows": 0,
+    "canonicalPublishedNullMetadataConfirmed": true,
+    "priorCompletedWindow": {
+      "eligibleOwnEvents": 296,
+      "observedAt": "2026-11-08T14:41:41.999741+00:00",
+      "operationId": "d99f1e1daa564231afe42db083478d2a",
+      "recomputedByThisCurrentObservation": false
+    },
+    "original50SecondDeliveryLatencyProven": false,
+    "replayed": false,
+    "sameDatabaseOid": 117178,
+    "privateDatabaseNameOutput": false,
+    "fullAuthenticatedCoverageRepeated": false
+  },
+  "settingsSourceMaterialization": {
+    "operationId": "e0954bdb7c844250be65f1d4716f560d",
+    "status": "EXACT_SETTINGS_SOURCE_MATERIALIZED",
+    "finishedAtUtc": "2026-11-08T16:00:49.503111+00:00",
+    "releaseVerification": {
+      "detached": true,
+      "gitClean": true,
+      "hooksAbsent": true,
+      "newDirectoryCreated": true,
+      "rootMode": "0700",
+      "sourceSha256PinsVerified": 9,
+      "treeVerified": true,
+      "workingTreeBlobsVerified": 431,
+      "workingTreeBytes": 3474640
+    },
+    "cronRuntimeFixApplied": true,
+    "newSourceCodeExecutedAtMaterializerBoundary": false,
+    "subsequentRuntimeRepairOperation": "c56e3b76ddfc4115ada0ed3b01f70a86"
+  },
+  "settingsGit": {
+    "pr": 86,
+    "mergeCommit": "57ca0440d6360ab9127d9987c9d5e315647174a7",
+    "mergedAtUtc": "2026-11-08T15:55:23Z",
+    "tree": "4641320d8c80c70e8c7f3b47b2b0e6f3ed1ce4db",
+    "exactHeadCi": 42496815104,
+    "ciConclusion": "success",
+    "sourcePublished": true
+  },
+  "priorC23Materialization": {
+    "operationId": "8812f328faa845febd38901dc740fc83",
+    "sourceBlobs": 426,
+    "sourcePins": 8,
+    "subsequentC23PreflightAndStageAccepted": true
+  },
+  "nativeCron": {
+    "phase": "ACTIVE",
+    "owner": "1panel",
+    "generation": "4ccfa3f7ffe34b358523a02872e03f53",
+    "programSha256": "4b391bbd4b4589212acffc25a4239b79d15e5830176300610dfd1f7fc3ef596b",
+    "settingsRevision": "57ca0440d6360ab9127d9987c9d5e315647174a7",
+    "nativeCronStatus": "Enable",
+    "bothJobsEnabled": true,
+    "jobs": {
+      "database": {
+        "acceptedAt": "2026-11-08T16:12:25.922526+00:00",
+        "dispatchId": "58a6413555184c50845a2542b2d7bb6b",
+        "id": 1,
+        "recordId": 2
+      },
+      "settings": {
+        "acceptedAt": "2026-11-08T16:13:07.214515+00:00",
+        "dispatchId": "fde1ae44d902462381bb3bbc40f85632",
+        "id": 2,
+        "recordId": 3
+      }
+    },
+    "nativeProgramsVerifiedIdle": true,
+    "oldBackupTimersDisabledInactive": true,
+    "clock": {
+      "databaseMoscow": "03:20",
+      "settingsMoscow": "04:00",
+      "nextDatabaseMoscow": "2026-11-09T03:20:00+03:00",
+      "nextSettingsMoscow": "2026-11-09T04:00:00+03:00",
+      "timeZone": "Europe/Moscow",
+      "displayTimeZoneAccepted": "Etc/UTC",
+      "nextFivePreviewAccepted": true,
+      "timezoneChanged": false
+    },
+    "newSteps": {
+      "stage": {
+        "operationId": "f5965833c4d24b8ab3e11ac9ddd919de",
+        "observedAtUtc": "2026-11-08T16:11:31.947873+00:00"
+      },
+      "probe-database": {
+        "operationId": "112c303b198049e7933a48c3afef846d",
+        "observedAtUtc": "2026-11-08T16:12:28.522032+00:00"
+      },
+      "probe-settings": {
+        "operationId": "73209744c2084503980f4e1678f20ceb",
+        "observedAtUtc": "2026-11-08T16:13:09.838562+00:00"
+      },
+      "status": {
+        "operationId": "2e4c0b087c414c8795431b71fe7fc82a",
+        "observedAtUtc": "2026-11-08T16:14:12.820586+00:00"
+      }
+    },
+    "bothNewProbesAccepted": true,
+    "uniqueNativeMarkersAccepted": true,
+    "realBackupExecutedByGatedProbes": false,
+    "activation": {
+      "activate": {
+        "operationId": "f967c26d62b54c3bad241e69b71086f9",
+        "status": "NATIVE_CLOCK_ACTIVE_ACCEPTED",
+        "finishedAtUtc": "2026-11-08T16:23:09.777085+00:00"
+      },
+      "status": {
+        "operationId": "d76b0f8aa9e04b4694f5e287d5026306",
+        "status": "NATIVE_CLOCK_ACTIVE_INDEPENDENT_STATUS_PASS",
+        "finishedAtUtc": "2026-11-08T16:23:50.994621+00:00"
+      }
+    },
+    "activationAccepted": true,
+    "independentActiveStatusAccepted": true,
+    "realBackupExecutedByActivation": false,
+    "manualActiveArchiveCreatedAsOfCutoff": true,
+    "manualActiveArchiveAndRoundtripAccepted": true,
+    "firstAutomaticCopies": "NOT_PROVEN",
+    "preservation": {
+      "allAccepted": true,
+      "collectorPid": 2770698,
+      "applicationContainersUnchanged": 8,
+      "privateIndexInode": 816721
+    },
+    "pending": [
+      "first automatic native database and settings copies",
+      "real clean Linux rebuild verification"
+    ],
+    "currentStatePreservedThroughCloudAtUtc": "2026-11-08T16:32:32.154169+00:00",
+    "isolatedArchiveVerificationAccepted": true
+  },
+  "keyBoundary": {
+    "permanentPrivateIdentity": "owner removable medium",
+    "oneShotTransit": "pinned SSH/QGA stdin -> VM transient sealed memfd -> age; descriptor closed",
+    "persistentNamedVmPrivateAgeKeyCreated": false,
+    "envArgvLogGitSecretOutput": false,
+    "emergencyRestoreRequiresFreshChatGPTMcpOauthRegistration": true
+  },
+  "unchangedBoundaries": {
+    "H04AndPrimaryDomainUntouched": true,
+    "applicationRuntimeNotUpdatedByThisPackage": true,
+    "fullLiveRollbackTested": false,
+    "realCleanLinuxInstallTested": false
+  },
+  "sheet": {
+    "writeAtUtc": "2026-11-08 16:52:15 UTC",
+    "readbackAtUtc": "2026-11-08 16:52:15 UTC",
+    "targetsMatched": 16,
+    "neighborsUnchanged": 43,
+    "metadataUnchanged": 59,
+    "afterSha256": "f0cbdf00fba0edf0dfd748418b968be1e4a552932aa89f3f7a0c36f1970dddf7"
+  },
+  "sourceReceipts": [
+    {
+      "key": "materializer",
+      "path": "panel-log-01/settings-materializer-c23-v1/actual-8812f328faa845febd38901dc740fc83.json",
+      "bytes": 5866,
+      "sha256": "367601c3d022496623658719df04c1fa459f3f0f97c8c5e89390442bfd468844",
+      "operationId": "8812f328faa845febd38901dc740fc83",
+      "status": "EXACT_SETTINGS_SOURCE_MATERIALIZED",
+      "observedAtUtc": "2026-11-08T15:03:54.193153+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "preflight",
+      "path": "panel-cron-01/runtime-c23-17d-v3/actual-preflight-b86b204bac1b4f7193fbd22edbb1cbcd.json",
+      "bytes": 14926,
+      "sha256": "cb8e3032664b0f2ec44f005cff4d0e31dfcf4d7fbd1aaaf024aa393bd5579d5d",
+      "operationId": "b86b204bac1b4f7193fbd22edbb1cbcd",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T15:04:29.529027+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "stage",
+      "path": "panel-cron-01/runtime-c23-17d-v3/actual-stage-26bc7cb321564ecda76cc28678672f88.json",
+      "bytes": 19816,
+      "sha256": "6a9ea6e8c8723edd004f6d62d5c0f71907aeff573d8c2c7f08524f2de6a7fa32",
+      "operationId": "26bc7cb321564ecda76cc28678672f88",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T15:04:54.010992+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "probeStop",
+      "path": "panel-cron-01/runtime-c23-17d-v3/actual-probe-database-stop-fa96a791e4ab4dbdad81fbd768797729.json",
+      "bytes": 13096,
+      "sha256": "e7f5668ce6d638525cfb2a0a37bc891f29693281c25f20d3aafba6fad73a14ea",
+      "operationId": "fa96a791e4ab4dbdad81fbd768797729",
+      "status": "STOP",
+      "observedAtUtc": "2026-11-08T15:05:12.026014+00:00",
+      "exitCode": 2
+    },
+    {
+      "key": "markerDiagnosis",
+      "path": "panel-cron-01/probe-marker-diagnostic-v1/actual-2b1a67931c7c4fb480c8a3d9d714c465.json",
+      "bytes": 10622,
+      "sha256": "1783dec703a8c5d90d30a55e9d6992923b4bd9a7a13933abf646af2cd20909fd",
+      "operationId": "2b1a67931c7c4fb480c8a3d9d714c465",
+      "status": "READONLY_PROBE_MARKER_DIAGNOSIS_COMPLETE",
+      "observedAtUtc": "2026-11-08T15:11:03.489863+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "currentMetadata",
+      "path": "log-fix-01/current-metadata-27-v1/actual-7e188e97ecbe4d6d85847bd7d82485d7.json",
+      "bytes": 19294,
+      "sha256": "139e21e4ccc9af951445411078df52e95b00702627d800b994c4e1e05c5415b3",
+      "operationId": "7e188e97ecbe4d6d85847bd7d82485d7",
+      "status": "CURRENT_LOG_METADATA_OBSERVED",
+      "observedAtUtc": "2026-11-08T15:12:35.177Z",
+      "exitCode": 0
+    },
+    {
+      "key": "burstOriginal",
+      "path": "log-fix-01/runtime-burst-v2/frozen-execution-v1/actual-run-6fb61a28ba5143d89e98bd85690ddf11.json",
+      "bytes": 17490,
+      "sha256": "9e9c5580b78e11ae967f3d8919ffeeaa2a1dd6fbabef12b3e17f7138c10ce099",
+      "operationId": "6fb61a28ba5143d89e98bd85690ddf11",
+      "status": "BURST_DRAIN_NOT_PROVEN",
+      "observedAtUtc": "2026-11-08T14:19:02.937530+00:00",
+      "exitCode": 2
+    },
+    {
+      "key": "burstReconcile",
+      "path": "log-fix-01/burst-reconcile-v3/actual-d99f1e1daa564231afe42db083478d2a.json",
+      "bytes": 8596,
+      "sha256": "f93ddd2d56a644f9392583268145979e36ac9caa6aa93183c5310abb2a0f7dc8",
+      "operationId": "d99f1e1daa564231afe42db083478d2a",
+      "status": "OWNED_BURST_RECONCILIATION_OBSERVED",
+      "observedAtUtc": "2026-11-08T14:41:42.070569+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "burstPublication",
+      "path": "log-fix-01/burst-publication-proof-v1/actual-e947d2d38f4540e6a7611fbcfc8348ac.json",
+      "bytes": 10134,
+      "sha256": "096d006b921623dfb40093fcad0d6f1653f47de52dfc8dce02f997d050912222",
+      "operationId": "e947d2d38f4540e6a7611fbcfc8348ac",
+      "status": "OWNED_BURST_PUBLICATION_CONFIRMED",
+      "observedAtUtc": "2026-11-08T14:50:02.440831+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "collectorAdoption",
+      "path": "panel-log-01/adopt03-lock-fix-v1/actual-826479b05afe47a6b85a425bcb22d129.json",
+      "bytes": 3373,
+      "sha256": "f502234f74b9a7b904c10ca05a13c08f23654491daeddceb46e966d7c23f722a",
+      "operationId": "826479b05afe47a6b85a425bcb22d129",
+      "status": "SOURCE_ONLY_SWITCH_AND_NATIVE_COLLECTOR_ACCEPTED",
+      "observedAtUtc": "2026-11-08T14:08:14.903793+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "collectorIndependent",
+      "path": "panel-log-01/root-native-postadopt-status.actual-e9f4864d4ea8430cb4921dd27a8dad78.json",
+      "bytes": 2729,
+      "sha256": "165f7a5840a3e9cbc6ac48235dcf520f65f6462bdb1e7dff46f459feb990cf59",
+      "operationId": "e9f4864d4ea8430cb4921dd27a8dad78",
+      "status": "NATIVE_COLLECTOR_READONLY_STATUS_PASS",
+      "observedAtUtc": "2026-11-08T14:08:53.035252+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "sheetReceipt",
+      "path": "sheet_records/native_final_recovery_metadata_20261108T164249Z/receipt.json",
+      "bytes": 1647,
+      "sha256": "bd5ae1e9df3ed644f4b0b89a80a16e8cc595c51d858d98f0f14a0ddd081ab37b",
+      "operationId": null,
+      "status": "VERIFIED_VALUE_ONLY_UPDATE",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "settingsAliasMerge",
+      "path": "panel-cron-01/alias-fix-v1/publication/root-merge-acceptance.json",
+      "bytes": 910,
+      "sha256": "140ff6ba01f96201f028f6f828f863142f9e017a77737379866f57e1cbd9eb65",
+      "operationId": null,
+      "status": "ROOT_NORMAL_MERGE_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "settingsAliasPublication",
+      "path": "panel-cron-01/alias-fix-v1/publication/publication-receipt.json",
+      "bytes": 3216,
+      "sha256": "2b3f48b0b36c8d98b050bd4ac05b49528b42ab70a1ccf712c9fdb8e65e572d83",
+      "operationId": null,
+      "status": "PUBLISHED_READY_PR_CI_SUCCESS",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "settingsMerge",
+      "path": "panel-cron-01/combined-worker-rollforward-publication-v1/packet/root-merge-acceptance.json",
+      "bytes": 689,
+      "sha256": "76c4276f5552d83854f9a8d5da075455dabc4a1bdc8d1f69261e715397c5a02f",
+      "operationId": null,
+      "status": "ROOT_NORMAL_MERGE_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "settingsCi",
+      "path": "panel-cron-01/combined-worker-rollforward-publication-v1/packet/root-pr-ci-acceptance.json",
+      "bytes": 3669,
+      "sha256": "6b061007ad089c8110280c4fb08a80c11bbd63d9028a52a04ffa175a2ebf1e7f",
+      "operationId": null,
+      "status": "ROOT_EXACT_HEAD_CI_ACCEPTED_READY_FOR_NORMAL_MERGE",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "combinedManifest",
+      "path": "panel-cron-01/combined-worker-rollforward-publication-v1/packet/manifest.json",
+      "bytes": 4611,
+      "sha256": "a03851af3aa312d61413e1c8a143353d62f61930af60d1234769532ea5ba561d",
+      "operationId": null,
+      "status": "ROOT_REVIEW_REQUIRED_NO_GIT_WRITES",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "materializer57ca",
+      "path": "panel-log-01/settings-materializer-57ca-v1/actual-e0954bdb7c844250be65f1d4716f560d.json",
+      "bytes": 5864,
+      "sha256": "98cdf3b2b79b5dd9d8cc39c44ddccda1ceb9f8604e5351e18050862f586550b1",
+      "operationId": "e0954bdb7c844250be65f1d4716f560d",
+      "status": "EXACT_SETTINGS_SOURCE_MATERIALIZED",
+      "observedAtUtc": "2026-11-08T16:00:49.503111+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "stagedRepairAccepted",
+      "path": "panel-log-01/staged-repair-caller-v1/root-repair-runtime-acceptance.json",
+      "bytes": 1838,
+      "sha256": "9e73c6a2855a1c75a1d91c16cfdd3b94f422536f653103e54de416f47a14653c",
+      "operationId": null,
+      "status": "ROOT_STAGED_REPAIR_AND_INDEPENDENT_RECONCILIATION_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "stagedRepair_repair",
+      "path": "panel-log-01/staged-repair-caller-v1/frozen-repair/actual-c56e3b76ddfc4115ada0ed3b01f70a86.json",
+      "bytes": 15384,
+      "sha256": "ee4e4215351c1d8639bf14859627778b588435e8dae2a2259f3ea421d127a085",
+      "operationId": "c56e3b76ddfc4115ada0ed3b01f70a86",
+      "status": "STAGED_REPAIR_CALLER_ACCEPTED",
+      "observedAtUtc": "2026-11-08T16:08:38.024272+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "stagedRepair_status",
+      "path": "panel-log-01/staged-repair-caller-v1/frozen-status/actual-472c9d923f28451aa3a7a7cbc64b7153.json",
+      "bytes": 14934,
+      "sha256": "5e474b5f305e48d4cea9e741590234c60e78f4f31a9b844b10f7a3453e112013",
+      "operationId": "472c9d923f28451aa3a7a7cbc64b7153",
+      "status": "STAGED_REPAIR_CALLER_ACCEPTED",
+      "observedAtUtc": "2026-11-08T16:09:44.263046+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeStepsAccepted",
+      "path": "panel-cron-01/runtime-57ca-17d-v4/root-native-steps-acceptance.json",
+      "bytes": 3270,
+      "sha256": "5a3d67a7fd2c0598a70fd7a470c6199d6b5bd729e2fa6b706f3ae74dfc432197",
+      "operationId": null,
+      "status": "ROOT_ALL_NATIVE_STEPS_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "nativeAfterRepair_stage",
+      "path": "panel-cron-01/runtime-57ca-17d-v4/actual-stage-f5965833c4d24b8ab3e11ac9ddd919de.json",
+      "bytes": 19814,
+      "sha256": "84a315d2074e4dadcf40152afe5f3c46646717959c8a5c2fdf1ed37343249d61",
+      "operationId": "f5965833c4d24b8ab3e11ac9ddd919de",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T16:11:31.947873+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeAfterRepair_probe-database",
+      "path": "panel-cron-01/runtime-57ca-17d-v4/actual-probe-database-112c303b198049e7933a48c3afef846d.json",
+      "bytes": 21058,
+      "sha256": "3e55197ca88ec156550a0aa917510691571fbface61a0897bd7ac5be170b284b",
+      "operationId": "112c303b198049e7933a48c3afef846d",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T16:12:28.522032+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeAfterRepair_probe-settings",
+      "path": "panel-cron-01/runtime-57ca-17d-v4/actual-probe-settings-73209744c2084503980f4e1678f20ceb.json",
+      "bytes": 22306,
+      "sha256": "506e1a473f07e0d67296b369010a5c7936bca9123cbf86a0359238565231fec3",
+      "operationId": "73209744c2084503980f4e1678f20ceb",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T16:13:09.838562+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeAfterRepair_status",
+      "path": "panel-cron-01/runtime-57ca-17d-v4/actual-status-2e4c0b087c414c8795431b71fe7fc82a.json",
+      "bytes": 22292,
+      "sha256": "fc4367fc00007c71395fee00ab9aafe0fa972f2fdab4ed1e484c9e26efd7b292",
+      "operationId": "2e4c0b087c414c8795431b71fe7fc82a",
+      "status": "NATIVE_CRON_STEP_ACCEPTED_GATE_CLOSED",
+      "observedAtUtc": "2026-11-08T16:14:12.820586+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeMarkersAccepted",
+      "path": "log-fix-01/native-marker-v3/frozen-execution-v1/root-marker-acceptance.json",
+      "bytes": 2088,
+      "sha256": "486c1f65a795e459fcaca24794a9eff15ea0637da808bc59f8041a920b96a06e",
+      "operationId": null,
+      "status": "ROOT_NATIVE_MARKERS_NORMALIZED_EXPORT_AND_REMOTE_BINDING_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "nativeMarkerActual",
+      "path": "log-fix-01/native-marker-v3/frozen-execution-v1/actual-marker-c99ba7c65d974beba9874a9f5972e742.json",
+      "bytes": 7322,
+      "sha256": "3e1b8fa3378960254b824426b626c32fe43273a8c99ee267643705e61ece1890",
+      "operationId": "c99ba7c65d974beba9874a9f5972e742",
+      "status": "NATIVE_MARKERS_NORMALIZED_HOST_EXPORT_PASS",
+      "observedAtUtc": "2026-11-08T16:17:57.636669+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeMarkerRemoteBinding",
+      "path": "log-fix-01/native-marker-v3/frozen-execution-v1/actual-binding-6b575b9671854b4b8bc4aab2b7e70299.json",
+      "bytes": 3778,
+      "sha256": "585ffbc1860b3a2287ba103a3de4630463bf85c8c44702c9813a05cd2e25b95d",
+      "operationId": "6b575b9671854b4b8bc4aab2b7e70299",
+      "status": "NATIVE_MARKER_RECEIPT_BINDING_PASS",
+      "observedAtUtc": "2026-11-08T16:18:36.043227+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeActiveAccepted",
+      "path": "panel-cron-01/activation-actual-57ca-v1/root-active-acceptance.json",
+      "bytes": 4502,
+      "sha256": "32d20a95a5327e66795f5da5d75614eb36c5ede01d72d8e0300b9c974b128130",
+      "operationId": null,
+      "status": "ROOT_NATIVE_CLOCK_ACTIVE_AND_INDEPENDENT_STATUS_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "nativeActive_activate",
+      "path": "panel-cron-01/activation-actual-57ca-v1/frozen-activate/actual-f967c26d62b54c3bad241e69b71086f9.json",
+      "bytes": 18554,
+      "sha256": "9e9a68c55a4d78688a43d9c91ccc08ae29d6ee2d9cadd1435b84f3f05efe34e0",
+      "operationId": "f967c26d62b54c3bad241e69b71086f9",
+      "status": "NATIVE_CLOCK_ACTIVE_ACCEPTED",
+      "observedAtUtc": "2026-11-08T16:23:09.777085+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "nativeActive_status",
+      "path": "panel-cron-01/activation-actual-57ca-v1/frozen-status/actual-d76b0f8aa9e04b4694f5e287d5026306.json",
+      "bytes": 18070,
+      "sha256": "866a2f7ca3879f12d75643ea6e9c2d81a44610d39213d840645968d751035fcc",
+      "operationId": "d76b0f8aa9e04b4694f5e287d5026306",
+      "status": "NATIVE_CLOCK_ACTIVE_INDEPENDENT_STATUS_PASS",
+      "observedAtUtc": "2026-11-08T16:23:50.994621+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "activeConfigCreateAccepted",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-create/root-create-acceptance.json",
+      "bytes": 1409,
+      "sha256": "00ab6dcce1636b364e7fc8a2b24278823acbf098d2303268b5aa0e2441fe86f8",
+      "operationId": null,
+      "status": "ROOT_ACTIVE_CONFIG_CREATE_ACCEPTED_CLOUD_PENDING",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "activeConfigCreateActual",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-create/actual-fcdbdbb2b0c14b3e995c05ea4290226b.json",
+      "bytes": 9114,
+      "sha256": "e9184760296119a6c719f29736601aedc1b507e7c866f8f009ff148af9fc3dd0",
+      "operationId": "fcdbdbb2b0c14b3e995c05ea4290226b",
+      "status": "SUCCESS",
+      "observedAtUtc": "2026-11-08T16:29:11.897953+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "activeConfigCloudAccepted",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-cloud/root-cloud-acceptance.json",
+      "bytes": 1353,
+      "sha256": "79cf0aa651eab860c67e2a4a5958ed3d137bd2c8c0b05a7918761d44f5bc8f41",
+      "operationId": null,
+      "status": "ROOT_ACTIVE_CONFIG_CLOUD_FULL_DOWNLOAD_ACCEPTED_DECRYPT_PENDING",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "activeConfigCloudActual",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-cloud/actual-2ffc75b697cf4ba58b7b383704ab729f.json",
+      "bytes": 8744,
+      "sha256": "81ea6650db73d1d579886c732250b7959f0bf7d7988e3a52adfa8a5ac6254b07",
+      "operationId": "2ffc75b697cf4ba58b7b383704ab729f",
+      "status": "SUCCESS",
+      "observedAtUtc": "2026-11-08T16:32:18.256870+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "activeConfigRestoreAccepted",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-verify/root-restore-acceptance.json",
+      "bytes": 3423,
+      "sha256": "c8707a8d96080a6c78ec1dc10c8b5bbf8ab9744a950409b562323dbaf00692ad",
+      "operationId": null,
+      "status": "ROOT_ACTIVE_CONFIG_CLOUD_ROUNDTRIP_ISOLATED_RESTORE_ACCEPTED",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "activeConfigRestoreActual",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-verify/actual-run-poll-01.json",
+      "bytes": 3994,
+      "sha256": "ed8372cd5e5b0d978e7e6e68b7dae3da6368d6ad366f9fad7003233480229c34",
+      "operationId": "school-native-config-verify-20261108t162748z-d0ba6e1f-f93a4f313840437d",
+      "status": "D2_CONFIG_VERIFY_PASS",
+      "observedAtUtc": "2026-11-08T16:40:21.218349+00:00",
+      "exitCode": 0
+    },
+    {
+      "key": "activeConfigRestorePeer",
+      "path": "panel-cron-01/active-config-actual-57ca-v1/frozen-verify/peer-restore-acceptance.json",
+      "bytes": 2520,
+      "sha256": "6daccbbc0860a03c5075ac121c195f7649074ed4b1e92f21ff8998d82f641a5e",
+      "operationId": null,
+      "status": "PEER_ACTUAL_CLOUD_ROUNDTRIP_ISOLATED_RESTORE_PASS",
+      "observedAtUtc": null,
+      "exitCode": null
+    },
+    {
+      "key": "finalLogMetadataAccepted",
+      "path": "panel-log-01/ai-ledger-source-review-v1/root-final-metadata-acceptance.json",
+      "bytes": 5389,
+      "sha256": "f2a9fe8902dcb83f9c7ec9ed911f54f5563b02e886c074b6c21347d16511cf1d",
+      "operationId": null,
+      "status": "ROOT_FINAL_POSTACTIVATION_LOG_METADATA_ACCEPTED",
+      "observedAtUtc": "2026-11-08T16:41:02.602Z",
+      "exitCode": null
+    },
+    {
+      "key": "finalLogMetadataActual",
+      "path": "panel-log-01/ai-ledger-source-review-v1/actual-7c6ef78aab3c4dfea6cfb8753c59710b.json",
+      "bytes": 19386,
+      "sha256": "ed9cd9e19d260b781adc601a6fb0fc87d82a8a1646aeb7e64fc6dc54a45047a0",
+      "operationId": "7c6ef78aab3c4dfea6cfb8753c59710b",
+      "status": "CURRENT_LOG_METADATA_OBSERVED",
+      "observedAtUtc": "2026-11-08T16:41:02.602Z",
+      "exitCode": 0
+    },
+    {
+      "key": "markerSourceManifest",
+      "path": "log-fix-01/marker-publication-v1/manifest.json",
+      "bytes": 4729,
+      "sha256": "323faaf98d4313ac1f86e6ce69cf180d17d2da4992df431be62d8858f4cc5fb6",
+      "status": "SOURCE_REVIEW_PACKET_FROZEN_NOT_PUBLISHED",
+      "observedAtUtc": "2026-11-08T16:58:47.956060+00:00",
+      "scope": "local source/acceptance; no additional runtime execution"
+    },
+    {
+      "key": "markerSourceRootAcceptance",
+      "path": "log-fix-01/marker-publication-v1/root-content-acceptance.json",
+      "bytes": 2445,
+      "sha256": "314a387cf464eb8ea8ab5921b629b289a28a990fa689b587f3f1bf8700837d27",
+      "status": "ROOT_QA_PUBLICATION_CONTENT_ACCEPTED",
+      "observedAtUtc": "2026-11-08T16:59:17.394454+00:00",
+      "scope": "local source/acceptance; no additional runtime execution"
+    },
+    {
+      "key": "markerSourcePeerAcceptance",
+      "path": "panel-cron-01/peer-review/native-marker-publication-v1/peer-source-acceptance.json",
+      "bytes": 4388,
+      "sha256": "495d8afe2950283918714512a6d81dbd9999f2496c3a5a4ae850b7ec1def283b",
+      "status": "PEER_SOURCE_COMPONENT_ACCEPTED_NO_BLOCKERS",
+      "observedAtUtc": "2026-11-08T16:59:39.244181+00:00",
+      "scope": "local source/acceptance; no additional runtime execution"
+    }
+  ],
+  "nativeCronHistory": {
+    "asOfUtc": "2026-11-08T16:00:49.503111Z",
+    "priorStoppedC23State": {
+      "preflight": {
+        "operationId": "b86b204bac1b4f7193fbd22edbb1cbcd",
+        "status": "NATIVE_CLOCK_READONLY_PREFLIGHT_PASS"
+      },
+      "stage": {
+        "operationId": "26bc7cb321564ecda76cc28678672f88",
+        "status": "NATIVE_SCHEDULES_STAGED_GATE_CLOSED"
+      },
+      "currentOwner": "legacy",
+      "phase": "STAGED",
+      "nativeJobIds": {
+        "database": 1,
+        "settings": 2
+      },
+      "bothNativeJobsDisabled": true,
+      "databaseProcessAfterProbe": "EXITED",
+      "settingsProcess": "STOPPED",
+      "oldBackupTimersRemainActive": true,
+      "databaseScheduleMoscow": "03:20",
+      "settingsScheduleMoscow": "04:00",
+      "stagedWrapperSha256": "6f5a51cbe94a7bf22152884eeb7d7c0efd149667cdc21b60e889d682740e18b2",
+      "databaseProbe": {
+        "operationId": "fa96a791e4ab4dbdad81fbd768797729",
+        "independentResult": "STOP",
+        "errorCode": "NATIVE_JSON_MARKER_NOT_UNIQUE",
+        "failedStage": "independent-native-and-preservation-readback",
+        "stepMayHaveCommitted": true,
+        "originalStopPreserved": true,
+        "canonicalRetainedStatus": "NATIVE_GATED_PROBE_PASS",
+        "canonicalRetainedRunStatus": "STAGED_GATE_VERIFIED_NO_BACKUP",
+        "newRunOrRetryRequested": false,
+        "backupExecuted": false
+      },
+      "markerDiagnosis": {
+        "operationId": "2b1a67931c7c4fb480c8a3d9d714c465",
+        "status": "READONLY_PROBE_MARKER_DIAGNOSIS_COMPLETE",
+        "cause": "DOUBLE_IDENTICAL_WORKER_TERMINAL_OUTPUT_CONFIRMED",
+        "singleNativeSuccessRecord": true,
+        "workerLogIdenticalJsonLines": 2,
+        "twoRuns": false
+      },
+      "pending": [
+        "apply published PR86 via reviewed closed STAGED roll-forward",
+        "independent DB probe reconciliation",
+        "settings probe",
+        "native marker to normalized event to exported ZIP",
+        "clock ownership activation",
+        "new ACTIVE configuration archive and cloud/decrypt/isolated verification",
+        "first automatic native database and settings copies"
+      ],
+      "activationAccepted": false,
+      "newActualBackupExecuted": false,
+      "preservationScope": {
+        "applicationIdentities": 8,
+        "collectorPidAndNonce": true,
+        "privateIndexIdentity": true,
+        "existingCursorKeysRetained": 126,
+        "cursorValuesAndEventContentsRead": false,
+        "cursorValueContinuityClaimed": false,
+        "realBackupReceiptsAndArchivesUnchanged": true
+      }
+    },
+    "originalProbeStopRewritten": false
+  },
+  "stagedRepair": {
+    "accepted": true,
+    "actuals": {
+      "repair": {
+        "operationId": "c56e3b76ddfc4115ada0ed3b01f70a86",
+        "finishedAtUtc": "2026-11-08T16:08:38.024272+00:00"
+      },
+      "status": {
+        "operationId": "472c9d923f28451aa3a7a7cbc64b7153",
+        "finishedAtUtc": "2026-11-08T16:09:44.263046+00:00"
+      }
+    },
+    "oldGeneration": "dc880db9be0e49b0953973ba39f19cde",
+    "generation": "4ccfa3f7ffe34b358523a02872e03f53",
+    "oldStateDispatchRunsArchivedExactly": true,
+    "oldNativeRecordsAndLogsPreserved": true,
+    "newDispatchRunsEmptyAtRepairBoundaryOnly": true,
+    "subsequentAcceptedProbesCreatedNewDispatches": true
+  },
+  "nativeMarkerExport": {
+    "accepted": true,
+    "markerOperationId": "c99ba7c65d974beba9874a9f5972e742",
+    "bindingOperationId": "6b575b9671854b4b8bc4aab2b7e70299",
+    "acceptedAtUtc": "2026-11-08T16:19:43.709876+00:00",
+    "bothOwnMarkersUniqueNativeNormalizedPublished": true,
+    "eachOwnedMarkerOccurrencesInHostZip": 1,
+    "hostZip": {
+      "allTimeAllSources": true,
+      "bytes": 18126138,
+      "coverageComplete": false,
+      "crcAndPartSha256Verified": true,
+      "exporterBlob": "47e562c63f0246648736461aabc31c70bac670ce",
+      "normalized": true,
+      "parts": 543,
+      "recordBytes": 178347021,
+      "records": 223286,
+      "sha256": "a26af73c639feeb3c9ccffd9e88b8866eb0167c9f8011e0a4fc8fb7768eece7b"
+    },
+    "remoteReceiptBinding": {
+      "path": "/var/lib/server-settings/xlog-native-marker-evidence/xlog-native-marker-20261108t161602z-280641f27e4d46f6/receipt.json",
+      "sha256": "455e95db7224be70bef6631df0076c999d6fe2a997e02c4eb6917b70c3ee967b",
+      "bytes": 2182,
+      "hashComputedFromActualUnredactedRemoteFile": true
+    },
+    "applicationZipVerifiedByUnmodifiedHelper": true,
+    "temporaryCleanupVerified": true,
+    "applicationAndScheduleNotMutatedByMarkerVerification": true,
+    "globalCoverageComplete": false,
+    "authenticatedCoverageReevaluated": false
+  },
+  "pendingFinalEvidence": {
+    "activeArchive": "ROOT_ACCEPTED",
+    "cloudRoundtrip": "ROOT_ACCEPTED",
+    "activeArchiveDecryptAndIsolatedVerification": "ROOT_AND_PEER_ACCEPTED",
+    "finalMetadata": "ROOT_ACCEPTED_METADATA_ONLY_26_OF_27",
+    "firstAutomaticCopies": "NOT_PROVEN",
+    "realCleanLinuxInstall": "NOT_RUN",
+    "reproducibleMarkerRunbookPublication": "SOURCE_INCLUDED_THIS_PACKET_ROOT_AND_PEER_ACCEPTED"
+  },
+  "manualActiveConfigurationArchive": {
+    "createAccepted": true,
+    "createOperationId": "fcdbdbb2b0c14b3e995c05ea4290226b",
+    "createFinishedAtUtc": "2026-11-08T16:29:35.955300+00:00",
+    "archive": "asa-school-config-01-20261108T162748Z-d0ba6e1f.tar.age",
+    "cipherBytes": 27613976,
+    "cipherSha256": "ccb146c2eebc68de08710f7954b54b7790eecc1011c14c05017f220b550db055",
+    "configurationFiles": 65,
+    "sqliteDatabases": 3,
+    "normalizedLogsAtCreation": {
+      "application": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 20,
+        "recordBytes": 20138069,
+        "records": 25033
+      },
+      "host": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 544,
+        "recordBytes": 178557171,
+        "records": 223525
+      }
+    },
+    "cloudFullUploadAndDownloadAccepted": true,
+    "cloudOperationId": "2ffc75b697cf4ba58b7b383704ab729f",
+    "cloudFinishedAtUtc": "2026-11-08T16:32:32.154169+00:00",
+    "remoteDirectory": "app:/School-VM100/Configuration-Backups",
+    "fullDownloadedCiphertextVerified": true,
+    "authenticatedDecryptAccepted": true,
+    "isolatedVerificationAccepted": true,
+    "restoreValidated": true,
+    "firstAutomaticCopyProven": false,
+    "nativeActivePreserved": true,
+    "collectorNonceUnchanged": true,
+    "applicationContainersUnchanged": 8,
+    "databaseBackupsChanged": false,
+    "gatewayOAuthContinuity": false,
+    "identityHelperInvokedDuringCloudStep": false,
+    "privateKeyInArgvOrNamedFileDuringCloudStep": false,
+    "coverageComplete": false,
+    "verificationOperationId": "school-native-config-verify-20261108t162748z-d0ba6e1f-f93a4f313840437d",
+    "vmReceiptObservedAtUtc": "2026-11-08T16:40:21.218349+00:00",
+    "d2ToolPid": 41112,
+    "d2ToolExitCode": 0,
+    "d2RuntimeSeconds": 14.54,
+    "isolatedVerification": {
+      "archive": "asa-school-config-01-20261108T162748Z-d0ba6e1f.tar.age",
+      "bytes": 27613976,
+      "ciphertextSha256": "ccb146c2eebc68de08710f7954b54b7790eecc1011c14c05017f220b550db055",
+      "coverageComplete": false,
+      "fileCount": 70,
+      "gatewayOAuthContinuity": false,
+      "livePathsWritten": false,
+      "manifestVerified": true,
+      "normalizedLogs": {
+        "application": {
+          "coverageComplete": false,
+          "crcAndPartSha256Verified": true,
+          "normalized": true,
+          "parts": 20,
+          "recordBytes": 20138069,
+          "records": 25033
+        },
+        "host": {
+          "coverageComplete": false,
+          "crcAndPartSha256Verified": true,
+          "normalized": true,
+          "parts": 544,
+          "recordBytes": 178557171,
+          "records": 223525
+        }
+      },
+      "permissionsManifestValidated": true,
+      "sqliteIntegrity": {
+        "agent.db": "ok",
+        "core.db": "ok",
+        "xpack.db": "ok"
+      },
+      "status": "CONFIG_CLOUD_DOWNLOAD_DECRYPT_ISOLATED_VERIFY_PASS",
+      "verifiedDirectory": "/var/backups/server-settings/school-recovery/verified/asa-school-config-01-20261108T162748Z-d0ba6e1f"
+    },
+    "restoredActiveConfiguration": {
+      "bothNativeBackupIniVerified": true,
+      "collectorBridgeVerified": true,
+      "collectorSourceRevision": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+      "generation": "4ccfa3f7ffe34b358523a02872e03f53",
+      "immutableWrapperVerified": true,
+      "livePathsWritten": false,
+      "owner": "1panel",
+      "phase": "ACTIVE",
+      "probeDispatchIds": {
+        "database": "58a6413555184c50845a2542b2d7bb6b",
+        "settings": "fde1ae44d902462381bb3bbc40f85632"
+      }
+    },
+    "bothExpectedNormalizedProbeMarkersVerified": true,
+    "livePathsWritten": false,
+    "privateKeyBoundary": "Owner removable identity -> existing SSH/QGA stdin -> transient sealed VM memfd -> age; descriptor closed, no persistent identity installation.",
+    "freshLinuxRebuildTested": false
+  },
+  "loggingObservationHistory": {
+    "priorMetadata151235": {
+      "operationId": "7e188e97ecbe4d6d85847bd7d82485d7",
+      "observedAtUtc": "2026-11-08T15:12:35.177Z",
+      "metadataOnly": true,
+      "sourceCounts": {
+        "incomplete": 2,
+        "ok": 25,
+        "unknown": 0
+      },
+      "requiredSources": 27,
+      "incomplete": [
+        {
+          "source": "database-events:ai_usage_journal",
+          "state": "pending",
+          "stale": false,
+          "checkedAgeSeconds": 3,
+          "lastOkAgeSeconds": 27,
+          "maxAgeSeconds": 300
+        },
+        {
+          "source": "docker-lifecycle",
+          "currentFresh": true,
+          "historicalPossibleCoverageGap": true
+        }
+      ],
+      "metricsLossMetadata": {
+        "droppedSamplesTotal": 0,
+        "expiredSamplesTotal": 0,
+        "liveSpoolNotRead": true,
+        "quotaDiscardedSamplesTotal": 0
+      },
+      "catalog": {
+        "activeStorageBytes": 174442962,
+        "maxBytes": 1073741824,
+        "retentionDays": 30
+      },
+      "retainedRecords": 221984,
+      "gzipSegments": 605,
+      "segmentContentsOrChecksumsReverified": false,
+      "healthState": "ok",
+      "sixContainersHealthy": true,
+      "containerRestarts": 0,
+      "dockerRotation": "json-file 10m x 5",
+      "supervisorMaxBytesConfigured": "2MB",
+      "supervisorBackupCountsExplicit": false,
+      "supervisorDefaultsResolved": false,
+      "priorAuthenticatedObservation": {
+        "coverageComplete": false,
+        "incomplete": 3,
+        "observedAt": "2026-11-08T14:18:11.884118+00:00",
+        "ok": 24,
+        "operationId": "6fb61a28ba5143d89e98bd85690ddf11",
+        "repeated": false,
+        "requiredSources": 27
+      },
+      "authenticatedCoverageReevaluated": false,
+      "nativeWriterIntegrityReevaluated": false,
+      "newFullMetadataObservationAfterActivation": false
+    },
+    "priorAuthenticatedObservation": {
+      "coverageComplete": false,
+      "incomplete": 3,
+      "observedAt": "2026-11-08T14:18:11.884118+00:00",
+      "ok": 24,
+      "operationId": "6fb61a28ba5143d89e98bd85690ddf11",
+      "repeated": false,
+      "requiredSources": 27
+    },
+    "observationsAreSeparateAndDated": true
+  },
+  "finalLoggingMetadata": {
+    "operationId": "7c6ef78aab3c4dfea6cfb8753c59710b",
+    "observedAtUtc": "2026-11-08T16:41:02.602Z",
+    "completedAtUtc": "2026-11-08T16:41:02.826536+00:00",
+    "rootAcceptedAtUtc": "2026-11-08T16:41:32.753144+00:00",
+    "metadataOnly": true,
+    "requiredSources": 27,
+    "sourceStateCounts": {
+      "incomplete": 1,
+      "ok": 26,
+      "unknown": 0
+    },
+    "remainingIncomplete": [
+      "docker-lifecycle"
+    ],
+    "currentDockerFresh": true,
+    "currentDockerPossibleGapFlag": true,
+    "aiUsageJournal": {
+      "source": "database-events:ai_usage_journal",
+      "state": "ok",
+      "reason": "verified",
+      "collectionState": "ok",
+      "checkedAgeSeconds": 20,
+      "lastOkAgeSeconds": 20,
+      "throughAgeSeconds": 20,
+      "maxAgeSeconds": 300,
+      "requireThrough": true,
+      "stale": false,
+      "possibleCoverageGap": null,
+      "incomplete": null,
+      "applicable": true,
+      "detailClass": "typed_ai_ledger_observed"
+    },
+    "aiImageJobs": {
+      "source": "database-events:ai_image_jobs",
+      "state": "ok",
+      "reason": "verified",
+      "collectionState": "ok",
+      "checkedAgeSeconds": 20,
+      "lastOkAgeSeconds": 20,
+      "throughAgeSeconds": 20,
+      "maxAgeSeconds": 300,
+      "requireThrough": true,
+      "stale": false,
+      "possibleCoverageGap": null,
+      "incomplete": null,
+      "applicable": true,
+      "detailClass": "typed_ai_ledger_observed"
+    },
+    "metricsLossMetadata": {
+      "droppedSamplesTotal": 0,
+      "expiredSamplesTotal": 0,
+      "liveSpoolNotRead": true,
+      "quotaDiscardedSamplesTotal": 0
+    },
+    "nativeCollector": {
+      "canonicalCommandVerified": true,
+      "checkedAt": "2026-11-08T16:40:50.001Z",
+      "heartbeatAgeSeconds": 11.068,
+      "heartbeatWithin90Seconds": true,
+      "manager": "1panel-supervisor",
+      "nativeManagementApiQueried": false,
+      "noncePresent": true,
+      "pid": 2770698,
+      "registrationDigestVerified": true,
+      "rootOwned": true,
+      "sourceRevision": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+      "startedAt": "2026-11-08T14:08:08.106Z"
+    },
+    "health": {
+      "ageSeconds": 19,
+      "checkedAt": "2026-11-08T16:40:43.260Z",
+      "currentRequiredErrorSources": 0,
+      "durationMs": 4890,
+      "lastSuccessAgeSeconds": 19,
+      "lastSuccessAt": "2026-11-08T16:40:43.260Z",
+      "otherApplicableErrorSources": 0,
+      "state": "ok"
+    },
+    "segments": {
+      "byteSumMatchesCatalog": true,
+      "bytes": 18280180,
+      "checksumsReverified": false,
+      "contentsRead": false,
+      "count": 611,
+      "firstEventAt": "2026-10-03T05:31:10.950Z",
+      "gzipCount": 611,
+      "lastEventAt": "2026-11-08T16:40:37.485Z",
+      "plainCount": 0,
+      "rawBytes": 178861084,
+      "retainedRecordCount": 223791,
+      "schema2Count": 611,
+      "segmentsDeclaringErrorLevel": 103,
+      "segmentsDeclaringWarnLevel": 204
+    },
+    "catalog": {
+      "activeStorageBytes": 174790921,
+      "activeStorageWithinQuota": true,
+      "ageSeconds": 19,
+      "collectedAt": "2026-11-08T16:40:43.231Z",
+      "maxBytes": 1073741824,
+      "metadataComplete": true,
+      "physicalStorageIncludesRetiredOverlap": true,
+      "rawBytes": 178861084,
+      "retentionDays": 30,
+      "retiredBytes": 341614,
+      "segmentBytes": 18280180,
+      "storageBytes": 175132535,
+      "trimmed": false
+    },
+    "historyAuditMetadata": {
+      "bytesNotReaudited": true,
+      "checked": 610,
+      "incomplete": false,
+      "lastCompletedAgeSeconds": 20,
+      "lastCompletedAt": "2026-11-08T16:40:43.040Z",
+      "persistedState": "complete",
+      "reason": "recent_retained_integrity_verified",
+      "state": "ok",
+      "total": 610
+    },
+    "historicDockerGapObservation": {
+      "countRereadNow": false,
+      "historyReclassified": false,
+      "lostEventCount": null,
+      "observedAt": "2026-11-08T14:50:02.370447+00:00",
+      "operationId": "e947d2d38f4540e6a7611fbcfc8348ac",
+      "possibleWindows": 16
+    },
+    "collectionConfig": {
+      "intervalSeconds": 20,
+      "maxBytes": 1073741824,
+      "retentionDays": 30
+    },
+    "dockerRotation": {
+      "allSixMatchReviewedCompose": true,
+      "columns": [
+        "service",
+        "health",
+        "restarts",
+        "driver",
+        "maxSize",
+        "maxFile",
+        "matchesReviewedCompose"
+      ],
+      "fileContentsRead": false,
+      "rows": [
+        [
+          "api",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ],
+        [
+          "minio",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ],
+        [
+          "postgres",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ],
+        [
+          "scratch",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ],
+        [
+          "search",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ],
+        [
+          "web",
+          "healthy",
+          0,
+          "json-file",
+          "10m",
+          5,
+          true
+        ]
+      ]
+    },
+    "supervisorRotation": {
+      "allRotationFieldsExplicit": false,
+      "autorestartConfigured": true,
+      "autostartConfigured": true,
+      "defaultsNotInFileResolved": false,
+      "selectedLogPathsVerified": true,
+      "stderrBackupsConfigured": null,
+      "stderrMaxBytesConfigured": "2MB",
+      "stdoutBackupsConfigured": null,
+      "stdoutMaxBytesConfigured": "2MB"
+    },
+    "crossFileAtomicSnapshot": false,
+    "newByteAuditPerformed": false,
+    "authenticatedCoverageReevaluated": false,
+    "nativeIntegrityReevaluated": false,
+    "nativeWriterCountersEvaluated": false,
+    "globalCoverageComplete": false
+  },
+  "scopeBoundaries": {
+    "targetIsExistingSchoolInstallation": true,
+    "nativeStageIsGenericLinuxBootstrap": false,
+    "asaAndCloudComposeExternalVisible": true,
+    "asaComposeNativePanelCreatedOrAdopted": false,
+    "gatewayOAuthContinuityAfterDisasterRestore": false,
+    "schoolBrowserClassAndFinalH04SyncNotAcceptedByThisCheckpoint": true
+  },
+  "reproducibleMarkerAcceptance": {
+    "status": "EXACT_SOURCE_AND_RUNBOOK_INCLUDED_THIS_PACKET",
+    "sourceManifestSha256": "323faaf98d4313ac1f86e6ce69cf180d17d2da4992df431be62d8858f4cc5fb6",
+    "rootAcceptanceSha256": "314a387cf464eb8ea8ab5921b629b289a28a990fa689b587f3f1bf8700837d27",
+    "peerAcceptanceSha256": "495d8afe2950283918714512a6d81dbd9999f2496c3a5a4ae850b7ec1def283b",
+    "runbook": "docs/59-SCHOOL-NATIVE-MARKER-ACCEPTANCE.md",
+    "scripts": {
+      "scripts/school-native-marker-acceptance.py": {
+        "bytes": 17800,
+        "gitBlob": "b0c7198ada7acdb7b9569e3aa40e9c18f9423172",
+        "sha256": "8057501ff3aecf8ec99255bd68c6762f5d600445b4223163d2e7a1a7f14cff80"
+      },
+      "scripts/school-native-marker-receipt-binding.py": {
+        "bytes": 7469,
+        "gitBlob": "2565a46d36aaecdfa63887f03fc5d97c06cc084c",
+        "sha256": "281d3349e15bcc17e1c6ac8a608c0fdbd2b8f02e00ff7695559064e7e6695a62"
+      }
+    },
+    "tests": {
+      "acceptedPassed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "sourceCopiedByteExactly": true,
+      "additionalRuntimeRunDuringIntegration": false
+    },
+    "scope": {
+      "phase": "STAGED",
+      "owner": "legacy",
+      "beforeActivate": true,
+      "activeReprobeAccepted": false,
+      "freshOriginalOwnerNoneAccepted": false,
+      "cleanLinuxRehearsal": "NOT_RUN"
+    },
+    "runtimeDependencyOnScratch": false,
+    "gitPublicationClaimedBeforeMerge": false
+  }
+}

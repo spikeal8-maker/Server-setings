@@ -1,5 +1,59 @@
 # 56. Школьные копии: плановые задачи и процессы в 1Panel
 
+## Принятое состояние — ACTIVE / native 1Panel, 08.11.2026 19:41:02 МСК
+
+ID 1/2 сохранены, обе задачи Enable, owner 1panel. Старые backup timers
+отключены и неактивны; DB выполняется по расписанию 03:20, конфигурация — 04:00
+Europe/Moscow. Следующие запуски 09.11; display Etc/UTC и пять preview отдельно
+приняты root. Settings57ca/wrapper4b/generation4ccf установлены и проверены.
+
+Исходный fa96 STOP остаётся историей. После закрытого repair c56e/472c новые
+DB/settings-пробы дали record2/record3 с уникальными terminal markers. Их доставка
+native → normalized/published → HOST ZIP, CRC/part SHA, application ZIP и cleanup
+приняты. Activation f967 и отдельный ACTIVE status d76b прошли; collector2770698,
+8 app identities и index816721 сохранены. Пробы и activation реального backup
+не выполняли; последующая ручная ACTIVE-копия проверялась отдельной цепочкой.
+
+Новый архив d0ba6e1f — 27 613 976 байт, ciphertext SHA256 `ccb146c2…` — прошёл
+CREATE fcdb, полный Яндекс upload/download 2ffc и authenticated decrypt/isolated
+verify через D2 PID41112. Приняты 70 payload files+manifest, permissions manifest,
+3 SQLite integrity OK, HOST ZIP544/223525 и application ZIP20/25033 с CRC/SHA.
+Восстановленные ACTIVE state, оба native INI, wrapper, collector bridge и оба
+ожидаемых probe markers проверены. Live paths не записывались.
+[Полный recovery receipt и хеш](../snapshots/2026-11-08/school-native-logging-final-checkpoint-20261108T164102Z.json).
+
+### Stage не является bootstrap чистой Linux-системы
+
+Этот маршрут рассчитан на уже подготовленный школьный host `asa-school-01`,
+project `asa-lab-school` и согласованный instance. До stage нужны работающие ASA,
+1Panel/Supervisor и доступ к локальному API, установленные DB/settings runners,
+репозиторий `/srv/Server-setings` с их транспортами, Python/age, настроенный Яндекс
+app-folder, защищённые каталоги копий и внешняя private age identity для recovery.
+Stage не создаёт эти зависимости и не является доказательством полной установки
+на произвольный Linux. Режим fresh stage не заменяет подготовку host/instance.
+
+Связанные опубликованные инструкции: [конфигурационные копии и транспорт](54-SCHOOL-MANAGED-CONFIGURATION-BACKUPS.md),
+[collector и его native prerequisites](55-SCHOOL-1PANEL-LOGGING.md),
+[fresh native snapshot](57-SCHOOL-FRESH-NATIVE-SNAPSHOT.md),
+[закрытый STAGED repair](58-SCHOOL-STAGED-SCHEDULE-REPAIR.md).
+Проверка native marker→normalized→HOST ZIP должна приниматься **до activate**.
+В этом пакете включена [полная процедура docs59](59-SCHOOL-NATIVE-MARKER-ACCEPTANCE.md)
+и два точных CLI, которыми получен принятый marker/ZIP proof. Они не зависят от
+нашей scratch-среды и сохраняют STAGED/legacy scope; повторный запуск на ACTIVE
+и сертификация fresh/originalOwner=none ими не разрешаются.
+
+Первая автоматическая native копия NOT_PROVEN, реальная чистая Linux-установка
+NOT_RUN. Новая logging metadata26/27 показывает только исторический Docker gap;
+полный authenticated coverage не повторялся, global coverage=false. После
+аварийного восстановления требуется новая ChatGPT/MCP/OAuth регистрация;
+сохранность прежних OAuth-сессий не доказана. Общий H04/domain cutover не выполнен.
+
+Ниже сохранена опубликованная инструкция PR86 вместе с alias PR85 и worker-output
+diagnosis; её датированные исходные ограничения не переписывают текущую приёмку.
+
+## Сохранённая опубликованная инструкция и исходные границы
+
+
 ## Статус этой редакции
 
 PANEL-CRON-01 — подготовленный код и локальные проверки. Эта инструкция сама по
@@ -55,6 +109,16 @@ runner и внешний предел 1900 секунд с 45 секундами
 
 ## Порядок воспроизведения
 
+Этот порядок начинается с подготовленной или восстановленной школьной ASA
+installation. Collector принимается по [docs55](55-SCHOOL-1PANEL-LOGGING.md),
+затем native backup clocks проходят stage и обе пробы. До activate выполняется
+[полный опубликованный marker → normalized → HOST ZIP proof из docs59](59-SCHOOL-NATIVE-MARKER-ACCEPTANCE.md).
+Дальнейшая конфигурационная копия/restore — [docs54](54-SCHOOL-MANAGED-CONFIGURATION-BACKUPS.md),
+условия fresh snapshot — [docs57](57-SCHOOL-FRESH-NATIVE-SNAPSHOT.md).
+`stage --fresh` не подготавливает данные, secrets, директории и runners;
+чистый Linux rehearsal остаётся NOT_RUN. Проверяющие CLI docs59 сохраняют
+принятый STAGED/legacy scope; fresh/originalOwner=none ими не сертифицируется.
+
 Сначала применяется и принимается отдельный срез управления сборщиком через
 1Panel Supervisor. Служба Supervisor, её конфигурация и доступ к локальному API
 должны быть готовы; этот установщик не инициализирует общий Supervisor и не
@@ -83,6 +147,14 @@ sudo python3 -B scripts/school-1panel-backup-schedules.py stage --apply
 sudo python3 -B scripts/school-1panel-backup-schedules.py probe --kind database --apply
 sudo python3 -B scripts/school-1panel-backup-schedules.py probe --kind settings --apply
 sudo python3 -B scripts/school-1panel-backup-schedules.py check
+```
+
+Здесь остановиться до [приёмки docs59](59-SCHOOL-NATIVE-MARKER-ACCEPTANCE.md).
+Если canonical probes уже сохранены, их повторный вызов читает существующий
+успех; новый dispatch для обхода STOP не создаётся. После принятого marker/ZIP
+proof и независимого подтверждения timezone preview выполнить отдельный шаг:
+
+```bash
 sudo python3 -B scripts/school-1panel-backup-schedules.py activate --apply
 sudo python3 -B scripts/school-1panel-backup-schedules.py check
 ```
@@ -117,7 +189,7 @@ Worker сам печатает поток progress/result/error. Общий CLI 
 
 Уже установленный immutable wrapper нельзя исправлять на месте или заменять
 ручным изменением `state.json`. Повторный `stage` с другим SHA не является
-обновлением старой generation. Переход требует отдельной опубликованной процедуры:
+обновлением старой generation. Переход выполняется по [опубликованной процедуре docs58](58-SCHOOL-STAGED-SCHEDULE-REPAIR.md):
 выключенные native задачи, прежний владелец часов, сохранённые old state/probe/
 dispatch/run и native history, новая generation и две новые закрытые пробы.
 Исторические двойные строки и первый STOP сохраняются. До фактической приёмки
