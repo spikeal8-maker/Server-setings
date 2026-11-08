@@ -1,12 +1,148 @@
 # ASA Lab School VM100 — Яндекс Диск, восстановление и быстрые команды 1Panel
 
-Текущая запись: **08.11.2026 02:34:01 МСК / 07.11.2026 23:34:01 UTC**.
+Текущая запись: **08.11.2026 03:23:12 МСК / 08.11.2026 00:23:12 UTC**.
 Сервер: `asa-school-01`, Proxmox VM100, установка `asa-school-vm100`,
 Compose-проект `asa-lab-school`. Прямой MCP из ChatGPT принят
 ([доступ и исходники](53-SCHOOL-HOST-ADMIN-MCP.md)). Команды ниже предназначены
 для терминала **хоста Ubuntu в 1Panel**, не для Docker-контейнера.
 
-## X-PREP-02B и 02D: восстановленные копии и свежий архив H04
+## Текущее состояние X — 02C, 02E, наблюдение 03 и подключение receipt 03A приняты
+
+**Рабочий школьный X обновлён до `3e8713476cafedda3e24a39665458e833efd7c22`,
+schema 307.** В 02C все шесть компонентов — API, web, Scratch, search,
+PostgreSQL и MinIO — healthy. Это приёмка обновления приложения;
+полная готовность к переносу production ещё не подтверждена.
+
+| Часть | Принятый результат | Открытая граница |
+| --- | --- | --- |
+| Рабочий X, 02C | Официальный deployment digest `sha256:7ce56323d2149ba12788b61af6d7f341ac2a8934a624074c0175be483252a4c5`, revision 3e871347, schema 307; шесть healthy | Пользовательские сценарии, нагрузка, VPN/ИИ и production cutover не приняты |
+| Сохранность при обновлении | PostgreSQL container/image/config hash неизменны в пяти наблюдениях; fingerprints проектов/черновиков, prior migration ledger, private.env, instance и volumes сохранены; добавлены 7 миграций | Откат только приложения 300 поверх schema 307 не квалифицирован и не выполнялся |
+| Свежий H04 `eaa56899/0b090…`, 02E | **PostgreSQL restore PASS** в новой `asa_xprep02e_20261108t000534z_c632ca76_test`; три миграции 304 → 307, повтор — 0; данные и ACL/RLS 240 прежних таблиц и ledger сохранены | Это тестовая БД; live H04 import и MinIO runtime restore свежего набора **NOT_RUN** |
+| Журналы, наблюдение 03 | Collector running; 26 применимых обязательных источников state=ok и свежие; host history audit **494/494 complete**; API UID1000 читает catalog/health | `docker-lifecycle.possibleCoverageGap=true`, `coverageComplete=false`; authenticated API `requiredCoverage=NOT_EVALUATED` |
+| Ротация и PostgreSQL logging | У шести работающих контейнеров `json-file`, `max-size=10m`, `max-file=5`; проверенный logging contract PostgreSQL совпал | Native live counters/flush и независимый побайтный аудит всех сегментов не выполнялись |
+| Ночной backup и его receipt, 03A | Автоматический backup завершён 03:21:20 МСК, `cloud_sha256`; в 03:23 принят единственный config field `operationalSources.backupSuccessReceipt`, collector прочитал новый receipt (`externalReceiptReadByCollector=true`) | Runtime/schema внутри нового облачного архива и его decrypt/restore отдельно не проверены; полнота журналов не заявляется |
+
+### 02C — принято обновление приложения
+
+Операция `c52e4c9ad6574388bc4254701fb9c679` завершилась
+**08.11.2026 03:02:56 МСК / 00:02:56 UTC**, exit0, **76.828 секунды**;
+root записал независимое принятие в **03:04:29 МСК**.
+Установка остаётся `asa-school-vm100` / `asa-lab-school` /
+`fc0ba60fe1d946bba1694d73557cc11f`, automatic updates=false.
+Проверены установленный release и canonical success receipt; pending,
+maintenance, failure и selection markers отсутствуют.
+
+Перед обновлением создана локальная копия
+`/srv/asa-lab/backups/20261108T000200Z-32aed71e` прежнего
+`cdb77ed6` / schema 300, canonical verify PASS; manifest SHA256
+`a51340eb05eacbfefdb71a43b14731e140d41cd028a7ee8c5a4d1faed4eb018f`.
+Эта локальная квитанция не заявляется новой проверенной облачной копией.
+
+История при SWITCH принята как `PASS_WITH_PROVEN_CANONICAL_RETIREMENT`:
+5950 прежних application files и 566 host files сохранились; 125 application
+files штатно истекли за неизменённой retention 7 дней, 12 host files удалены
+после прежних canonical receipts и grace 600 секунд. Добавлены соответственно
+2 и 20 новых файлов. Полная ретроспективная доказуемость всех 64 отсутствовавших
+host files более раннего SELECT не заявляется. Этот предел сохранён в
+[первичном снимке 02C](../snapshots/2026-11-08/school-x-prep02c-accepted-20261108.json).
+
+### 02E — свежая копия H04 восстановлена только в тестовую БД
+
+Операция `43c423bd27504fbab5214b85a6b8d709` завершилась
+**08.11.2026 03:06:04 МСК / 00:06:04 UTC**, success/exit0, **30.06 секунды**.
+Источник — архив `eaa56899`, manifest
+`0b090dfa30d8b4ef6bd70703f59c6d546278148f218cf4be7e4e90ab61880f34`,
+H04 instance `5ceaf3d6a2e4438086c54358fc9e175d`,
+revision `98d7fbb4` / schema 304.
+
+В новой `asa_xprep02e_20261108t000534z_c632ca76_test` прошли restore и
+миграции `0305…0307`; повтор не применил ни одной миграции. Сохранены данные,
+ACL/RLS всех 240 прежних таблиц и прежний ledger; новых таблиц нет.
+Seed, provision runtime role и global/role SQL не вызывались.
+Тестовая БД и приватные квитанции оставлены для проверки.
+Рабочий X 3e871347/schema307 не изменялся этим этапом.
+MinIO restore свежего архива, sanitization source sessions/integrations/jobs
+и импорт в live X не выполнялись.
+[Первичный снимок 02E](../snapshots/2026-11-08/school-x-prep02e-restore-migrations-20261108T000604Z.json) сохраняет исходное
+`project="[REDACTED]"` без реконструкции.
+
+### 03 — наблюдение за журналами в 03:07 МСК
+
+Прямая read-only операция `489c8727910d4c7ea398460cc53b0dc8`
+успешно завершилась **08.11.2026 03:07:20 МСК / 00:07:20 UTC**.
+Процесс коллектора и пять исходных файлов соответствовали установленной версии;
+26 применимых required sources были свежими и state=ok. Аудит 494/494 завершён,
+но это не полная проверка всей истории или authenticated API requiredCoverage.
+У `docker-lifecycle` сохранён `possibleCoverageGap=true`.
+
+Указатель на школьную backup receipt в этом наблюдении отсутствовал.
+Nightly timer был active/enabled с ближайшим запуском 03:20 МСК; прежняя
+manual/cloud_sha256 receipt сама по себе не доказывает runtime внутри архива.
+Новые backup/restore и authenticated admin status не выполнялись этой
+операцией. [Снимок наблюдения 03](../snapshots/2026-11-08/actual-logging-observation-20261108T000720Z.json)
+сохраняет все исходные false/NOT_EVALUATED flags. Отсутствовавший в 03:07
+указатель подключён отдельным принятым 03A ниже; остальные пределы наблюдения
+этим не закрываются.
+
+### 03A — ночная копия и подключение её квитанции в 03:23 МСК
+
+Штатный автоматический backup начался **08.11.2026 03:20:25 МСК** и
+завершился **03:21:20 МСК**, service result=success, exit0.
+Новый receipt от `2026-11-08T00:21:20.165Z` подтверждает
+`trigger=automatic`, `verification=cloud_sha256`,
+**231337304 байта**, cipher SHA256
+`1787b730459a6328e2278ab814c8a9d081421f2d0011478631fab22dbc5a4f95`.
+Операция prerequisite `c1ea7b2292bb465ebb3a44c08cbc2fa1`
+прочитала результат в **03:22:41 МСК**, success/exit0, **0.926 секунды**.
+После backup приложение ready, revision 3e871347/schema307.
+**Это не отдельная проверка версии внутри архива:** его age-аутентификация,
+canonical manifest и восстановление новым этапом ещё не проверены.
+Timer остался активным; ближайший запуск — **09.11.2026 03:20 МСК**.
+Ручной backup не запускался, расписание не менялось.
+
+Операция apply `38fefec475f84a7a9822d3b44658ccfc`
+завершилась **08.11.2026 03:23:12 МСК / 00:23:12 UTC**,
+success/exit0, **6.261 секунды**. Контролёр независимо принял durable result.
+Единственное смысловое изменение конфигурации —
+`operationalSources.backupSuccessReceipt`.
+SHA256 конфигурации изменился с
+`ca02ff3022f050f1aa1f48b08b14b9194792dc2a992615e0fdc1bd7e2ba25ce5` на
+`45336c778bff304846a141ab48ad74f5ca7cf99fc629202cf4415ca588e0d066`.
+Исходные байты сохранены приватно в
+`/srv/asa-lab/.asa/diagnostics/private/xprep03a-log-collector.before.json`;
+содержимое приватной конфигурации в Git не публикуется.
+
+Выполнен один перезапуск штатного коллектора; новый process nonce,
+свежий cycle=ok и backup source=ok подтверждены.
+`externalReceiptReadByCollector=true`: прочитан именно новый automatic receipt
+с указанными размером и SHA256. Revision/schema остались 3e871347/307.
+`dockerLifecycleGapBefore=true` и `dockerLifecycleGapAfter=true`;
+`fullCoverage=NOT_CLAIMED`. История не сбрасывалась, retention не менялась,
+full reconcile и reader sentinel не применялись; rollback не выполнялся.
+Authenticated `requiredCoverage` остаётся `NOT_EVALUATED`.
+
+Оба первичных снимка сохранены побайтно:
+[scheduled prerequisite](../snapshots/2026-11-08/scheduled-prerequisite-20261108T002241Z.json) и
+[actual apply](../snapshots/2026-11-08/actual-apply-20261108T002312Z.json).
+Исторический снимок 03 остаётся свидетельством состояния **до** этого изменения.
+
+### Следующие проверки после 02C/02E/03/03A
+
+Для нового автоматического облачного архива отдельно подтвердить его runtime
+и schema, age-аутентификацию, canonical manifest и восстановление PostgreSQL/MinIO.
+Для свежего H04 нужны собственный MinIO restore/readback и безопасная
+подготовка данных для изолированного импорта. Далее — authenticated logging
+coverage, пользовательские сценарии и нагрузка. Финальная синхронизация, VPN/ИИ,
+USB ACL и перенос production-домена остаются отдельными незакрытыми пунктами.
+Рабочую schema 307 нельзя считать основанием для непроверенного отката
+одного приложения на schema 300.
+
+## История X-PREP-02B/02D — 08.11.2026 02:34:01 МСК
+
+Ниже сохранён более ранний срез. Его рабочий `cdb77ed6/schema300`,
+непринятый 02C и PostgreSQL NOT_RUN для свежего H04 относились к 02:34.
+Позднейшие 02C и 02E приняты выше; свежий MinIO restore остаётся NOT_RUN.
+
 
 **Принятый рабочий X остаётся на `cdb77ed6` / schema 300.**
 Результат X-PREP-02C в этом срезе ещё не принят; обновление рабочей версии
@@ -82,7 +218,7 @@ container IDs/images/mounts/env сохранены.
 **Успех 02B для старого `14a7bd82/cbc1…` не переносится на новый
 `eaa56899/0b090…`: это другой архив с другим набором данных.**
 
-### Следующие проверки после 02B/02D
+### План после 02B/02D на 02:34 МСК — история
 
 Свежему `eaa56899` нужны собственные изолированные PostgreSQL restore,
 проверка миграций и MinIO restore/readback. Запуск сервера целевого MinIO image
