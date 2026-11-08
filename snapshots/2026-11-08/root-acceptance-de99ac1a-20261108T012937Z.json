@@ -1,0 +1,53 @@
+{
+  "acceptedEvidence": [
+    {
+      "bytes": 4063,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep02f-hygiene/repair-v2/operation_de99ac1a419d4d43bc42d41d74f9eac3.json",
+      "sha256": "08b06c1357736e35ebcfdf1c74ba429d171fed361f97b024eb260a1dec845a21"
+    },
+    {
+      "bytes": 4306,
+      "originalPendingAcceptanceBytesPreserved": true,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep02f-hygiene/repair-v2/school-x-prep02f-hygiene-repaired-20261108T012529Z.json",
+      "sha256": "322e892c13ae11d4b2d6c8a8ebeca9b8c39fb04a0d8bf42c8668a6edd2f09eac"
+    }
+  ],
+  "annotationType": "SEPARATE_IMMUTABLE_ROOT_ACCEPTANCE",
+  "annotationVmActions": "NONE",
+  "migrationReceiptHashDistinction": {
+    "normalizedJsonSha256": "f84d44795e45d77d74be00af0aaca262573f9c67ad7a4f4e396d0f69d5ca1cdb",
+    "rawPrivateFileSha256": "52d833c0b3969dadd23f181f8805dc932b66bb321ed3a271c5bb4d8aceed0e2c",
+    "reviewResult": "Expected serialization distinction; no discrepancy"
+  },
+  "operationId": "de99ac1a419d4d43bc42d41d74f9eac3",
+  "package": "X-PREP-02F-HYGIENE-REPAIR-V2",
+  "reviewedCode": {
+    "launcherSha256": "c4b3f451fda193e5d420c65939ef2a39918b06736445064b22a5f9ae149a3caf",
+    "sqlSha256": "6ef5499c6b26953f9adf4d7cce4385baac00155af6e4304a7b13d67a7a550110"
+  },
+  "rootAcceptance": {
+    "method": "Independent read of complete native durable operation result",
+    "reviewedMoscow": "2026-11-08T04:29:37+03:00",
+    "reviewedUtc": "2026-11-08T01:29:37Z",
+    "reviewer": "/root",
+    "status": "ACCEPTED"
+  },
+  "scope": "Existing candidate hygiene only; no live import, restore, migration, MinIO import or QA fixture in this repair.",
+  "verified": {
+    "candidateDatabase": "asa_xprep02f_eaa56899_candidate_test",
+    "cleanBaselineMatched": true,
+    "databaseOid": "117178",
+    "durationSeconds": 49.354,
+    "exitCode": 0,
+    "expectedWholeRowTransformMatched": true,
+    "hygieneTransactionState": "COMMITTED_WITH_RECEIPT",
+    "liveBaselinePreserved": true,
+    "nativeStatus": "success",
+    "outputTruncated": false,
+    "retained02eBaselinePreserved": true,
+    "schema": 307,
+    "stderrBytes": 0,
+    "unchangedTablesOutsideAllowlist": 228,
+    "verifiedTableCount": 241
+  }
+}

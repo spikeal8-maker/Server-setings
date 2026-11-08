@@ -1,0 +1,153 @@
+{
+  "receipt_path": "/var/lib/asa-restore-rehearsal/xprep02g-accepted-6f1df9c72b674991bcc96abfbf54ce18.json",
+  "status": "TWO_ISOLATED_TARGET_RECOVERY_SETS_VERIFIED",
+  "at": "2026-11-08T01:23:16.139421+00:00",
+  "hostname": "asa-school-01",
+  "target_school_instance": "fc0ba60fe1d946bba1694d73557cc11f",
+  "canonical_source_commit": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "canonical_source_files_verified": 54,
+  "primitives_source_commit": "40ca6116a55f4426851d6857574bfa4d2dc57596",
+  "primitives_blob": "974b266b1868aa2de00aa04b0a0f4172496ce39e",
+  "primitives_sha256": "bfa446321759c68626e17260dd7dccb7c1740770140feb1760bdfccdc6bd56c3",
+  "snapshot_helper_sha256": "db574c5b4594b72c8ed8efa6b0e1046596d8adc34a4d5e061bc3d23da083e79c",
+  "sources": [
+    {
+      "source": "school307",
+      "source_instance": "fc0ba60fe1d946bba1694d73557cc11f",
+      "source_manifest_sha256": "992609bc1fabd9c6df155d1cb6bcde88f095185216cb7aeb20d31e1f6f75b277",
+      "source_archive_sha256": "1787b730459a6328e2278ab814c8a9d081421f2d0011478631fab22dbc5a4f95",
+      "source_path": "/var/backups/asa-school-recovery/unpacked/school__asa-school-01-20261108T002056Z-890ab35c/20261108T002028Z-6ad21018",
+      "source_revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+      "source_schema": 307,
+      "source_minio_image_id": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "restored_postgres_image_id": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+      "restored_minio_image_id": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "target_minio_reference": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "target_server_started": true,
+      "target_binaries_verified": true,
+      "target_uid": 1000,
+      "target_gid": 1000,
+      "target_data_mode": "0755",
+      "actual_school_s3_credentials_match_source_and_runtime": true,
+      "postgres_restored": true,
+      "acl_rls_verified": true,
+      "counts": {
+        "accounts": 96,
+        "projects": 2214,
+        "schema": 307
+      },
+      "object_files_sha256_verified_before_server_start": 2324,
+      "object_bytes": 187158389,
+      "s3_buckets_listed": 1,
+      "s3_objects_listed": 2112,
+      "s3_sample_gets": 1,
+      "restored_bucket_metadata": {
+        "notificationDestinations": 0,
+        "replicationRules": 0,
+        "replicationElements": 0,
+        "versioningEnabledBuckets": 0,
+        "versioningSuspendedBuckets": 0
+      },
+      "notifications_and_replication_configurations_absent": true,
+      "source_unchanged": true,
+      "application_journeys_verified": false,
+      "source_row_fingerprint_equality": false,
+      "migrations_run": false,
+      "removed_owned_resources": {
+        "container_ids": [
+          "c2ef97d4a99ecb166b3288d1872db20f893f4378e68f2c569a3ccf05183073b7",
+          "fac66d292446c053e8c87c6e55431510d1bcf6b6491e7d6f25ac5c9dbe0d7d76",
+          "c5013fcbdf86cd7af017f6363020962c2cee75ab7d75ed2b324ce89ec91a8ff7"
+        ],
+        "volume_names": [
+          "asa-rehearsal-pg-24cc52f8b3344b68815994d7baae344d",
+          "asa-rehearsal-objects-24cc52f8b3344b68815994d7baae344d"
+        ],
+        "nonce": "24cc52f8b3344b68815994d7baae344d"
+      },
+      "isolated_resources_removed": true
+    },
+    {
+      "source": "h04fresh",
+      "source_instance": "5ceaf3d6a2e4438086c54358fc9e175d",
+      "source_manifest_sha256": "0b090dfa30d8b4ef6bd70703f59c6d546278148f218cf4be7e4e90ab61880f34",
+      "source_archive_sha256": "da849fe4b3641c884da8177f625e036f6112db022b5c4cf26ca20ea9486aa564",
+      "source_path": "/var/backups/asa-school-recovery/unpacked/legacy__asa-lab-20261107T231505Z-eaa56899/20261107T231505Z-eaa56899",
+      "source_revision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+      "source_schema": 304,
+      "source_minio_image_id": "sha256:b92bfffe5a40c7fe3b7a119d040ad70b172f76d8b93b97b3834c7d4318953207",
+      "restored_postgres_image_id": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+      "restored_minio_image_id": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "target_minio_reference": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+      "target_server_started": true,
+      "target_binaries_verified": true,
+      "target_uid": 1000,
+      "target_gid": 1000,
+      "target_data_mode": "0755",
+      "actual_school_s3_credentials_match_source_and_runtime": true,
+      "postgres_restored": true,
+      "acl_rls_verified": true,
+      "counts": {
+        "accounts": 101,
+        "projects": 2351,
+        "schema": 304
+      },
+      "object_files_sha256_verified_before_server_start": 3221,
+      "object_bytes": 216567605,
+      "s3_buckets_listed": 1,
+      "s3_objects_listed": 3001,
+      "s3_sample_gets": 1,
+      "restored_bucket_metadata": {
+        "notificationDestinations": 0,
+        "replicationRules": 0,
+        "replicationElements": 0,
+        "versioningEnabledBuckets": 0,
+        "versioningSuspendedBuckets": 0
+      },
+      "notifications_and_replication_configurations_absent": true,
+      "source_unchanged": true,
+      "application_journeys_verified": false,
+      "source_row_fingerprint_equality": false,
+      "migrations_run": false,
+      "removed_owned_resources": {
+        "container_ids": [
+          "e1124b0103f92da8aa0682932abd691e6c6e69b8f2c10cdef2454571cdd92a29",
+          "c1514f9a5ec95418e04edcda8850a9ab88c1dd1972298e6009d86bf6046c4671",
+          "f8a609a942ecb91c5392f74c25aa779b859a4e4b71bb165aba65a3b776201a07"
+        ],
+        "volume_names": [
+          "asa-rehearsal-pg-46f8a1eaafd1447b99316a6a6feef5d3",
+          "asa-rehearsal-objects-46f8a1eaafd1447b99316a6a6feef5d3"
+        ],
+        "nonce": "46f8a1eaafd1447b99316a6a6feef5d3"
+      },
+      "isolated_resources_removed": true
+    }
+  ],
+  "source_receipts": [
+    {
+      "source": "school307",
+      "path": "/var/lib/asa-restore-rehearsal/xprep02g-source-6f1df9c72b674991bcc96abfbf54ce18-school307.json"
+    },
+    {
+      "source": "h04fresh",
+      "path": "/var/lib/asa-restore-rehearsal/xprep02g-source-6f1df9c72b674991bcc96abfbf54ce18-h04fresh.json"
+    }
+  ],
+  "coordination_lock_order": [
+    "school_nightly",
+    "canonical_operation",
+    "isolated_rehearsal"
+  ],
+  "live_release": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "live_schema": 307,
+  "live_baseline_preserved": true,
+  "live_database_restored": false,
+  "retained_02e_test_mutated": false,
+  "canonical_volumes_mounted": false,
+  "published_ports": false,
+  "images_pulled": false,
+  "diagnostic_history_restored": false,
+  "user_journeys_verified": false,
+  "source_h04_contacted": false
+}

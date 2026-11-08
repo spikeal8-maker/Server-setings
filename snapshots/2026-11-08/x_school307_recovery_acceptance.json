@@ -1,0 +1,37 @@
+{
+  "package": "CURRENT-X307-RECOVERY-DECRYPT",
+  "acceptance": "ROOT_ACCEPTED",
+  "attestation_source": "Root controller message after independent native MCP readback",
+  "root_readback_operation_id": "4f0834dd6a18469eaa5297669048da73",
+  "root_readback_status": "success",
+  "root_readback_exit_code": 0,
+  "root_readback_duration_seconds": 0.044,
+  "durable_receipt_status": "SUCCESS",
+  "durable_receipt_path": "/var/backups/asa-school-recovery/x-school307-decrypt-890ab35c-v1.json",
+  "operation_id": "x-school307-decrypt-890ab35c-v1",
+  "completed_at": "2026-11-08T00:44:00.102214+00:00",
+  "raw_courier_receipt": {
+    "path": "/workspace/scratch/d2ba039f3fd1/x_school307_recovery_receipt.json",
+    "sha256": "826ac5e714840322de694518813108cec97c3199aac95546a749b5e15cd8e59e",
+    "modified_after_capture": false
+  },
+  "raw_transport": {
+    "path": "/workspace/scratch/d2ba039f3fd1/x_school307_recovery_courier_output.json",
+    "sha256": "86613d30975e6dacb76972ee613f2fc28fe06f0c2afb8fc9ab7038aee7a2ee98",
+    "modified_after_capture": false
+  },
+  "accepted_archive_facts": {
+    "runtime_revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "runtime_schema": 307,
+    "manifest_sha256": "992609bc1fabd9c6df155d1cb6bcde88f095185216cb7aeb20d31e1f6f75b277",
+    "manifest_files": 2332,
+    "object_files": 2324,
+    "object_bytes": 187158389,
+    "postgres_dump_bytes": 34591950,
+    "postgres_dump_sha256": "06a8b763a9d2bbfb80eeeb6e1935938e0b5707b0906a3d351fd5a4277f89808a"
+  },
+  "native_readback_note": "Root reported the native MCP output redacted the project field as a false positive. Raw source is preserved without reconstruction. Original D2 courier receipt is preserved separately.",
+  "database_restore_performed": false,
+  "minio_runtime_restore_performed": false,
+  "further_vm_or_d2_actions": "STOPPED"
+}

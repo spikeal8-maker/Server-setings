@@ -1,0 +1,128 @@
+{
+  "evidenceType": "school_x_prep02f_new_candidate_hygiene_attempt",
+  "capturedFrom": "direct_school_mcp_durable_operation",
+  "operation": {
+    "id": "48b9dcdc64fb46f4a53e86930b1f306d",
+    "idempotencyKey": "school-xprep02f-hygiene-eaa56899-newcandidate-20261108-v1",
+    "installationId": "asa-school-vm100",
+    "status": "failed",
+    "phase": "failed",
+    "createdAt": "2026-11-08T00:52:28.160481+00:00",
+    "completedAt": "2026-11-08T00:53:16.710661+00:00",
+    "exitCode": 2,
+    "timedOut": false,
+    "durationSeconds": 48.418,
+    "outputTruncated": false
+  },
+  "approvedTooling": {
+    "launcherSha256": "30e4fd70ee33f96390a890c806046d396405937f4fadd293471e7fa4b5953cf7",
+    "launcherBytes": 19244,
+    "payloadSha256": "1672d90e53b5936ab2d5ed743c074b4fd174ff54850148663d419f341872ade3",
+    "prepareSha256": "2ca4e42bbcbc44b12a6a862cedd6f389f00d820258b750cf9673da23345a395b",
+    "probeSha256": "b448f451526502735177154fb30fba598d934264b937c6295118afb96ad5ec4b",
+    "sqlSha256": "8933b095cd05b88733f0ee3cdb250aad73b66a2c72fcb2b329434eacf676047e"
+  },
+  "result": {
+    "automaticRetry": "FORBIDDEN",
+    "candidateOid": "117178",
+    "envChanges": false,
+    "evidence": "/var/lib/server-settings/xprep02f-hygiene/20261108t005228z-7e080be2",
+    "fixtureCreated": false,
+    "globalsImport": false,
+    "hygieneTransactionState": "REQUESTED_NOT_CONFIRMED",
+    "lastWorkPhase": "candidate-hygiene",
+    "liveBaselinePreserved": true,
+    "liveImport": false,
+    "liveInstance": "fc0ba60fe1d946bba1694d73557cc11f",
+    "migration": {
+      "afterLedgerSha256": "a51c2246c7b29379d11a3a784542dcfbafd508d012f221dfcbfac991b79a4dd6",
+      "applied": 3,
+      "beforeLedgerSha256": "181d5ab0400ba3fe705a62cbff08428616680da7568f5523156d5cab08933452",
+      "dataFingerprintSha256": "4711682bd72a7dd3ba40e35eef2e558e3f62c470e82a1963a4aa80883a3b061b",
+      "database": "asa_xprep02f_eaa56899_candidate_test",
+      "expectedCapabilityChangeOnly": true,
+      "idempotentSecondApply": 0,
+      "migrationVersions": [
+        "0305",
+        "0306",
+        "0307"
+      ],
+      "newTableCount": 0,
+      "oldLedgerPreserved": true,
+      "oldTableAclRlsPreserved": true,
+      "oldTableDataPreserved": true,
+      "postgresRoleOrGlobalSqlInvoked": false,
+      "preservedTableCount": 240,
+      "provisionRuntimeRoleInvoked": false,
+      "seedInvoked": false,
+      "sourceSchema": 304,
+      "status": "PASS",
+      "targetSchema": 307
+    },
+    "minioImport": false,
+    "newCandidate": "asa_xprep02f_eaa56899_candidate_test",
+    "officialReleaseVerified": {
+      "format": "asa-deployment-v2",
+      "images": {
+        "api": "ghcr.io/spikeal8-maker/asa-lab/api@sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f",
+        "minio": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+        "scratch": "ghcr.io/spikeal8-maker/asa-lab/scratch@sha256:1989cee04b1e42dfbbce4c20861163db6fc0292ae4a00323336dde1449189c88",
+        "search": "ghcr.io/spikeal8-maker/asa-lab/search@sha256:9063a01e357c64176319c192b5330963b5195b98346173e6f1fc327abd96040e",
+        "web": "ghcr.io/spikeal8-maker/asa-lab/web@sha256:7efdf924ad5fc3b717a49d9fb26c66a0e8f3098f2a6607409c17b1f4dd9a0e37"
+      },
+      "platform": "linux/amd64",
+      "publicationRunId": 42415650186,
+      "repository": "spikeal8-maker/asa-lab",
+      "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+      "schema": 307
+    },
+    "package": "X-PREP-02F-HYGIENE",
+    "phase": "preservation-after",
+    "protected02EDatabase": "asa_xprep02e_20261108t000534z_c632ca76_test",
+    "reason": "COMMAND",
+    "restoreCheck": "PASS",
+    "restoreDiskBudget": {
+      "availableBytes": 185384042496,
+      "requiredFreeBytes": 1073741824
+    },
+    "retained02eBaselinePreserved": true,
+    "retention": "Retain new candidate and private evidence on success or failure. Never drop an existing DB.",
+    "roleProvision": false,
+    "sourceArchiveProof": {
+      "archiveFileCount": 3229,
+      "bucketFileCount": 3207,
+      "composeFileCount": 2,
+      "databaseDumpBytes": 48551711,
+      "minioFileCount": 3221,
+      "preservesDatabase": true,
+      "preservesMinio": true,
+      "preservesOriginalKeys": true,
+      "publisherSignatureVerified": false,
+      "sourceRevision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+      "sourceSchema": 304,
+      "status": "ARCHIVE_VERIFIED_NO_IMPORT",
+      "targetProvisioned": false,
+      "userFlow": "not_run",
+      "writesPerformed": false
+    },
+    "sourceInstance": "5ceaf3d6a2e4438086c54358fc9e175d",
+    "sourceManifestSha256": "0b090dfa30d8b4ef6bd70703f59c6d546278148f218cf4be7e4e90ab61880f34",
+    "sourceRevision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+    "sourceSchema": 304,
+    "status": "BLOCKED",
+    "targetRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "targetSchema": 307,
+    "testDatabaseCleanup": "NOT_RUN"
+  },
+  "rootAcceptance": {
+    "status": "PENDING_FAILURE_REVIEW",
+    "executionGo": "One exact execution. On failure retain candidate and evidence, stop, no replay of creation."
+  },
+  "readinessLimits": [
+    "New candidate canonical restore and 304-to-307 migration passed.",
+    "Hygiene command returned COMMAND/exit2 without a commit receipt; transaction outcome must be read back before any claim of sanitization.",
+    "Live X and retained02E baselines were checked unchanged by the harness.",
+    "No automatic retry, DB cleanup, QA fixture, MinIO import, env change or H04 contact was performed.",
+    "Original canonical subprocess wrapper suppresses stderr; exact SQL error is not present in this operation receipt."
+  ]
+}
