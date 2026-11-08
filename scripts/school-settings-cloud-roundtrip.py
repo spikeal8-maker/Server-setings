@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import importlib.util
 import json
 import os
@@ -17,8 +18,11 @@ from pathlib import Path
 import re
 import shutil
 import socket
+import ssl
 import stat
 import sys
+import time
+import urllib.parse
 
 HOST="asa-school-01"
 PREFIX="server-settings-"
@@ -26,6 +30,137 @@ PROJECT="server-settings"
 SOURCE=Path("/var/backups/server-settings")
 SPOOL=Path("/srv/asa-cloud-storage/data")
 CLOUD_PY=Path(__file__).with_name("cloud_storage.py")
+CONFIG_ROOT="app:/School-VM100/Configuration-Backups"
+
+
+def configuration_provider(transport, token):
+    """Use the existing transport, with a closed configuration-only namespace."""
+    import school_settings_snapshot as snapshot
+
+    class ConfigurationFolder(transport.AppFolder):
+        def folder_preflight(self):
+            status, info=self.api("/resources",params={"path":"app:/School-VM100","fields":"type,path"})
+            snapshot.need(status==200 and info.get("type")=="dir","SCHOOL_APP_FOLDER_MISSING")
+            status, info=self.api("/resources",params={"path":CONFIG_ROOT,"fields":"type,path"})
+            if status==404:
+                created,_=self.api("/resources",params={"path":CONFIG_ROOT},method="PUT")
+                snapshot.need(created in (201,409),"CONFIG_FOLDER_CREATE_FAILED")
+                status, info=self.api("/resources",params={"path":CONFIG_ROOT,"fields":"type,path"})
+            snapshot.need(status==200 and info.get("type")=="dir","CONFIG_FOLDER_NOT_DIRECTORY")
+
+        def metadata(self,name):
+            status, info=self.api("/resources",params={"path":CONFIG_ROOT+"/"+snapshot.archive_name(name)})
+            if status==404:
+                return None
+            snapshot.need(status==200 and info.get("type")=="file" and info.get("name")==name,
+                          "CONFIG_REMOTE_METADATA_REJECTED")
+            return info
+
+        def signed_url(self,resource,name):
+            snapshot.need(resource in ("upload","download"),"CONFIG_SIGNED_URL_ACTION")
+            params={"path":CONFIG_ROOT+"/"+snapshot.archive_name(name)}
+            if resource=="upload":
+                params["overwrite"]="false"
+            status, info=self.api("/resources/"+resource,params=params)
+            snapshot.need(status==200 and info.get("method")==("PUT" if resource=="upload" else "GET"),
+                          "CONFIG_SIGNED_URL_FAILED")
+            return transport.validate_signed_link(str(info.get("href","")))
+
+    return ConfigurationFolder(token)
+
+
+def download_configuration(provider,name,target,size,checksum):
+    """Save the full ciphertext; allow at most three validated HTTPS redirects."""
+    import school_settings_snapshot as snapshot
+    transport=snapshot.pinned_transport()
+    temporary=target.with_suffix(target.suffix+".partial")
+    snapshot.need(not target.exists() and not target.is_symlink(),"CONFIG_DOWNLOAD_ALREADY_EXISTS")
+    host,port,path=provider.signed_url("download",name)
+    connection=None
+    created=False
+    try:
+        fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        created=True
+        with os.fdopen(fd,"wb") as stream:
+            seen={(host,port,path)}
+            for redirects in range(4):
+                connection=http.client.HTTPSConnection(host,port,timeout=600,context=ssl.create_default_context())
+                # No OAuth/cookie/request headers are forwarded to a signed URL.
+                connection.request("GET",path)
+                response=connection.getresponse()
+                if response.status not in (301,302,303,307,308):
+                    break
+                snapshot.need(redirects<3,"CONFIG_DOWNLOAD_REDIRECT_LIMIT")
+                location=response.getheader("Location")
+                snapshot.need(isinstance(location,str) and 0<len(location)<=16384,"CONFIG_DOWNLOAD_REDIRECT_LOCATION")
+                candidate=urllib.parse.urljoin("https://"+host+path,location)
+                following=transport.validate_signed_link(candidate)
+                snapshot.need(following not in seen,"CONFIG_DOWNLOAD_REDIRECT_CYCLE")
+                seen.add(following)
+                connection.close()
+                connection=None
+                host,port,path=following
+            snapshot.need(response.status==200,"CONFIG_DOWNLOAD_HTTP_STATUS_"+str(response.status))
+            h=hashlib.sha256()
+            count=0
+            while True:
+                block=response.read(1024*1024)
+                if not block:
+                    break
+                count+=len(block)
+                snapshot.need(count<=size,"CONFIG_DOWNLOAD_SIZE_EXCEEDED")
+                stream.write(block)
+                h.update(block)
+            snapshot.need(count==size and h.hexdigest()==checksum,"CONFIG_DOWNLOAD_INTEGRITY_FAILED")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary,target)
+        temporary.unlink()
+        created=False
+    finally:
+        if connection is not None:
+            connection.close()
+        if created:
+            temporary.unlink(missing_ok=True)
+
+
+def school_configuration_transfer(name):
+    import school_settings_snapshot as snapshot
+    snapshot.check_host()
+    name=snapshot.archive_name(name)
+    snapshot.private_directory(snapshot.TARGET)
+    source=snapshot.TARGET/name
+    size,checksum=snapshot.verify_cipher(source)
+    raw,_=snapshot.stable_read(snapshot.TARGET/(name+".sha256"),4096)
+    snapshot.need(raw.decode("ascii").split()==[checksum,str(source)],"CONFIG_CIPHERTEXT_SIDECAR")
+    snapshot.private_directory(snapshot.RECOVERY,create=True)
+    incoming=snapshot.RECOVERY/"incoming"
+    snapshot.private_directory(incoming,create=True)
+    snapshot.need(shutil.disk_usage(incoming).free>=size+512*1024**2,"CONFIG_DOWNLOAD_DISK_HEADROOM")
+    target=incoming/name
+    snapshot.need(not target.exists() and not target.is_symlink(),"CONFIG_DOWNLOAD_MUST_BE_NEW")
+    transport=snapshot.pinned_transport()
+    provider=configuration_provider(transport,transport.fresh_token())
+    provider.folder_preflight()
+    remote=provider.metadata(name)
+    if remote is None:
+        provider.upload_file(source,name,size)
+    else:
+        snapshot.need(remote.get("size")==size,"CONFIG_IMMUTABLE_REMOTE_COLLISION")
+    for attempt in range(30):
+        remote=provider.metadata(name)
+        if remote is not None:
+            break
+        time.sleep(2)
+    snapshot.need(remote is not None and remote.get("size")==size,"CONFIG_REMOTE_SIZE_UNVERIFIED")
+    download_configuration(provider,name,target,size,checksum)
+    snapshot.need(snapshot.verify_cipher(target)==(size,checksum),"CONFIG_RETAINED_DOWNLOAD_CHANGED")
+    receipt={"status":"CONFIG_UPLOAD_FULL_DOWNLOAD_PASS_DECRYPT_PENDING","archive":name,
+        "remoteDirectory":CONFIG_ROOT,"bytes":size,"ciphertextSha256":checksum,
+        "fullDownloadVerified":True,"downloadedCiphertext":str(target),"restoreValidated":False,
+        "offlineIdentityRequired":True,"schedulesChanged":False,"databaseBackupsChanged":False}
+    snapshot.write_json(snapshot.TARGET/(name+".cloud.json"),receipt)
+    print(json.dumps(receipt,sort_keys=True,separators=(",",":")))
 
 
 class BackupError(Exception):
@@ -147,15 +282,29 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--archive",required=True)
     p.add_argument("--apply",action="store_true")
+    p.add_argument("--school-vm100",action="store_true")
     args=p.parse_args()
     try:
+        if args.school_vm100:
+            import school_settings_snapshot as snapshot
+            name=snapshot.archive_name(args.archive)
+            if not args.apply:
+                print(json.dumps({"status":"PLAN_ONLY","archive":name,"remoteDirectory":CONFIG_ROOT,
+                    "fullDownloadRetained":True,"offlineDecryptionSeparate":True,"changes":False}))
+                return 0
+            os.umask(0o077)
+            school_configuration_transfer(name)
+            return 0
         name=valid_name(args.archive)
         if not args.apply:
             print("PLAN: upload/download encrypted "+name+" to Yandex:Server-Backups/server-settings, checksum verified. No data deletion, no schedules.")
             return 0
         transfer(name)
-    except (BackupError,ValueError,OSError) as exc:
-        print("SCHOOL_SETTINGS_CLOUD_BLOCKED="+(str(exc) if isinstance(exc,(BackupError,ValueError)) else type(exc).__name__),file=sys.stderr)
+    except Exception as exc:
+        code=str(exc) if isinstance(exc,BackupError) or type(exc).__name__ in ("SnapshotError","BackupTransportError") else type(exc).__name__
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,96}",code):
+            code=type(exc).__name__
+        print("SCHOOL_SETTINGS_CLOUD_BLOCKED="+code,file=sys.stderr)
         return 2
     return 0
 

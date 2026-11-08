@@ -2,7 +2,25 @@
 # Шифрованный снимок КОНФИГУРАЦИИ сервера; не заменяет backup PostgreSQL/MinIO.
 set -Eeuo pipefail
 APPLY=0
-for arg in "$@"; do case "$arg" in --apply) APPLY=1;; *) echo "Аргумент не поддерживается: $arg" >&2; exit 2;; esac; done
+SCHOOL=0
+ARCHIVE=''
+while (( $# )); do
+  case "$1" in
+    --apply) APPLY=1 ;;
+    --school-vm100) SCHOOL=1 ;;
+    --archive) (( $# >= 2 )) || { echo 'Нужно имя архива' >&2; exit 2; }; ARCHIVE="$2"; shift ;;
+    *) echo "Аргумент не поддерживается: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+if [[ "$SCHOOL" == 1 ]]; then
+  [[ -n "$ARCHIVE" ]] || { echo 'Для VM100 требуется --archive' >&2; exit 2; }
+  SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+  ARGS=(--archive "$ARCHIVE")
+  [[ "$APPLY" != 1 ]] || ARGS+=(--apply)
+  exec python3 -B "$SCRIPT_DIR/school_settings_snapshot.py" "${ARGS[@]}"
+fi
+[[ -z "$ARCHIVE" ]] || { echo '--archive требует --school-vm100' >&2; exit 2; }
 TARGET=/var/backups/server-settings
 RECIPIENTS=/etc/server-settings/age-recipients.txt
 if [[ "$APPLY" != 1 ]]; then
