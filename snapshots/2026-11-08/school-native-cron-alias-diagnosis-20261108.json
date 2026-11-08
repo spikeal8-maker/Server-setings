@@ -1,0 +1,89 @@
+{
+  "format": "school-native-cron-alias-diagnosis-v1",
+  "recordedAtUtc": "2026-11-08T14:36:31.661297+00:00",
+  "hostname": "asa-school-01",
+  "project": "asa-lab-school",
+  "status": "ALIAS_CAUSE_CONFIRMED_SOURCE_FIX_LOCALLY_VALIDATED",
+  "observations": {
+    "preflight": {
+      "operationId": "d51fb8bc550540c0a3c24c31723b872f",
+      "receiptSha256": "c8987bf74514d44dbf8046ea405340199c2e552b41c60f2204cae5fc1f5032c4",
+      "finishedAtUtc": "2026-11-08T14:10:17.928191Z",
+      "exitCode": 2,
+      "errorCode": "ScheduleError",
+      "failedStage": "identity-and-published-source",
+      "stepMayHaveCommitted": false
+    },
+    "diagnosis": {
+      "operationId": "744d129afbe346a2984d131d9b85ac4e",
+      "receiptSha256": "2a72008a0c69448373be859b61e1e9e037c3a608b8e678daba1804705cf53dbe",
+      "observedAtUtc": "2026-11-08T14:24:53.952114Z",
+      "exitCode": 2,
+      "errorCode": "PATH_UNTRUSTED",
+      "failedStage": "panel-prerequisite",
+      "publishedSourcesVerified": true,
+      "panelClientInitialized": true,
+      "nativeReadRequests": 0,
+      "nativeMutatingRequests": 0,
+      "cronCliCalled": false,
+      "locksOpened": false,
+      "backupExecuted": false
+    },
+    "aliasReadOnly": {
+      "operationId": "83aaa463fc434efd9cbd2747fbbeac59",
+      "receiptSha256": "116edf74812730579a34d8955463b3ab81b1ac3038df836416e5c4583cc1c4fa",
+      "observedAtUtc": "2026-11-08T14:26:07Z",
+      "alias": "/usr/bin/1panel",
+      "aliasRootOwned": true,
+      "aliasMode": "0777",
+      "linkText": "/usr/local/bin/1panel-core",
+      "resolvedPath": "/usr/local/bin/1panel-core",
+      "resolvedUid": 0,
+      "resolvedMode": "0700",
+      "resolvedDevice": 2049,
+      "resolvedInode": 20866,
+      "resolvedOrdinaryFile": true,
+      "resolvedLinks": 1,
+      "resolvedParentsRootNonWritable": true,
+      "noExecution": true,
+      "noMutation": true
+    }
+  },
+  "observedSourceAtFailure": {
+    "settingsRevision": "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+    "cronSha256": "444fb216343105457d3fe19ca6e17cea3296cb9502ea821fe57eb30774d9b2e0",
+    "hostSourceRevision": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+    "applicationRevision": "3e8713476cafedda3e24a39665458e833efd7c22"
+  },
+  "sourceFix": {
+    "baseRevision": "ca18ec36097d47d732b33d57d88458e8c111fd31",
+    "baseTree": "2a49e9bc9f3e8e1367a5cfdad81c251eefd51c4b",
+    "path": "scripts/school-1panel-backup-schedules.py",
+    "sha256": "6f5a51cbe94a7bf22152884eeb7d7c0efd149667cdc21b60e889d682740e18b2",
+    "supportedAlias": "/usr/bin/1panel",
+    "supportedAbsoluteTarget": "/usr/local/bin/1panel-core",
+    "globalTrustedUnchanged": true,
+    "exactResolvedBinaryExecutedForVersion": true,
+    "otherAliasesRejected": true,
+    "clockAndRunnerBehaviorChanged": false,
+    "vmFilesOrModesChanged": false
+  },
+  "localValidation": {
+    "focusedAliasTestsPassed": 9,
+    "existingCronTestsPassed": 34,
+    "failed": 0,
+    "liveVmOrApiCalls": 0,
+    "ciForThisFixObserved": false
+  },
+  "runtimeClaims": {
+    "fixedSourceInstalled": false,
+    "newPreflightExecuted": false,
+    "nativeSchedulesStaged": false,
+    "nativeClockActivated": false,
+    "backupExecuted": false,
+    "firstAutomaticCopiesProven": false,
+    "cleanLinuxInstallationProven": false
+  },
+  "nextStep": "Independent exact source review, normal GitHub PR and required CI, then separately reviewed immutable release/operator bindings and fresh read-only preflight. The old failed request is retained and not blindly replayed.",
+  "secretsIncluded": false
+}

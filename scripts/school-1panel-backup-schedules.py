@@ -47,6 +47,8 @@ LOCK = Path('/run/lock/asa-school-panel-schedules.lock')
 DB_LOCK = Path('/run/lock/asa-school-nightly-db.lock')
 PANEL = 'http://127.0.0.1:19192'
 PANEL_VERSION = 'v2.3.2'
+PANEL_BINARY_ALIAS = Path('/usr/bin/1panel')
+PANEL_BINARY_TARGET = Path('/usr/local/bin/1panel-core')
 MOSCOW = ZoneInfo('Europe/Moscow')
 KINDS = ('database', 'settings')
 COLLECTOR = 'asa-log-collector-asa-lab-school'
@@ -371,6 +373,32 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def panel_version_executable():
+    selected = shutil.which('1panel')
+    need(selected, 'PANEL_BINARY_MISSING')
+    path = Path(selected)
+    before = path.lstat()
+    if stat.S_ISLNK(before.st_mode):
+        need(path == PANEL_BINARY_ALIAS, 'PANEL_BINARY_ALIAS_UNSUPPORTED')
+        need(before.st_uid == 0 and before.st_nlink == 1, 'PANEL_BINARY_ALIAS_UNTRUSTED')
+        for parent in path.parents:
+            trusted(parent, directory=True)
+        need(os.readlink(path) == str(PANEL_BINARY_TARGET), 'PANEL_BINARY_ALIAS_TARGET')
+        executable = path.resolve(strict=True)
+        need(executable == PANEL_BINARY_TARGET, 'PANEL_BINARY_ALIAS_TARGET')
+        info = trusted(executable)
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_uid, value.st_gid,
+                                  value.st_mode, value.st_nlink, value.st_size,
+                                  value.st_mtime_ns, value.st_ctime_ns)
+        need(identity(before) == identity(path.lstat())
+             and os.readlink(path) == str(executable), 'PANEL_BINARY_ALIAS_CHANGED')
+    else:
+        executable = path
+        info = trusted(executable)
+    need(info.st_mode & 0o111, 'PANEL_BINARY_NOT_EXECUTABLE')
+    return str(executable)
+
+
 class Panel:
     def __init__(self):
         text = read('/etc/server-settings/mcp.env', private=True).decode('utf-8')
@@ -435,9 +463,7 @@ class Panel:
         return rows
 
     def prerequisite(self):
-        executable = shutil.which('1panel')
-        need(executable, 'PANEL_BINARY_MISSING')
-        trusted(executable)
+        executable = panel_version_executable()
         need(re.search(r'(?<![\w.])v2\.3\.2(?![\w.-])', command([executable, 'version'], 8)),
              'PANEL_VERSION_CHANGED')
         data = self.request('/hosts/tool/status', {'type': 'supervisord'})
