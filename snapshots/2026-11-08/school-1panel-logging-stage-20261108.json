@@ -1,0 +1,61 @@
+{
+  "format": "school-1panel-logging-stage-actual-v1",
+  "status": "NATIVE_STOPPED_STAGE_ACCEPTED_LEGACY_WRITER_RETAINED",
+  "observedAt": "2026-11-08T12:40:25.902Z",
+  "operationId": "081b68be8edd48c4a7ccad2d11088295",
+  "independentReadbackOperationId": "18c154e9969e44bebf212c61c3dcbc1d",
+  "host": "asa-school-01",
+  "instanceId": "fc0ba60fe1d946bba1694d73557cc11f",
+  "project": "asa-lab-school",
+  "settingsRevision": "eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4",
+  "settingsTree": "7c000184e4b26e9433af4721cdc48577604380ea",
+  "pr": 83,
+  "requiredCi": {
+    "pullRequestRunId": 42480730589,
+    "mainPushRunId": 42480826529,
+    "conclusion": "success"
+  },
+  "packetSha256": "a5f4f5fbc2be985776d676f2fafa36dececeeef314131c8cec16c9cfabd38578",
+  "exitCode": 0,
+  "elapsedSeconds": 14.72,
+  "panelVersion": "v2.3.2",
+  "supervisorPackage": "4.2.5-1ubuntu0.1",
+  "nativeProgram": {
+    "name": "asa-log-collector-asa-lab-school",
+    "status": "STOPPED",
+    "autostart": false,
+    "autorestart": true
+  },
+  "legacyCollector": {
+    "enabled": true,
+    "active": true,
+    "pid": 867926
+  },
+  "sourceOnlySwitchExecuted": false,
+  "collectorAdoptionExecuted": false,
+  "applicationDeploymentExecuted": false,
+  "applicationRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "canonicalSourceRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "canonicalClean": true,
+  "metadataBytesAndPermissionsUnchanged": true,
+  "privateIndex": {
+    "inode": 816721,
+    "bytesAtObservation": 153305088,
+    "reset": false
+  },
+  "applicationContainers": {
+    "count": 8,
+    "identitiesImagesStartedAtRestartCountUnchanged": true
+  },
+  "cronStageExecuted": false,
+  "backupsExecuted": false,
+  "coverageComplete": false,
+  "freshLinuxAcceptance": "NOT_RUN",
+  "limits": [
+    "This is a dated stopped-stage receipt, not current-state monitoring.",
+    "Native ownership, post-switch collector heartbeat/cycle, normalization, burst and new archive restore require subsequent separate actual acceptance.",
+    "ASA and cloud-storage Compose projects remain externally created; visibility does not prove native Compose adoption."
+  ],
+  "knownHistoricDockerGapWindows": 16,
+  "historicGapResetPerformed": false
+}

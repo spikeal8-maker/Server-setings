@@ -1,8 +1,166 @@
 # PANEL-LOG-01: воспроизводимое журналирование через 1Panel
 
-Статус этого пакета: **локальный кандидат, read-only preflight принят;
-runtime install/adoption не выполнялись**. Школьная VM не объявляется переведённой
-на Supervisor до отдельного фактического подтверждения.
+## Принято на школьном сервере: ACTIVE — native collector и Cron
+
+Срез **08.11.2026 16:41:02 UTC / 19:41:02 МСК**. Collector и оба расписания
+работают под нативным управлением 1Panel. Новая ручная ACTIVE-копия конфигурации
+прошла полный облачный цикл, authenticated decrypt и изолированную проверку.
+H04 и основной домен не переключены; общего производственного допуска этот
+этап не выдаёт.
+
+| Проверка | Принятый результат |
+| --- | --- |
+| Исходники и приложение | Server-setings PR86/main `57ca0440`, wrapper `4b391bbd`; host tools `17d937c0`, app images `3e871347`, schema 307 |
+| Collector | Native Supervisor PID 2770698; свежий heartbeat 11,068 с, source/digest проверены. Все 6 рабочих контейнеров healthy, перезапуски 0 |
+| Repair и пробы | Закрытый repair и независимая сверка приняты; ID 1/2 сохранены. Новые DB record 2 и settings record 3 дали уникальные terminal markers |
+| Доставка журналов | Оба маркера подтверждены native → normalized/published → HOST ZIP; CRC/part SHA, application ZIP и временная очистка PASS |
+| Расписания | ACTIVE, owner 1panel, обе задачи Enable; старые backup timers disabled/inactive. DB — 03:20, settings — 04:00 Europe/Moscow, следующие запуски 09.11 |
+| Конфигурационная копия | 27 613 976 байт, cipher SHA256 `ccb146c2…`; полный Яндекс upload/download, authenticated decrypt и isolated verify PASS |
+| Последние метаданные журналов | 26/27 OK. Единственный incomplete — docker-lifecycle с историческим possible gap при свежем текущем сборе. Оба AI ledger OK/20 с |
+
+### Точная копия и проверка восстановления
+
+Архив `asa-school-config-01-20261108T162748Z-d0ba6e1f.tar.age` находится в
+`app:/School-VM100/Configuration-Backups`. SHA256 ciphertext:
+`ccb146c2eebc68de08710f7954b54b7790eecc1011c14c05017f220b550db055`.
+CREATE fcdb завершён в 16:29:35 UTC, полный cloud roundtrip 2ffc — в 16:32:32 UTC.
+D2 PID 41112 завершился exit 0 за 14,54 с; VM receipt наблюдался в 16:40:21 UTC.
+Root и независимый peer приняли **70 payload files плюс manifest**, permissions
+manifest, integrity OK у `agent.db`, `core.db`, `xpack.db`, оба normalized ZIP.
+
+Изолированно проверены ACTIVE owner1panel/generation4ccf, оба native backup INI,
+immutable wrapper4b, collector bridge17d и оба ожидаемых probe markers в HOST ZIP.
+`livePathsWritten=false`: рабочие пути этим восстановлением не заменялись.
+Данные PostgreSQL/MinIO и namespace Database-Backups этой конфигурационной
+операцией не менялись. [Точные recovery receipts, операции и хеши](../snapshots/2026-11-08/school-native-logging-final-checkpoint-20261108T164102Z.json)
+и [порядок конфигурационного резервирования](54-SCHOOL-MANAGED-CONFIGURATION-BACKUPS.md).
+
+### Разные срезы журналов
+
+| Артефакт / время | Подтверждённый объём и граница |
+| --- | --- |
+| Отдельная marker-проверка | HOST ZIP 543 части / 223286 записей; два конкретных marker-события подтверждены |
+| Новая ACTIVE-копия, проверенная после расшифровки | HOST ZIP 544 части / 223525 записей / 178557171 raw B; application ZIP 20 частей / 25033 записи / 20138069 raw B; CRC/part SHA PASS |
+| Текущая host metadata 16:41 UTC | 611 сегментов / 223791 запись; отдельная history metadata 610/610 завершена примерно на 20 с раньше |
+
+Последняя строка не является атомарным срезом или новым побайтовым аудитом:
+contents/checksums сегментов при этой проверке не перечитывались. Active storage
+174790921 B, physical 175132535 B, retired 341614 B; политика 1 GiB / 30 дней,
+trim=false. Health OK, длительность цикла 4890 мс, возраст последнего успеха 19 с.
+Docker rotation — json-file 10m × 5 у шести контейнеров. Supervisor stdout/stderr
+2MB; число backups явно не задано, неразрешённые defaults не объявлены проверенными.
+
+**Global coverageComplete=false.** Ранее зафиксированные 16 possible Docker gap
+windows не переоценивались; число утраченных событий неизвестно. Полный authenticated
+срез остаётся 24/27 от 14:18 UTC и не повторялся. Новая metadata 26/27 не подменяет
+его и не объявляет новый native writer integrity PASS. Поздняя публикация 296 own
+audit-событий принята d99f/e947, но исходный burst STOP и недоказанная задержка
+в первых 50 с сохранены; повторного burst не было.
+
+### Практические границы
+
+Нативное управление принято для collector и двух расписаний на существующей
+школьной установке. ASA и asa-cloud отображаются как внешние Compose; этим
+этапом они не стали native-created/adopted приложениями панели. Stage не является
+универсальным bootstrap Linux: нужны подготовленные host/instance, ASA,
+Supervisor/API, установленный runner, транспорт и защищённые каталоги/ключи.
+[Граница stage и prerequisites](56-SCHOOL-NATIVE-BACKUP-SCHEDULES.md) и
+[проверенный путь закрытого repair](58-SCHOOL-STAGED-SCHEDULE-REPAIR.md).
+
+Первая автоматическая ночная копия — **NOT_PROVEN**; реальная чистая Linux-установка —
+**NOT_RUN**. В этот пакет включены принятые root и peer два точных marker CLI,
+18 проверок и [процедура docs59](59-SCHOOL-NATIVE-MARKER-ACCEPTANCE.md). Команды
+не зависят от нашей scratch-среды; их область — STAGED/legacy до activate,
+без повторного запуска на уже ACTIVE и без сертификации fresh/originalOwner=none.
+До основного перехода остаются браузерный класс/школьная сеть, роли/курсы/медиа,
+финальная свежая синхронизация H04, вопрос AI/VPN. Полный live rollback не выполнялся.
+
+Постоянная private age identity хранится на съёмном носителе владельца.
+Использованный courier: pinned SSH/QGA stdin → VM transient sealed memfd → age;
+descriptor закрывается. Постоянный именованный VM key-file не создаётся, значение
+не попадает в env/argv/log/Git. Ключ временно проходит в память VM. После аварийного
+восстановления потребуется новая регистрация ChatGPT/MCP/OAuth:
+`gatewayOAuthContinuity=false`; сохранность прежней OAuth-сессии не доказана.
+
+Таблица записана и перечитана 19:52:15 МСК: 16/16 значений, 43/43 соседей,
+metadata 59/59 сохранены. Пакет объединяет фактическую приёмку и воспроизводимые
+команды проверки; production go этим не объявлен.
+
+## Датированная история до нового среза
+
+> Ниже сохранены прежние редакции. Слова «текущий», «ожидается» и NOT_RUN в них относятся к указанным датам; текущий статус дан выше.
+
+
+## Текущие результаты: 08.11.2026, 14:19 UTC / 17:19 МСК
+
+**Управление collector через native 1Panel принято; следующие проверки ещё
+не закрыты.** Host source — `17d937c01660025e6b5030f44bcb0d776e7c79aa`,
+действующие app images — `3e8713476cafedda3e24a39665458e833efd7c22`, schema307.
+Принятые adoption и независимое чтение в14:08 UTC подробно сохранены ниже.
+
+| Проверка | Фактический исход и граница |
+| --- | --- |
+| Collector | Native Supervisor RUNNING, PID2770698; autostart/autorestart=true, legacy disabled/inactive |
+| Cron preflight | Операция `d51fb8bc550540c0a3c24c31723b872f`,14:10:17 UTC,exit2: `ScheduleError` на `identity-and-published-source`; `stepMayHaveCommitted=false` |
+| Cron stage/probes/activation | Не запускались; старые backup timers03:20/04:00 МСК продолжают работать; причина preflight STOP диагностируется |
+| Bounded burst | Операция `6fb61a28ba5143d89e98bd85690ddf11`,14:17:32–14:19:02 UTC,exit2: `BURST_DRAIN_NOT_PROVEN` |
+| Auth и сохранность burst | 296 HTTP200 и четыре отрицательных проверки:401×2/403×2; scope/NULL-inclusive foreign controls/cleanup PASS, завершение DB child известно |
+| Проверка доставки burst | В завершённом окне eligible296; quiet DB sources fresh. Observer дал matchedNativeKeys0/observationRows0/publishedRows0, поэтому доставка не принята |
+
+Проверяется read-only соответствие source/key наблюдателя каноническому
+producer. Нулевой результат сопоставления сам по себе не доказывает потерю
+событий или причину ошибки. Повторный burst не выполнялся; cursors и gap history
+не сбрасывались. Прежние transport INVALID_ARGUMENT/PATH_TRUST STOP и их
+reconciliation сохранены в датированной истории ниже.
+
+Отдельный authenticated status-срез14:18:11 UTC наблюдал27 required sources:
+24 OK/3 incomplete. Native counters7490 accepted=persisted, drops/failures/pending0;
+AI journal pending, metrics pending/stale, Docker fresh с историческим gap.
+Это не полный PASS покрытия. Последующий drain читает quiet-source metadata,
+не повторяя весь authenticated requiredCoverage. Исторические16 possible
+Docker gap windows сохраняются; доказанное количество потерянных событий неизвестно.
+
+### Опубликованный код и установленная версия
+
+Server-setings [PR84](https://github.com/spikeal8-maker/Server-setings/pull/84)
+слит в14:16:28 UTC /17:16:28 МСК, main
+`ca18ec36097d47d732b33d57d88458e8c111fd31`; exact-head CI42488362495,
+job128755101227 SUCCESS. Root проверил tree2a49e9bc и parents eb21+a608.
+Это source fix для будущего fresh-native snapshot; 64 независимых root-теста
+прошли. Текущая VM не перепривязана: Settings eb21, snapshot helper2a0,
+Cron wrapper444 остаются установленными. Реальная чистая Linux-установка
+**NOT_RUN**. Исправление публикации не является применением на VM.
+
+### Что остаётся принять
+
+Нужны результат диагностики burst и доказательство доставки его событий,
+разбор Cron preflight STOP, отдельные stage/две закрытые пробы/clock activation,
+native marker→normalized event→host ZIP, новый конфигурационный архив и его
+облачный roundtrip/decrypt/isolated verify. Первая автоматическая native копия
+ещё не доказана. Полное новое authenticated coverage и производственный переход
+не приняты; H04 и основной домен не переключались.
+
+Приватная age identity постоянно хранится на съёмном носителе владельца.
+Принятый courier использует существующий pinned SSH/QGA stdin → transient sealed
+VM memfd → age; descriptor закрывается после использования. Постоянный VM
+key-file не создаётся, значение не попадает в env/argv/log/Git. Ключ временно
+проходит в память VM; это не полностью офлайн-расшифровка на D2. После аварийного
+восстановления нужна новая регистрация/авторизация ChatGPT OAuth/MCP; текущий
+доступ этой оговоркой не объявляется требующим повторного входа.
+
+Сводка: [текущий фактический checkpoint](../snapshots/2026-11-08/school-native-logging-checkpoint-20261108T141902Z.json).
+Google Sheet обновлена17:20:02 МСК и перечитана17:20:47:16/16 значений,
+43 соседа и metadata сохранены. Этот batch содержит adoption/PR84/Cron STOP;
+позднее переданный root результат burst добавляется следующим checkpoint
+после диагностики, а не считается уже записанным.
+
+## Принятые этапы и инструкция: сохранённая редакция 14:08 UTC
+
+Статус среза на 2026-11-08 14:08 UTC: **source-only переключение ASA и переход
+collector под native 1Panel Supervisor приняты**. Действующий collector имеет
+manager `1panel-supervisor`; прежняя systemd-служба disabled/inactive. Приложение
+и database schema остаются на прежнем выпуске. Native Cron markers, bounded
+burst, новый облачный архив и полнота требуемого покрытия принимаются отдельно.
 
 ## Факты школьного узла на 2026-11-08
 
@@ -31,6 +189,101 @@ runtime install/adoption не выполнялись**. Школьная VM не
 пакете новый жизненный цикл касается collector Supervisor. Backup Cron/Supervisor
 имеют отдельный пакет PANEL-CRON-01; старые расписания сохраняются до принятия
 замены.
+
+## Фактически принятый stopped stage: 12:40 UTC
+
+Settings PR [83](https://github.com/spikeal8-maker/Server-setings/pull/83)
+принят в main commit `eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4`,
+tree `7c000184e4b26e9433af4721cdc48577604380ea`. Проверены точные 14 Git blobs,
+PR CI `42480730589` и main push CI `42480826529`: SUCCESS.
+
+Применение exact reviewed prerequisite/stage-пакета
+`a5f4f5fbc2be985776d676f2fafa36dececeeef314131c8cec16c9cfabd38578`:
+операция `081b68be8edd48c4a7ccad2d11088295`,
+2026-11-08 12:40:11.199–12:40:25.902 UTC, exit 0, 14.72 секунды.
+
+| Проверка после stage | Фактический результат |
+| --- | --- |
+| Supervisor | `4.2.5-1ubuntu0.1` установлен; native status running, ctl доступен, include инициализирован |
+| Native collector | `asa-log-collector-asa-lab-school`: STOPPED, autostart=false, autorestart=true |
+| Прежний collector | systemd enabled/active, прежний PID 867926 |
+| Manager metadata | Native manager ещё не выбран; исходные байты/UID/GID/modes сохранены |
+| Canonical ASA | Detached clean `3e8713476cafedda3e24a39665458e833efd7c22` |
+| Приложение | Все 8 контейнеров с прежними ID/images/startedAt/restartCount; deployment не выполнялся |
+| Private index | Тот же inode 816721; size 153305088 bytes на момент наблюдения |
+| Settings source | Exact checkout `/opt/asa-school-panel-source/releases/eb21b1bbb8852c38a3c5b4d9ed6cfa3f72fa58f4` |
+
+Независимый readback `18c154e9969e44bebf212c61c3dcbc1d` подтвердил STOPPED native
+program и работающий прежний collector. Поэтому на этом этапе в 1Panel видна
+подготовленная программа, но управление действующим сборщиком ещё не передано.
+Сводка сохранена в
+[stage receipt](../snapshots/2026-11-08/school-1panel-logging-stage-20261108.json).
+
+Для следующего source-only handover отдельно подготовлен observer сохранности
+private index. Read-only capability `d5971e0c38ec45328accfcd699a934d5` обнаружил
+140 state rows, максимум одного значения 500149 bytes, суммарно 643320 bytes;
+aggregate snapshot занял 0.03397 секунды. Исходный 128 KiB per-value limit не
+прошёл, и полные значения в этой операции не читались. По фактическому размеру
+принят предел 1 MiB на значение при сохранении 4 MiB total / 4096 rows / 2 seconds;
+будущий handover повторно измеряет aggregate в той же read-only транзакции до
+полного чтения. Это подготовка наблюдения, не доказательство уже выполненного
+adoption. Существующие failed preflight и исходный capability receipt сохранены.
+
+## Фактически принятый collector handover: 14:08 UTC
+
+ASA PR [1024](https://github.com/spikeal8-maker/asa-lab/pull/1024) принят обычным
+merge в commit `17d937c01660025e6b5030f44bcb0d776e7c79aa`, tree
+`9c43779f3b74588eeb48b8b83b84fe1eaeabc631`. Проверены точные product blobs,
+обязательный job `ASA / required` (`128751110336`) и все пять связанных runs:
+SUCCESS. Исправления тестов для Windows не изменяли production algorithm.
+
+Операция `826479b05afe47a6b85a425bcb22d129` выполнила reviewed source-only
+fast-forward и canonical adoption за 16.942 секунды, exit 0;
+2026-11-08 14:07:57.984–14:08:14.904 UTC. Exact operator source SHA256:
+`7c9e2d3ffe2b1aae158ee541a6038f631b6ec8b530745e47060bde7f75b17fe1`.
+
+| Проверка | Фактический результат |
+| --- | --- |
+| Canonical host-tools source | Detached clean `17d937c01660025e6b5030f44bcb0d776e7c79aa` |
+| Application runtime / schema | Прежний release `3e8713476cafedda3e24a39665458e833efd7c22`, schema 307; deployment не выполнялся |
+| Collector в 1Panel | RUNNING, PID 2770698; autostart=true, autorestart=true, manager `1panel-supervisor` |
+| Прежний collector | systemd disabled/inactive; второго writer нет |
+| Handover receipt | `accepted`; target identity/settings/log configuration совпадают с текущими |
+| Новый процесс | Новый private nonce, текущие revision/digest, новый успешный cycle; повторный native liveness readback |
+| Private index | Тот же inode 816721; reset/import/delete не выполнялись |
+| Граница остановки | Все 140 state keys и event counts до/после смены metadata, пока оба writer STOPPED, совпали |
+| Прогресс после старта | 9 live database cursors не уменьшились; 219414 events до запуска → 219425 после нового cycle |
+| Историческое покрытие | Все 16 Docker gap windows и их private metadata сохранены; число доказанно утраченных событий неизвестно |
+| Приложение и метаданные | Все 8 контейнеров, application configuration и UID/GID/modes private metadata сохранены |
+| Backup compatibility | Пин старого API runtime/exporter и чтение normalized catalogs прошли до/после; новый backup не запускался |
+
+Независимая read-only операция `e9f4864d4ea8430cb4921dd27a8dad78`,
+2026-11-08 14:08:51.480–14:08:53.035 UTC, exit 0, повторно подтвердила живой
+native процесс дважды вокруг наблюдения. PID 2770698 и его private identity
+оставались прежними; heartbeat 14:08:48.114 UTC и cycle 14:08:38.441 UTC относятся
+к новому процессу, стартовавшему 14:08:08.106 UTC. В индексе наблюдались 219431
+событие, все опубликованы, 143 state rows и прежние 16 gap windows. Увеличение
+state rows после запуска допустимо: появляются записи нового native source;
+равенство состояния требовалось на остановленной границе, а после старта
+проверяется сохранность и законный прогресс.
+
+Сводка операций и их точные hashes:
+[actual adoption receipt](../snapshots/2026-11-08/school-1panel-collector-adopted-20261108.json).
+Ни nonce, ни содержимое private cursors в публичную сводку не включены.
+Эта приёмка не доказывает доставку Cron marker в normalized ZIP, прохождение
+нагрузочного burst или полную историческую полноту журнала.
+
+Первый запрос был отклонён до создания operation из-за gateway command limit
+32000 символов. Следующий проверенный запрос остановился до любых изменений
+на строгом parent trust guard: `/run/lock` является штатным root-owned sticky
+каталогом 1777. Отдельное read-only reconciliation
+`152a58e756b94862af68723dedb3a096` подтвердило clean source 3e, прежний PID,
+STOPPED native process, прежние manager metadata и отсутствие handover receipt.
+Корректирующий packet изменил только проверку трёх заранее существующих locks:
+разрешён точный наблюдавшийся sticky `/run/lock`, inode/owner/mode проверяются
+до открытия, через fd и после nonblocking flock. Общий `trusted()` не ослаблялся;
+новый lock-файл, chmod или удаление не применялись. Исходные STOP receipts
+сохранены и не заменены поздним PASS.
 
 ## Что управляется в панели
 
@@ -175,7 +428,7 @@ ASA host-tools commit. До него проверяются clean tracked/untrac
 hooks, известный auto-updater и полный diff allowed paths. Compose, API exporter,
 database contract и app runtime inputs сохраняются. Действующие images/build
 label остаются `3e8713476cafedda3e24a39665458e833efd7c22`, schema 307.
-Collector source revision после принятия будет новым; это отдельная величина.
+Принятый collector source revision — `17d937c01660025e6b5030f44bcb0d776e7c79aa`; это отдельная величина.
 Никакого `git pull/reset` и пофайлового live hotpatch в процедуре нет.
 
 Snapshot helper добавляет необязательные, но целостные группы native Supervisor,
