@@ -1,0 +1,48 @@
+{
+  "actual": {
+    "actual": {
+      "catalogCount": 241,
+      "directNumberOwners": 241,
+      "directRowsEqualSqlJsonRows": false,
+      "directWrites": false,
+      "mismatchingRowsByStaticField": {
+        "column_acl": 0,
+        "name": 0,
+        "policies": 0,
+        "relacl": 0,
+        "relforcerowsecurity": 0,
+        "relowner": 241,
+        "relrowsecurity": 0,
+        "schema": 0,
+        "triggers": 0
+      },
+      "phase": "complete",
+      "readOnlyTransactionClosed": true,
+      "relownerPgTypeOid26": true,
+      "sameRowOrder": true,
+      "sqlJsonStringOwners": 241,
+      "status": "CATALOG_REPRESENTATION_READONLY_COMPLETE",
+      "strictOneFieldNormalizationDefined": true,
+      "strictOneFieldNormalizedAll241Equal": true,
+      "strictRelownerNumberStringPairs": 241
+    },
+    "appLifecycleChanged": false,
+    "childExitCode": 0,
+    "directNodeMatchesOriginalCoreProof": true,
+    "directWrites": false,
+    "fixtureExecuted": false,
+    "newContainersCreated": false,
+    "normalizedDirectMatchesHostBeforeAndCurrent": true,
+    "originalProofAndReceiptUnmodified": true,
+    "phase": "complete",
+    "sqlJsonMatchesHostBefore": true,
+    "sqlJsonMatchesHostCurrent": true,
+    "status": "READONLY_CATALOG_PROOF_OBSERVATION_COMPLETE",
+    "stderrPresent": false
+  },
+  "durationSeconds": 1.335,
+  "nativeExitCode": 0,
+  "operationId": "0b7308b42d774aee85ea12235879b8db",
+  "rawEvidenceSha256": "27d5cf5b6ffb694c9cb3ad1cb89f774ff98dac6fb74a453b9123dbc641d816d8",
+  "scope": "Read-only actual241 catalogue representation comparison; no fixture/proof/credential changes."
+}

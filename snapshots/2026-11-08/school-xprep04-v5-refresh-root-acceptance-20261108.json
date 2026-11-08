@@ -1,0 +1,27 @@
+{
+  "acceptanceLimits": {
+    "loadTestsRun": false,
+    "originalHealthFailureCauseProven": false,
+    "postApiFullCandidateRowEqualityClaimed": false,
+    "postRefreshBackupRun": false,
+    "productionCutover": false,
+    "rollbackAdapterExecuted": false,
+    "uiJourneysRun": false
+  },
+  "annotatedAtUtc": "2026-11-08T04:42:25.903658+00:00",
+  "durationSeconds": 18.176,
+  "fullReceiptReviewed": true,
+  "furtherWork": "v6 health wait and rollback entry adapter local preparation only",
+  "independentOperationRead": true,
+  "nativeCompletedAtUtc": "2026-11-08T04:40:57.783694+00:00",
+  "nativeExitCode": 0,
+  "operationId": "22530fac698742bca1f4b24fe969067d",
+  "originalStopJournalUnchanged": true,
+  "ownMarkerRemoved": true,
+  "privateReceiptCanonicalBytesMatched": true,
+  "receiptSha256": "af7657e69c34b0797176ee021e2b0ed0bb7d2828e3fb660fb2b27e4f1150d2c2",
+  "reviewer": "/root",
+  "scope": "X staging data refresh reconciled; current served117178/schema307 and old26362 fenced rollback retained",
+  "status": "ROOT_ACCEPTED",
+  "workerReleasedTo": "school_ui_acceptance"
+}

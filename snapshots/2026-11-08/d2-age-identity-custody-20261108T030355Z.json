@@ -1,0 +1,289 @@
+{
+  "package": "D2-OFFLINE-AGE-IDENTITY-CUSTODY",
+  "status": "ROOT_ACCEPTED_CURRENT_OPERATIONAL_CUSTODY_WITH_DOCUMENTED_FLAG_DELTA",
+  "rootAcceptance": {
+    "recordedAtUtc": "2026-11-08T03:03:55Z",
+    "source": "Root controller message after independently reading native D2 PID41460, plus accepted PID36396 and PID7004 observations.",
+    "readonlyVerificationPid": 41460,
+    "nativeReadbackTool": "mcp__codex_apps__remote_desktop_commander_read_process_output",
+    "nativeReadbackArgs": {
+      "link_id": "link_6ade0d793c7c8191b752142233815385",
+      "deviceId": "c520bc86-39ac-41d3-94b0-579b7634e598",
+      "pid": 41460,
+      "offset": -20,
+      "length": 40,
+      "timeout_ms": 3000
+    }
+  },
+  "actualExecution": {
+    "apply": {
+      "pid": 35060,
+      "exitCode": 2,
+      "status": "STOP_REVIEW_DURABLE_STATE_NO_AUTOMATIC_RETRY",
+      "failureCode": "PINNED_ORIGINAL_SECURITY_CHANGED",
+      "rewritten": false
+    },
+    "observation": {
+      "pid": 36396,
+      "exitCode": 0
+    },
+    "keygenBinaryProbe": {
+      "pid": 7004,
+      "exitCode": 0,
+      "version": "v1.3.2"
+    },
+    "readonlyFunctionalVerification": {
+      "pid": 41460,
+      "exitCode": 0,
+      "status": "CURRENT_CUSTODY_VERIFIED_WITH_DOCUMENTED_INHERITANCE_DELTA",
+      "startedAtUtc": "2026-11-08T03:02:27.960187+00:00",
+      "completedAtUtc": "2026-11-08T03:02:27.993927+00:00"
+    }
+  },
+  "gateResult": {
+    "currentUserFreshRead": true,
+    "publicRecipientMatchesPreviouslyAcceptedIdentity": true,
+    "identityAndFolderOwnerCurrentUser": true,
+    "identityAndFolderProtectedDaclExactlyCurrentUserAndSystem": true,
+    "previousForeignOwnerNoLongerOwnerOfTwoTargets": true,
+    "originalOwnerGroupDaclBackupCreatedAndVerifiedBeforeChanges": true,
+    "fivePinnedNonsecurityMetadataUnchanged": true,
+    "functionalCustodyGate": "CLOSED_WITH_DOCUMENTED_INHERITANCE_DELTA"
+  },
+  "sourcePins": {
+    "mutationScript": {
+      "path": "d2_age_identity_acl.py",
+      "sha256": "12f79ded28f77e6016cf77b8490b8fe701df474d3c875bb86a28181e79aa41cf"
+    },
+    "readonlyVerifier": {
+      "path": "d2_age_identity_verify_readonly.py",
+      "sha256": "d8b80cb0260bb64bb4503b9ef8a572003825665da710eb8768e8fc2ac701e089"
+    },
+    "existingAgeKeygen": {
+      "path": "F:\\ASA-recovery\\age-keygen.exe",
+      "sha256": "1549c7049be32695594bedd09bbd352a94b6013a9d5c43364f3c6cd7a09ab61c",
+      "version": "v1.3.2"
+    },
+    "normalizedPublicRecipientSha256": "32c01d34f5d6e30bdeb5d2e96c9d948251d2a33fdd88a3509cd3e79c8f590fcc",
+    "priorProofArtifact": {
+      "path": "x_prep01_key_custody_evidence.json",
+      "sha256": "e11fb35ca9784b65455b622f16174685b9b77b13d298b8bca7b9681bbc6b11af",
+      "nativePid": 38424
+    }
+  },
+  "currentActor": {
+    "sid": "S-1-5-21-4032829396-1600255488-2000588394-1001",
+    "defaultOwnerSid": "S-1-5-21-4032829396-1600255488-2000588394-1001",
+    "elevated": false
+  },
+  "removableVolume": {
+    "label": "28gb",
+    "fileSystem": "NTFS",
+    "serial": "3A472EC6"
+  },
+  "currentObjectMetadata": [
+    {
+      "role": "identity",
+      "metadata": {
+        "path": "F:\\ASA-recovery\\asa-cloud-age-identity.txt",
+        "fileId": 281474976710695,
+        "volumeSerial": "3A472EC6",
+        "links": 1,
+        "bytes": 189,
+        "attributes": 32,
+        "creation": "134347541214007335",
+        "lastWrite": "134347529712205562",
+        "security": {
+          "owner": "S-1-5-21-4032829396-1600255488-2000588394-1001",
+          "group": "S-1-5-21-1936187491-707710712-3814626440-513",
+          "protected": true,
+          "rules": [
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-5-18"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-5-21-4032829396-1600255488-2000588394-1001"
+            }
+          ],
+          "sddl": "O:S-1-5-21-4032829396-1600255488-2000588394-1001G:S-1-5-21-1936187491-707710712-3814626440-513D:PAI(A;;FA;;;SY)(A;;FA;;;S-1-5-21-4032829396-1600255488-2000588394-1001)"
+        }
+      },
+      "pinnedNonSecurityMetadataUnchanged": true
+    },
+    {
+      "role": "folder",
+      "metadata": {
+        "path": "F:\\ASA-recovery",
+        "fileId": 281474976710694,
+        "volumeSerial": "3A472EC6",
+        "links": 1,
+        "bytes": 0,
+        "attributes": 16,
+        "creation": "134347541213740102",
+        "lastWrite": "134380255404963544",
+        "security": {
+          "owner": "S-1-5-21-4032829396-1600255488-2000588394-1001",
+          "group": "S-1-5-21-1936187491-707710712-3814626440-513",
+          "protected": true,
+          "rules": [
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-5-18"
+            },
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-5-21-4032829396-1600255488-2000588394-1001"
+            }
+          ],
+          "sddl": "O:S-1-5-21-4032829396-1600255488-2000588394-1001G:S-1-5-21-1936187491-707710712-3814626440-513D:PAI(A;;FA;;;SY)(A;;FA;;;S-1-5-21-4032829396-1600255488-2000588394-1001)"
+        }
+      },
+      "pinnedNonSecurityMetadataUnchanged": true
+    },
+    {
+      "role": "age.exe",
+      "metadata": {
+        "path": "F:\\ASA-recovery\\age.exe",
+        "fileId": 281474976710696,
+        "volumeSerial": "3A472EC6",
+        "links": 1,
+        "bytes": 7172096,
+        "attributes": 32,
+        "creation": "134347541676024884",
+        "lastWrite": "134324889700000000",
+        "security": {
+          "owner": "S-1-5-21-1936187491-707710712-3814626440-1001",
+          "group": "S-1-5-21-1936187491-707710712-3814626440-513",
+          "protected": false,
+          "rules": [
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-1-0"
+            }
+          ],
+          "sddl": "O:S-1-5-21-1936187491-707710712-3814626440-1001G:S-1-5-21-1936187491-707710712-3814626440-513D:(A;;FA;;;WD)"
+        }
+      },
+      "pinnedNonSecurityMetadataUnchanged": true
+    },
+    {
+      "role": "age-keygen.exe",
+      "metadata": {
+        "path": "F:\\ASA-recovery\\age-keygen.exe",
+        "fileId": 281474976710697,
+        "volumeSerial": "3A472EC6",
+        "links": 1,
+        "bytes": 4365824,
+        "attributes": 32,
+        "creation": "134347541680904733",
+        "lastWrite": "134324889680000000",
+        "security": {
+          "owner": "S-1-5-21-1936187491-707710712-3814626440-1001",
+          "group": "S-1-5-21-1936187491-707710712-3814626440-513",
+          "protected": false,
+          "rules": [
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-1-0"
+            }
+          ],
+          "sddl": "O:S-1-5-21-1936187491-707710712-3814626440-1001G:S-1-5-21-1936187491-707710712-3814626440-513D:(A;;FA;;;WD)"
+        }
+      },
+      "pinnedNonSecurityMetadataUnchanged": true
+    },
+    {
+      "role": "README.txt",
+      "metadata": {
+        "path": "F:\\ASA-recovery\\README.txt",
+        "fileId": 281474976710698,
+        "volumeSerial": "3A472EC6",
+        "links": 1,
+        "bytes": 2011,
+        "attributes": 32,
+        "creation": "134347541847872742",
+        "lastWrite": "134347541847872742",
+        "security": {
+          "owner": "S-1-5-21-1936187491-707710712-3814626440-1001",
+          "group": "S-1-5-21-1936187491-707710712-3814626440-513",
+          "protected": false,
+          "rules": [
+            {
+              "type": 0,
+              "flags": 0,
+              "mask": 2032127,
+              "sid": "S-1-1-0"
+            }
+          ],
+          "sddl": "O:S-1-5-21-1936187491-707710712-3814626440-1001G:S-1-5-21-1936187491-707710712-3814626440-513D:(A;;FA;;;WD)"
+        }
+      },
+      "pinnedNonSecurityMetadataUnchanged": true
+    }
+  ],
+  "documentedDelta": {
+    "before": 16,
+    "after": 0,
+    "meaning": "Inherited Everyone FullControl became explicit; same type/SID/mask.",
+    "objects": [
+      "F:\\ASA-recovery\\age.exe",
+      "F:\\ASA-recovery\\age-keygen.exe",
+      "F:\\ASA-recovery\\README.txt"
+    ]
+  },
+  "limits": {
+    "originalApplyStopIsRetained": true,
+    "exactHistoricalSiblingAclEquality": false,
+    "historicalStrictKeyByteEquality": "NOT_PROVEN_BASELINE_NOT_RETAINED",
+    "historicalStrictSiblingByteEquality": "NOT_PROVEN_BASELINE_NOT_RETAINED",
+    "noClaimThatDataReadBackAgainstLostHistoricalBuffers": true
+  },
+  "privateRollbackMetadata": {
+    "path": "C:\\Users\\spike\\AppData\\Local\\ASA-Lab\\SchoolSSH\\age-identity-acl-20261108-v1\\original-security.json",
+    "components": [
+      "OWNER",
+      "GROUP",
+      "DACL"
+    ],
+    "protectedOwnerAndSystem": true,
+    "containsIdentityBytes": false,
+    "sacl": "NOT_READ_NOT_CHANGED",
+    "foreignOwnerRestoration": "SEPARATE_REVIEW_REQUIRED_NOT_ATTEMPTED"
+  },
+  "unchangedSourceReceipts": [
+    {
+      "path": "d2_age_identity_acl_apply_receipt.json",
+      "sha256": "16d2cda19d1d6a57e2cf1a96ba0dac224088b88132e8b5c42633d1bf5ac298c6"
+    },
+    {
+      "path": "d2_age_identity_readonly_verification_receipt.json",
+      "sha256": "b1caff2316f9336cd5bd33d31e7ef0db334e87dda6a1b01d91ac99c856eadef2"
+    },
+    {
+      "path": "d2_age_identity_acl_post_apply_metadata.json",
+      "sha256": "a485816b2e802f38b93b3c47a6512a6c5873a0c6263ad09abb1635f3ec719144"
+    },
+    {
+      "path": "d2_age_identity_keygen_probe.json",
+      "sha256": "b1597f37a12a7bc766ad39d5198a2e386c21d7254a9d62bf63fc2c22e8c6d73e"
+    }
+  ],
+  "privateKeyCopied": false,
+  "privateKeyHashed": false,
+  "privateKeyPrinted": false,
+  "additionalLiveActions": "STOPPED_NO_FURTHER_D2_VM_H04_NETWORK_ACTIONS"
+}

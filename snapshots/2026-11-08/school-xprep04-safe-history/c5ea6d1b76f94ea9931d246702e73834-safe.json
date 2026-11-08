@@ -1,0 +1,21 @@
+{
+  "format": "asa-school-xprep04-safe-operation-v1",
+  "operationId": "c5ea6d1b76f94ea9931d246702e73834",
+  "nativeStatus": "failed",
+  "startedAt": "2026-11-08T03:54:31.957274+00:00",
+  "completedAt": "2026-11-08T03:54:51.764423+00:00",
+  "exitCode": 2,
+  "durationSeconds": 19.799,
+  "timedOut": false,
+  "outputTruncated": false,
+  "receiptStatus": "AVAILABILITY_RECOVERY_STOP_REVIEW",
+  "facts": {
+    "code": "NONWRITER_RESTART",
+    "runId": "xprep04-avail-6f4b-20261108t034854z",
+    "originalRunId": "xprep04-20261108t034237z-8d08afdbb3ad4d13",
+    "automaticRetry": false,
+    "automaticRollback": false,
+    "privateEvidence": "/var/lib/server-settings/xprep04-availability/xprep04-avail-6f4b-20261108t034854z",
+    "serverPhaseNotPresentInNativeOutput": true
+  }
+}

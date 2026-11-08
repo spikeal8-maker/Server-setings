@@ -1,0 +1,67 @@
+{
+  "format": "asa-school-xprep04-safe-operation-v1",
+  "operationId": "248b299b51f646128128614fdeed4c6b",
+  "nativeStatus": "success",
+  "startedAt": "2026-11-08T03:48:54.080964+00:00",
+  "completedAt": "2026-11-08T03:48:54.567365+00:00",
+  "exitCode": 0,
+  "durationSeconds": 0.476,
+  "timedOut": false,
+  "outputTruncated": false,
+  "receiptStatus": "FENCE_FAILURE_STATE_CAPTURED",
+  "facts": {
+    "originalOperationId": "6f4b28362fe340ed8a9c278f99ab7ac5",
+    "eventPhases": [
+      "all_preconditions_passed",
+      "maintenance_owned",
+      "writer_stop_requested",
+      "writers_stopped",
+      "old_database_fence_requested",
+      "stopped_for_review"
+    ],
+    "markersPresent": {
+      "failed-switch.json": false,
+      "maintenance.json": true,
+      "release-selection.json": false
+    },
+    "maintenanceMarkerOwned": true,
+    "noObjectOrNameSwitchConfirmed": true,
+    "expectedWritersStopped": true,
+    "supportingServicesHealthy": true,
+    "ownedTransferContainers": 0,
+    "sameProtectedFiles": true,
+    "oldDatabaseProofExists": false,
+    "oldObjectCopyExists": false,
+    "selfDatabaseDisallowConfirmed": true,
+    "canonicalSourceFingerprints": 55,
+    "liveRelease": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "databases": [
+      {
+        "allowConnections": true,
+        "connectionLimit": -1,
+        "connections": 0,
+        "expectedName": true,
+        "oid": "26362",
+        "template": false
+      },
+      {
+        "allowConnections": true,
+        "connectionLimit": -1,
+        "connections": 0,
+        "expectedName": true,
+        "oid": "105346",
+        "template": false
+      },
+      {
+        "allowConnections": true,
+        "connectionLimit": -1,
+        "connections": 0,
+        "expectedName": true,
+        "oid": "117178",
+        "template": false
+      }
+    ],
+    "sameEightIdsAndImages": true
+  }
+}

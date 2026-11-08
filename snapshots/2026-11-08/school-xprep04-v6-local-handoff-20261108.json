@@ -1,0 +1,90 @@
+{
+  "acceptedReadonlyOperation": "417abc3f5bc743afa3945ed7c59731dc",
+  "acceptedRefreshOperation": "22530fac698742bca1f4b24fe969067d",
+  "annotationRecordedAtUtc": "2026-11-08T04:51:12.253043+00:00",
+  "currentBinding": {
+    "instanceId": "fc0ba60fe1d946bba1694d73557cc11f",
+    "originalStopJournalSha256": "93828f62e170cc305da1a91b2d5ec8808e6e5f72878eec3565c1d5e308fbbed1",
+    "receiptSha256": "af7657e69c34b0797176ee021e2b0ed0bb7d2828e3fb660fb2b27e4f1150d2c2",
+    "retainedOldFenced": true,
+    "retainedOldOid": "26362",
+    "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "servedOid": "117178"
+  },
+  "files": [
+    {
+      "bytes": 21264,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v5/operation-417abc3f5bc743afa3945ed7c59731dc.json",
+      "sha256": "8ebe6a8a41a5862c08baa62472b0e0ee77d05e9e7fc5dae223c4a61ab7b00332"
+    },
+    {
+      "bytes": 9915,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v5/postswitch-actual-safe.json",
+      "sha256": "69c727de3b739744b2d904587d43257ae3859246fc2a579967fe28fb2360ef4a"
+    },
+    {
+      "bytes": 9904,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v5/reconciliation/operation-22530fac698742bca1f4b24fe969067d.json",
+      "sha256": "8ca8e3a341f95b049c5ecf242d9cefa51d276fb60e4a36e55201709c8ff31285"
+    },
+    {
+      "bytes": 3045,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v5/reconciliation/accepted-result-exact.json",
+      "sha256": "af7657e69c34b0797176ee021e2b0ed0bb7d2828e3fb660fb2b27e4f1150d2c2"
+    },
+    {
+      "bytes": 1084,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v5/reconciliation/root-acceptance-22530fac.json",
+      "sha256": "983e4af2e2d2fc25e16ececd734d59ba6279c08e8c6661d2ce02232f3165e27b"
+    },
+    {
+      "bytes": 58710,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v6/data_refresh.py",
+      "sha256": "d93c7bc5d05cc988454ef32f4b6ff4bf9c84e410ca8fdb30a8e5adf630cf71ce"
+    },
+    {
+      "bytes": 11423,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v6/reconciled_rollback_entry.py",
+      "sha256": "eb18e4e5419fb50f0eb4347c6676f7c97b3d080dac9c75aaff077a53b041f690"
+    },
+    {
+      "bytes": 2549,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v6/v5-to-v6.diff",
+      "sha256": "8243c3f3bdafedd10cf3626eda05c9033a8c78155bf089e7f6d65704614f9365"
+    },
+    {
+      "bytes": 4155,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v6/README.md",
+      "sha256": "1e7fa8c47f4d4b7597d99d942b67568ae8e6124f457b9cd437628ac2fa33c12f"
+    },
+    {
+      "bytes": 1826,
+      "path": "/workspace/scratch/d2ba039f3fd1/xprep04/v6/frozen-package.json",
+      "sha256": "48a06783bc4b5362163ae1e3731bb7382486dfa159d08fdc284b14e545a1fd91"
+    }
+  ],
+  "futurePostBackupGate": {
+    "futureBaselinePrefilled": false,
+    "originalStopSnapshotAndHistoryMustRemain": true,
+    "possibleComposeStartOneshotRestart": [
+      "migration",
+      "minio-init"
+    ],
+    "requiresActualObservationAndSeparateReviewedExplicitBaselineAdaptation": true,
+    "strictNonwriterGateWeakened": false
+  },
+  "limits": {
+    "originalHealthFailureCauseProven": false,
+    "postApiFullCandidateRowEqualityClaimed": false,
+    "uiLoadAndPostTestBackupOutsideThisTask": true
+  },
+  "nativeCommandsAfterRelease": 0,
+  "reviewer": "/root",
+  "rollbackAuthorized": false,
+  "rollbackRun": false,
+  "stageAuthorized": false,
+  "stageRun": false,
+  "status": "ROOT_ACCEPTED_LOCAL_PREPARATION_ONLY",
+  "vmWorkerReleased": true
+}
