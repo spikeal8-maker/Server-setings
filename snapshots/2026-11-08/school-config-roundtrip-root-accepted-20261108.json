@@ -1,0 +1,73 @@
+{
+  "format": "asa-school-configuration-roundtrip-acceptance-v1",
+  "status": "CONFIG_CLOUD_DOWNLOAD_DECRYPT_ISOLATED_VERIFY_PASS",
+  "rootAcceptedAt": "2026-11-08T09:53:41Z",
+  "archive": "asa-school-config-01-20261108T092203Z-fc8b50ef.tar.age",
+  "verification": {
+    "archive": "asa-school-config-01-20261108T092203Z-fc8b50ef.tar.age",
+    "bytes": 25186504,
+    "ciphertextSha256": "e772ecf0e98b9624f8231e9e7887310fd7080fbd10ecc28e8502e5f992afdbd0",
+    "coverageComplete": false,
+    "fileCount": 59,
+    "gatewayOAuthContinuity": false,
+    "livePathsWritten": false,
+    "manifestVerified": true,
+    "normalizedLogs": {
+      "application": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 16,
+        "recordBytes": 15788132,
+        "records": 19596
+      },
+      "host": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 504,
+        "recordBytes": 161816055,
+        "records": 201417
+      }
+    },
+    "permissionsManifestValidated": true,
+    "sqliteIntegrity": {
+      "agent.db": "ok",
+      "core.db": "ok",
+      "xpack.db": "ok"
+    },
+    "status": "CONFIG_CLOUD_DOWNLOAD_DECRYPT_ISOLATED_VERIFY_PASS",
+    "verifiedDirectory": "/var/backups/server-settings/school-recovery/verified/asa-school-config-01-20261108T092203Z-fc8b50ef"
+  },
+  "operations": {
+    "readability": "b232d605a15b4deab77b339a06491f64",
+    "create": "d35f94e116b1418a8a693f4831d4a362",
+    "initialCloud": "5cab5904dfd94a81ba4640edfddd74fd",
+    "initialCloudResult": "STOP_CONFIG_DOWNLOAD_HTTP_STATUS",
+    "providerHeaders": "d56cfc41cdbe4eae9a391f0c59919cd6",
+    "providerObservedStatus": 302,
+    "providerRedirectAllowlistMatched": true,
+    "existingObjectDownload": "d1435b651f96477e9ab144812127912a",
+    "initialD2LauncherPid": 39984,
+    "initialD2LauncherResult": "PYTHON_PARSE_ERROR_BEFORE_PAYLOAD",
+    "correctedD2StagePid": 35496,
+    "verificationRdcPid": 8348,
+    "verificationPythonPid": 27748,
+    "guestOperationId": "x-config-verify-v2-20261108t093916z-83251330",
+    "guestReceiptPath": "/var/backups/server-settings/x-config-verify-v2-20261108t093916z-83251330.json",
+    "guestReceiptPersisted": true
+  },
+  "remoteDirectory": "app:/School-VM100/Configuration-Backups",
+  "readerV2Sha256": "bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f",
+  "snapshotHelperSha256": "3eb55ec49eb5ee44a9400514bb7ed92f4603fdac56dedef623f053ab0d1c383d",
+  "fullDownloadVerified": true,
+  "strictIdentityAclVerified": true,
+  "identityAclChanged": false,
+  "privateKeyInArgvOrNamedVmFile": false,
+  "servicesChanged": false,
+  "schedulesChanged": false,
+  "schedulerState": "PREPARE_ONLY_NOT_INSTALLED",
+  "workingApplicationTrafficChanged": false,
+  "coverageComplete": false,
+  "gatewayOAuthContinuity": false
+}

@@ -1,0 +1,58 @@
+{
+  "status": "ROOT_ACCEPTED_OWN_TEACHER_NATIVE_LOGOUT_RECONCILIATION",
+  "rootReviewedAtUtc": "2026-11-08T08:57:34Z",
+  "recordedAtUtc": "2026-11-08T09:02:24.268288+00:00",
+  "source": "Parent /root independently read actual PID 16532 terminal exit 0 / 8.99s and matched source contract in revision 3e auth.controller.ts blob 17f29d8b4a8067f8844fc162de24b00e8037d27c.",
+  "diagnosticPid": 16532,
+  "diagnosticExitCode": 0,
+  "runtimeSeconds": 8.99,
+  "runId": "1f5c7049ed654343a8d90e196bd9ef4a",
+  "observedAuthSequence": [
+    {
+      "method": "GET",
+      "route": "/api/auth/me",
+      "status": 200,
+      "errors": 0
+    },
+    {
+      "method": "POST",
+      "route": "/api/auth/logout",
+      "status": 200,
+      "errors": 0
+    },
+    {
+      "method": "GET",
+      "route": "/api/auth/me",
+      "status": 401,
+      "errors": 1
+    }
+  ],
+  "nativeLogoutSucceeded": true,
+  "oldAccessCookieRejected": true,
+  "oldCleanupFalseRetained": true,
+  "oldStageStopRetained": true,
+  "freshHttpLogoutRequired": false,
+  "httpRequestsByDiagnostic": 0,
+  "cpuInterpretation": "Present Node 24.49-36.30% and Windows CIM 14-53% do not establish the cause or validity of historical 99.9%; formula and thresholds unchanged.",
+  "loadReplayAuthorized": false,
+  "newLoadAuthorized": false,
+  "privateFileHashComputed": false,
+  "actualStdoutRepresentation": "Exact UTF-8 JSON line with CRLF extracted from tool output; not a remote file hash.",
+  "evidence": {
+    "start": {
+      "path": "/workspace/scratch/d2ba039f3fd1/xload-orchestration/diagnostics/stage-2-1f5c7049ed654343a8d90e196bd9ef4a-readonly/execution/native-start-16532.json",
+      "bytes": 381,
+      "sha256": "d9bde763f284c1e397549b728c85aa14fc3d9429e63fdb97dc2e5f422db81bfe"
+    },
+    "output": {
+      "path": "/workspace/scratch/d2ba039f3fd1/xload-orchestration/diagnostics/stage-2-1f5c7049ed654343a8d90e196bd9ef4a-readonly/execution/native-output-16532.json",
+      "bytes": 3521,
+      "sha256": "4d78240f2221950d29a03ac8928d1c2c8787067785e65bb3d57c3661cb11103c"
+    },
+    "stdout": {
+      "path": "/workspace/scratch/d2ba039f3fd1/xload-orchestration/diagnostics/stage-2-1f5c7049ed654343a8d90e196bd9ef4a-readonly/execution/actual-stdout-json-line-16532.json",
+      "bytes": 2881,
+      "sha256": "828194774db6d968a61ecff48cd9ca6348cbc3bfaa4281dadcab3161172dca9f"
+    }
+  }
+}

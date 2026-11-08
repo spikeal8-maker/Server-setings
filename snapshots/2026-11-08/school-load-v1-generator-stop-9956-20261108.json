@@ -1,0 +1,130 @@
+{
+  "package": "X-LOAD",
+  "profileId": "X-SCHOOL-API-ELECTRONICS-100-V1",
+  "profileSha256": "5227231e314336de3c7aac792631bb368d4709afbc45923dbdd20c792f2e11d3",
+  "origin": "https://x.asa-lab.ru",
+  "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "schema": 307,
+  "fixtureId": "teacher-3e-117178-v1",
+  "status": "STOP_NO_RETRY",
+  "serverAcceptance": "PENDING_INDEPENDENT_CONTROLLER",
+  "generatorHosts": 1,
+  "serverSourceAddressCardinality": "NOT_MEASURED",
+  "existingBrowserProfile": false,
+  "fullBrowserEditorLoad": false,
+  "secretsPrinted": false,
+  "credentialHashesPublished": false,
+  "blockedOptionalMaxSdk": 1,
+  "cleanup": {
+    "attempted": true,
+    "projectsTrashed": 2,
+    "projectsRetainedForEvidence": 0,
+    "studentSessionsRevoked": 2,
+    "seatsRemoved": 2,
+    "joinCodesRevoked": 1,
+    "classroomsSoftDeleted": 1,
+    "teacherLoggedOut": false,
+    "failures": 1,
+    "allKnownSessionsRevoked": true,
+    "allKnownSeatsRemoved": true,
+    "allKnownClassroomsSoftDeleted": true,
+    "ambiguousCreationRemaining": false,
+    "confirmed": false,
+    "disposition": "INCOMPLETE_OR_NOT_STARTED"
+  },
+  "stage": 2,
+  "observerOperationId": "74d16f6f08ed4667839aa77128b6487d",
+  "observerPreflightOperationId": "b7896b5ab8144892b1c1d8874652296a",
+  "observerCoverage": "PENDING_FINAL_SAMPLE_TIMESTAMPS",
+  "teacherNativeUiLogin": true,
+  "newNativeStudentLogins": 2,
+  "activeDistinctStudentSessions": 2,
+  "ownProjectReadAllowed": true,
+  "otherSyntheticPrivateProjectDenied": true,
+  "calibrationOldCookieRevoked": true,
+  "calibrationNativeRelogin": true,
+  "measuredStartUtc": "2026-11-08T08:39:22.652Z",
+  "measuredEndUtc": "2026-11-08T08:39:31.706Z",
+  "failure": {
+    "code": "GENERATOR_RESOURCE_LIMIT",
+    "kind": "GENERATOR_LIMIT",
+    "phase": "measured-api-work"
+  },
+  "metrics": {
+    "login": {
+      "count": 2,
+      "p50": 64.08,
+      "p95": 145.41,
+      "p99": 145.41,
+      "max": 145.41
+    },
+    "read": {
+      "count": 2,
+      "p50": 61.44,
+      "p95": 62.17,
+      "p99": 62.17,
+      "max": 62.17
+    },
+    "save": {
+      "count": 2,
+      "p50": 86.87,
+      "p95": 88.19,
+      "p99": 88.19,
+      "max": 88.19
+    },
+    "readback": {
+      "count": 2,
+      "p50": 68.34,
+      "p95": 76.64,
+      "p99": 76.64,
+      "max": 76.64
+    }
+  },
+  "waves": [
+    {
+      "planned": 2,
+      "acknowledged": 2,
+      "readBack": 2,
+      "integrityErrors": 0,
+      "dispatchSpreadMs": 1.3274000000001251
+    }
+  ],
+  "unexpectedHttpErrors": 0,
+  "http429": 0,
+  "http5xx": 0,
+  "integrityErrors": 0,
+  "httpRequests": 48,
+  "maximumConfirmedUsers": null,
+  "usersWithTwoVerifiedWaves": 0,
+  "completedUtc": "2026-11-08T08:39:33.608Z",
+  "peakHttpInFlight": 2,
+  "generator": {
+    "samples": 5,
+    "minimumAvailableBytes": 20208578560,
+    "maximumNodeRssBytes": 113168384,
+    "processTreeSamples": 5,
+    "maximumProcessTreeRssBytes": 346234880,
+    "maximumOwnProcessCount": 6,
+    "processTreeCpuCoresUsed": {
+      "count": 4,
+      "p50": 0.01,
+      "p95": 0.02,
+      "p99": 0.02,
+      "max": 0.02
+    },
+    "hostCpuPercent": {
+      "count": 4,
+      "p50": 99.32,
+      "p95": 99.9,
+      "p99": 99.9,
+      "max": 99.9
+    },
+    "eventLoopP99Ms": {
+      "count": 5,
+      "p50": 35.98,
+      "p95": 36.77,
+      "p99": 36.77,
+      "max": 36.77
+    }
+  }
+}

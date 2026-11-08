@@ -564,7 +564,7 @@
   },
   "nextOpenItems": [
     "Full ordinary UI acceptance",
-    "Recover exact load driver sources, then progressive HTTP load",
+    "Recover exact load controller sources, then progressive HTTP load",
     "Authenticated administrative logging API",
     "Configuration and separate normalized log archives with recovery verification",
     "Fresh final frozen H04 sync and relogin decision",
