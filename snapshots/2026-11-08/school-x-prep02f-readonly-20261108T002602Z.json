@@ -1,0 +1,299 @@
+{
+  "evidenceType": "school_x_prep02f_existing_x_refresh_readonly",
+  "capturedFrom": "direct_school_mcp_durable_operation",
+  "operation": {
+    "id": "c5a6b6fc96e744fd89270dcae334a1f9",
+    "idempotencyKey": "school-xprep02f-readonly-eaa56899-3e871-20261108-v1",
+    "installationId": "asa-school-vm100",
+    "status": "success",
+    "phase": "complete",
+    "createdAt": "2026-11-08T00:25:47.921256+00:00",
+    "completedAt": "2026-11-08T00:26:02.037372+00:00",
+    "exitCode": 0,
+    "timedOut": false,
+    "durationSeconds": 13.985,
+    "outputTruncated": false
+  },
+  "approvedTooling": {
+    "scriptSha256": "db1c3c2341b3eb8292b7f92c586b2467cd6bff057a8cec688d4c3572f7f5e679",
+    "scriptBytes": 25480,
+    "launcherSha256": "00bc8a75e931ae438564436a7b674077d6a570a4d96736ad85b22cb44159455a",
+    "launcherBytes": 25560,
+    "helperSha256": "db574c5b4594b72c8ed8efa6b0e1046596d8adc34a4d5e061bc3d23da083e79c"
+  },
+  "result": {
+    "candidate": {
+      "accounts": 101,
+      "activeSessions": {
+        "account": 5,
+        "refreshFamilies": 119,
+        "refreshTokens": 143,
+        "student": 10
+      },
+      "ai": {
+        "activeJobs": 0,
+        "cleanupRows": 0,
+        "imageEnabled": true,
+        "jobStates": {
+          "cancelled": 2,
+          "complete": 13
+        },
+        "localTextEnabled": true,
+        "polzaEnabled": true,
+        "providerFlags": [
+          {
+            "enabled": true,
+            "keyPresent": true,
+            "provider": "deepseek"
+          },
+          {
+            "enabled": true,
+            "keyPresent": true,
+            "provider": "ollama-cloud"
+          },
+          {
+            "enabled": true,
+            "keyPresent": true,
+            "provider": "openai"
+          },
+          {
+            "enabled": true,
+            "keyPresent": true,
+            "provider": "polza"
+          }
+        ],
+        "reconcileJobs": 0,
+        "savedComfyOriginPresent": false,
+        "textEnabled": true,
+        "transcriptionEnabled": true
+      },
+      "authProviders": [
+        {
+          "enabled": true,
+          "provider": "max",
+          "tokenPresent": true,
+          "webhookConfigured": true
+        },
+        {
+          "enabled": true,
+          "provider": "telegram",
+          "tokenPresent": true,
+          "webhookConfigured": true
+        }
+      ],
+      "candidateDatabaseOid": "105346",
+      "database": "asa_xprep02e_20261108t000534z_c632ca76_test",
+      "existingApplicationRole": {
+        "bypassRls": false,
+        "canLogin": true,
+        "candidateConnectPrivilege": true,
+        "present": true,
+        "superuser": false
+      },
+      "otherCandidateConnections": 0,
+      "pendingAuthPairings": 0,
+      "pendingEmailIntents": 0,
+      "projects": 2351,
+      "schema": 307,
+      "smtp": {
+        "deliveryProofPresent": false,
+        "enabled": false,
+        "passwordPresent": false
+      },
+      "studentSeats": 554,
+      "syntheticIdentityCandidateCounts": {
+        "natHarness": 0,
+        "scaleHarness": 0,
+        "threeDHarness": 0
+      },
+      "unrevokedSessions": {
+        "account": 200,
+        "legacy": 0,
+        "refreshFamilies": 200,
+        "refreshTokens": 279,
+        "student": 2157
+      }
+    },
+    "candidateMatchesAccepted02EData": true,
+    "canonicalResources": {
+      "minio": {
+        "containerId": "12ae3a11689ab46199111b30e5e3f140f4cb9ca06b34c0b01d4984db67595329",
+        "dataVolumeNames": [
+          "[REDACTED]_blocks-object-data"
+        ],
+        "imageId": "sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e"
+      },
+      "postgres": {
+        "containerId": "6261ee4d145c302da86ba03ad669171910c775937323d2ecea70b704cfcc62f8",
+        "dataVolumeNames": [
+          "[REDACTED]_postgres-data"
+        ],
+        "imageId": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd"
+      }
+    },
+    "currentSchoolMinioMetadata": {
+      "notification": {
+        "configuredDestinations": 0,
+        "status": "READ"
+      },
+      "replication": {
+        "configuredRules": 0,
+        "httpStatus": 404,
+        "status": "READ"
+      },
+      "versioning": {
+        "enabled": false,
+        "status": "READ",
+        "suspended": false
+      }
+    },
+    "currentSchoolMinioOwnership": {
+      "configuredUser": "1000:1000",
+      "dataMount": {
+        "Destination": "/data",
+        "Driver": "local",
+        "Mode": "rw",
+        "Name": "[REDACTED]_blocks-object-data",
+        "Propagation": "",
+        "RW": true,
+        "Type": "volume"
+      },
+      "dataRootGid": 1000,
+      "dataRootMode": "755",
+      "dataRootUid": 1000,
+      "pid1IdsRealEffectiveSavedFilesystem": {
+        "gid": [
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "uid": [
+          1000,
+          1000,
+          1000,
+          1000
+        ]
+      }
+    },
+    "currentSchoolS3EffectiveEnvironmentMatchesRuntime": true,
+    "freshH04MinioMetadata": {
+      "decodedConfigurations": false,
+      "notificationPathMarkers": 0,
+      "replicationPathMarkers": 0,
+      "requiresIsolatedFreshCopyBeforeConfigurationAcceptance": true,
+      "status": "RUNTIME_NOT_INSPECTED",
+      "verifiedPhysicalSystemMetadataFiles": 14
+    },
+    "keyComparisons": {
+      "APP_DATABASE_URL": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_APP_DB_PASSWORD": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_BLOCKS_RUNTIME_SIGNING_KEY": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_OBJECT_STORAGE_ACCESS_KEY": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_OBJECT_STORAGE_SECRET_KEY": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_SEARCH_SECRET": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_SETTINGS_ENCRYPTION_KEY": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_STUDENT_CODE_ENCRYPTION_ACTIVE_KEY_ID": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_STUDENT_CODE_ENCRYPTION_KEYS_JSON": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_STUDENT_CODE_LOOKUP_ACTIVE_KEY_ID": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_STUDENT_CODE_LOOKUP_KEYS_JSON": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "ASA_STUDENT_CODE_PROTECTION_MODE": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "CLASSROOM_CODE_SECRET": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "MIGRATION_DATABASE_URL": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "POSTGRES_DB": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "POSTGRES_PASSWORD": {
+        "equal": false,
+        "schoolPresent": true,
+        "sourcePresent": true
+      },
+      "POSTGRES_USER": {
+        "equal": true,
+        "schoolPresent": true,
+        "sourcePresent": true
+      }
+    },
+    "liveBaselinePreserved": true,
+    "package": "X-PREP-02F-READONLY",
+    "status": "READONLY_FACTS_COMPLETE_NOT_CUTOVER_APPROVAL",
+    "testIdentityLimits": {
+      "accountsCreatedBy02E": 0,
+      "countsArePatternCandidatesOnly": true,
+      "fixtureCreated": false,
+      "ownershipOrCredentialsKnown": false
+    },
+    "writesPerformed": false
+  },
+  "rootAcceptance": {
+    "status": "ACCEPTED",
+    "source": "parent independently read the complete same durable operation",
+    "scope": "Read-only candidate/source key equality, candidate baseline fingerprint/aggregates, current school MinIO configuration/ownership and unchanged live307. No candidate hygiene, fresh MinIO startup, fixture or live import performed.",
+    "instruction": "Stop runtime. Candidate hygiene preparation only for a separate NEW *_test restore; accepted02E database remains unchanged."
+  },
+  "readinessLimits": [
+    "Fresh H04 MinIO runtime/configuration proof remains NOT_RUN.",
+    "No session revocation, integration disablement, fixture or live data switch was performed.",
+    "Key material equality is reported only as booleans; all existing school env values can remain unchanged for this source.",
+    "Synthetic marker counts do not establish ownership or passwords; controlled QA identity is not yet confirmed.",
+    "Redacted project/volume strings in the raw connector receipt remain redacted; no attempt to recover or rewrite them."
+  ]
+}

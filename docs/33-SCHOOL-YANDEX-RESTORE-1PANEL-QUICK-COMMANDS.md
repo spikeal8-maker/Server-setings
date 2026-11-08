@@ -1,12 +1,157 @@
 # ASA Lab School VM100 — Яндекс Диск, восстановление и быстрые команды 1Panel
 
-Текущая запись: **08.11.2026 03:23:12 МСК / 08.11.2026 00:23:12 UTC**.
+Текущая запись: **08.11.2026 04:29:37 МСК / 08.11.2026 01:29:37 UTC**.
 Сервер: `asa-school-01`, Proxmox VM100, установка `asa-school-vm100`,
 Compose-проект `asa-lab-school`. Прямой MCP из ChatGPT принят
 ([доступ и исходники](53-SCHOOL-HOST-ADMIN-MCP.md)). Команды ниже предназначены
 для терминала **хоста Ubuntu в 1Panel**, не для Docker-контейнера.
 
-## Текущее состояние X — 02C, 02E, наблюдение 03 и подключение receipt 03A приняты
+## Текущее состояние X — проверены копии 307/H04 и подготовлена тестовая БД
+
+**Общий статус: БЛОКЕР для переноса основной системы.** Рабочий X остаётся
+на `3e8713476cafedda3e24a39665458e833efd7c22` / schema 307.
+Приняты изолированное восстановление двух конкретных копий и очистка отдельной
+тестовой БД. **Свежие данные H04 ещё не приняты в рабочем X.**
+Срез заканчивается независимым принятием hygiene в **04:29:37 МСК**;
+результаты последующего 04, QA fixture, UI и нагрузки в него не входят.
+
+| Часть | Принятый результат | Граница результата |
+| --- | --- | --- |
+| Рабочий X | В 02F, 02G и hygiene сохранён live baseline 3e871347/schema307; школьный instance `fc0ba60fe1d946bba1694d73557cc11f` и private env сохранены | Live H04 import и переключение production-домена этим пакетом не выполнялись |
+| Новая школьная копия 307 | Архив `890ab35c`, manifest `992609bc…`: age, canonical verify и import-preflight PASS; затем изолированные PostgreSQL/ACL/RLS и фактический целевой MinIO PASS в 02G | Это доказательство восстановления указанной копии; пользовательские сценарии и полный source row-fingerprint comparison не проверены |
+| Свежий H04 | Архив `eaa56899`, manifest `0b090dfa…`: в 02G восстановлены PostgreSQL schema304 и MinIO на целевом image; metadata проверена | Миграции в 02G не запускались; отдельный candidate доведён до schema307 ранее, live импорт не принят |
+| Подготовленная тестовая БД | `asa_xprep02f_eaa56899_candidate_test`, OID `117178`, schema307; hygiene `COMMITTED_WITH_RECEIPT`, проверено ожидаемое преобразование 241 таблицы, 228 вне списка изменений сохранены | Учётные записи, проекты, коды учеников, история заданий, credentials, ACL/RLS/triggers и ledger сохранены; QA fixture не создана этим этапом |
+| Ключи и окружение | 02F: семь полей защиты данных/keyrings и два S3-поля совпали между source и school; школьный env не менялся | Значения секретов и recipient не публикуются; совпадение данных ключей не является проверкой входа пользователя |
+| Журналы и receipt | Принятый 03A pointer подключён, collector читает automatic receipt; исторические записи 03/03A сохранены | Lifecycle gap остаётся известным ограничением; authenticated `requiredCoverage` по-прежнему не принят, полнота истории не заявляется |
+
+### 02F — проверка кандидата без изменений
+
+Read-only операция `c5a6b6fc96e744fd89270dcae334a1f9` завершилась
+**08.11.2026 03:26:02 МСК / 00:26:02 UTC**, success/exit0, **13.985 секунды**.
+Прежняя тестовая БД 02E соответствовала принятому baseline: 101 account,
+2351 project, 554 student seats, schema307. Это количества записей в копии,
+а не испытание одновременных пользователей. Ownership и credentials
+контролируемой QA-учётной записи этим наблюдением не установлены.
+
+Школьный MinIO имел UID/GID1000, mode0755, без notification destinations,
+replication rules и включённого versioning. Совпадение семи полей защиты
+данных и двух S3-полей записано только boolean-результатами.
+DB URL/пароли, runtime signing и search secret различались при сравнении;
+школьное окружение оставлено неизменным. Отзыв сессий, отключение интеграций,
+fixture и live import в 02F-readonly не выполнялись.
+[Первичный снимок 02F](../snapshots/2026-11-08/school-x-prep02f-readonly-20261108T002602Z.json).
+
+### Новая школьная копия 307 — расшифровка и независимое принятие
+
+Операция `x-school307-decrypt-890ab35c-v1` завершилась
+**08.11.2026 03:44:00 МСК / 00:44:00 UTC**, SUCCESS.
+Архив `asa-school-01-20261108T002056Z-890ab35c.tar.age` заново скачан
+из `app:/School-VM100/Database-Backups/`; cipher — **231337304 байта**,
+SHA256 `1787b730459a6328e2278ab814c8a9d081421f2d0011478631fab22dbc5a4f95`.
+Подтверждены age-аутентификация, canonical verify, import-preflight без записи,
+исходные keyrings и согласованность runtime/install/configuration.
+
+Внутри подтверждён **3e871347/schema307**, школьный instance и manifest
+`992609bc1fabd9c6df155d1cb6bcde88f095185216cb7aeb20d31e1f6f75b277`:
+2332 manifest files, 2324 физических MinIO files / 187158389 байт;
+PostgreSQL dump 34591950 байт, SHA256
+`06a8b763a9d2bbfb80eeeb6e1935938e0b5707b0906a3d351fd5a4277f89808a`.
+Контролёр независимо прочитал durable receipt через
+`4f0834dd6a18469eaa5297669048da73` и принял результат.
+На этом шаге DB/MinIO restore ещё не выполнялись; они отдельно приняты в 02G.
+[Исходная квитанция](../snapshots/2026-11-08/x_school307_recovery_receipt.json) и
+[отдельное принятие](../snapshots/2026-11-08/x_school307_recovery_acceptance.json) сохранены без изменения исходных bytes.
+
+### 02G — PostgreSQL и фактический целевой MinIO для обеих копий
+
+Операция `9205cad1b5554eb19be9e91026576846` завершилась
+**08.11.2026 04:23:16 МСК / 01:23:16 UTC**, exit0, **75.314 секунды**;
+независимое принятие записано в **04:24:23 МСК**.
+
+| Проверенная копия | PostgreSQL restore и ACL/RLS | MinIO physical SHA256 | S3 listing и фактический GET |
+| --- | --- | --- | --- |
+| Школа307 `890ab35c/992609bc…` | PASS; **96 accounts / 2214 projects / schema307** | Все **2324 файла**, 187158389 байт | 1 bucket, **2112 объектов**, **1 выборочный GET** |
+| H04 `eaa56899/0b090dfa…` | PASS; **101 accounts / 2351 projects / schema304** | Все **3221 файл**, 216567605 байт | 1 bucket, **3001 объект**, **1 выборочный GET** |
+
+В обоих случаях действительно запущен целевой MinIO
+`ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e`.
+Проверены его бинарники, UID/GID1000, mode0755 и совпадение фактических школьных
+S3 credentials с source/runtime. В восстановленных bucket — 0 notification
+destinations, 0 replication rules/elements, 0 enabled/suspended versioning buckets.
+
+После проверки удалены и проверены **6 собственных контейнеров и 4 тома**.
+Штатные тома не подключались, порты не публиковались, images не скачивались;
+live X, retained02E и исходные копии сохранены, production H04 не опрашивался.
+Миграции, восстановление диагностической истории, полное сравнение source row
+fingerprints и пользовательские сценарии в 02G не выполнялись.
+Один GET на набор остаётся выборочной проверкой чтения.
+[Исходная квитанция 02G](../snapshots/2026-11-08/school-x-prep02g-receipt-20261108.json) и
+[независимое принятие](../snapshots/2026-11-08/school-x-prep02g-root-acceptance-20261108.json).
+
+### Hygiene — исходная остановка и отдельное принятое исправление
+
+Первый запуск `48b9dcdc64fb46f4a53e86930b1f306d` остановился
+**08.11.2026 03:53:16 МСК**, exit2, **48.418 секунды**.
+До остановки новая `asa_xprep02f_eaa56899_candidate_test`, OID117178,
+прошла canonical restore и миграции 0305–0307: применено3, повтор0,
+данные/ACL/RLS 240 прежних таблиц и ledger сохранены. Hygiene не была принята.
+[Первичный STOP](../snapshots/2026-11-08/school-x-prep02f-hygiene-attempt-20261108T005316Z.json) сохраняет
+`REQUESTED_NOT_CONFIRMED` и `PENDING_FAILURE_REVIEW` побайтно.
+
+Последующий разбор `8c36fcc0a83740eeb473dc48f4d9224d` и catalog read
+`b8e1004ca8bd4f7ab1c5c03a6844f5bf` подтвердили остановку на
+`HYGIENE_TRIGGER_SOURCE_GUARD` **до UPDATE**. Проверка не учитывала третий
+штатный `sessions_v2_record_first_auth` — AFTER INSERT trigger из
+[миграции 0082 точного release3e](https://github.com/spikeal8-maker/asa-lab/blob/3e8713476cafedda3e24a39665458e833efd7c22/migrations/0082_max_verification_status.sql),
+Git blob `e26c532d6d9f1cdde534887fd568a04c3dbc9ede`.
+Синтаксическая ошибка parser/GUC не подтверждена; исправлена проверка состава
+trigger, исходный SET prefix и последующая логика преобразований сохранены.
+
+Отдельная операция `de99ac1a419d4d43bc42d41d74f9eac3` завершилась
+**08.11.2026 04:25:29 МСК / 01:25:29 UTC**, exit0, **49.354 секунды**,
+stderr0; контролёр принял результат в **04:29:37 МСК**.
+Транзакция `COMMITTED_WITH_RECEIPT` затронула только существующую candidate
+OID117178/schema307, без повторного restore или миграций.
+Ожидаемое преобразование целых строк совпало для **241 таблицы**;
+**228 таблиц вне разрешённого списка изменений неизменны**.
+
+Отозваны 200 account sessions, 2157 student sessions, 200 refresh families и
+279 refresh tokens; закрыты 2 неиспользованные pairing, включая истёкшие.
+Отключены 2 auth providers и AI-интеграции. Учётные записи, проекты, коды
+учеников, история заданий и bytes credentials сохранены вместе с ACL/RLS,
+policies/triggers и ledger. Live X, retained02E и env не менялись.
+MinIO import, role/global SQL, новые контейнеры и QA fixture не выполнялись.
+
+[Исходный success receipt](../snapshots/2026-11-08/school-x-prep02f-hygiene-repaired-20261108T012529Z.json) намеренно остаётся с
+`SUCCESS_AWAITING_ROOT_ACCEPTANCE/PENDING_ROOT_REVIEW`.
+Его приёмка доказана [отдельной immutable annotation](../snapshots/2026-11-08/root-acceptance-de99ac1a-20261108T012937Z.json),
+а не переписыванием прошлого. Private evidence:
+`/var/lib/server-settings/xprep02f-hygiene-repair/20261108t012440z-e4493c90`.
+
+### Следующие проверки после этого среза
+
+1. В подготовленной `asa_xprep02f_eaa56899_candidate_test` создать одну обычную
+   QA-учётную запись роли `teacher` **без admin-прав** и проверить её.
+   Fixture helper применяется только к `*_test`;
+   [общая инструкция QA fixture](39-SYNTHETIC-ACCEPTANCE-FIXTURE.md) служит справкой.
+2. Затем принять ограниченный этап04: обновление данных рабочего X и проверку
+   отката. Пользовательские UI-сценарии и
+   [ступенчатую нагрузку](38-SCHOOL-HTTP-LOAD-100.md) выполнять после этого
+   на X, который обслуживает запросы. Этап04 не принят данным пакетом;
+   количество accounts в архиве не является результатом нагрузки.
+3. Проверить authenticated API `requiredCoverage`, текущую полноту журналов
+   и пользовательские ошибки; сохранить известные ограничения исторической полноты.
+4. Отдельно решить VPN/ИИ, USB ACL, финальную синхронизацию с продолжающим работать
+   production H04 и переключение домена. Application-only rollback 300 over307
+   остаётся неквалифицированным.
+
+## История 02C/02E/03/03A — 08.11.2026 03:23:12 МСК
+
+Ниже сохранён срез до 02F/recovery/02G/hygiene. Его незавершённые проверки
+содержимого школьного архива, обоих восстановлений и подготовки candidate
+закрываются только точными результатами выше. Указания fresh MinIO NOT_RUN
+в прежних разделах относятся к их датам. Live import, QA/UI/load и полнота
+журналов этими новыми результатами не закрываются.
 
 **Рабочий школьный X обновлён до `3e8713476cafedda3e24a39665458e833efd7c22`,
 schema 307.** В 02C все шесть компонентов — API, web, Scratch, search,
@@ -126,7 +271,7 @@ Authenticated `requiredCoverage` остаётся `NOT_EVALUATED`.
 [actual apply](../snapshots/2026-11-08/actual-apply-20261108T002312Z.json).
 Исторический снимок 03 остаётся свидетельством состояния **до** этого изменения.
 
-### Следующие проверки после 02C/02E/03/03A
+### План после 02C/02E/03/03A на 03:23 МСК — история
 
 Для нового автоматического облачного архива отдельно подтвердить его runtime
 и schema, age-аутентификацию, canonical manifest и восстановление PostgreSQL/MinIO.
