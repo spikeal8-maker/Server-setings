@@ -1,0 +1,116 @@
+{
+  "evidenceType": "school_x_prep02e_fresh_h04_restore_migration",
+  "capturedFrom": "direct_school_mcp_durable_operation",
+  "operation": {
+    "id": "43c423bd27504fbab5214b85a6b8d709",
+    "idempotencyKey": "school-xprep02e-h04-eaa56899-3e871-20261108-v1",
+    "installationId": "asa-school-vm100",
+    "status": "success",
+    "phase": "complete",
+    "createdAt": "2026-11-08T00:05:34.661969+00:00",
+    "completedAt": "2026-11-08T00:06:04.848657+00:00",
+    "exitCode": 0,
+    "timedOut": false,
+    "durationSeconds": 30.06,
+    "outputTruncated": false
+  },
+  "approvedTooling": {
+    "root": "/var/lib/server-settings/xprep02e-tools-db574c5b",
+    "sha256": {
+      "xprep02e_launcher.sh": "3be79bdd90f22058742c2bcad667f473c6350ebd55be0dacf9c1016d236a8928",
+      "xprep02e_preflight.py": "db574c5b4594b72c8ed8efa6b0e1046596d8adc34a4d5e061bc3d23da083e79c",
+      "xprep02e_migrate.mjs": "16c178d26975acbee048dcd8bcd9f413089c6c44ca35635c07b108401b435733"
+    }
+  },
+  "result": {
+    "allowed": [
+      "cached immutable manifest/API verification",
+      "new test DB restore",
+      "three test-DB migrations and idempotency"
+    ],
+    "backup": "/var/backups/asa-school-recovery/unpacked/legacy__asa-lab-20261107T231505Z-eaa56899/20261107T231505Z-eaa56899",
+    "backupManifestSha256": "0b090dfa30d8b4ef6bd70703f59c6d546278148f218cf4be7e4e90ab61880f34",
+    "deploymentDigest": "sha256:7ce56323d2149ba12788b61af6d7f341ac2a8934a624074c0175be483252a4c5",
+    "evidence": "/var/lib/server-settings/xprep02e/20261108t000534z-c632ca76",
+    "globalsImport": "NOT_RUN",
+    "h04LiveImport": "NOT_RUN",
+    "liveBaselinePreserved": true,
+    "liveInstance": "fc0ba60fe1d946bba1694d73557cc11f",
+    "liveUpdate": "NOT_RUN",
+    "locksInOrder": [
+      "/run/lock/asa-school-nightly-db.lock",
+      "/srv/asa-lab/.asa/operation.lock"
+    ],
+    "migration": {
+      "afterLedgerSha256": "ede3c6a20c01d0c65f508c12f785aaf6c44c279742c6304d477feb70b1023c4d",
+      "applied": 3,
+      "beforeLedgerSha256": "181d5ab0400ba3fe705a62cbff08428616680da7568f5523156d5cab08933452",
+      "dataFingerprintSha256": "4711682bd72a7dd3ba40e35eef2e558e3f62c470e82a1963a4aa80883a3b061b",
+      "database": "asa_xprep02e_20261108t000534z_c632ca76_test",
+      "expectedCapabilityChangeOnly": true,
+      "idempotentSecondApply": 0,
+      "migrationVersions": [
+        "0305",
+        "0306",
+        "0307"
+      ],
+      "newTableCount": 0,
+      "oldLedgerPreserved": true,
+      "oldTableAclRlsPreserved": true,
+      "oldTableDataPreserved": true,
+      "postgresRoleOrGlobalSqlInvoked": false,
+      "preservedTableCount": 240,
+      "provisionRuntimeRoleInvoked": false,
+      "seedInvoked": false,
+      "sourceSchema": 304,
+      "status": "PASS",
+      "targetSchema": 307
+    },
+    "minioRuntimeRestore": "NOT_RUN",
+    "officialReleaseVerified": {
+      "format": "asa-deployment-v2",
+      "images": {
+        "api": "ghcr.io/spikeal8-maker/asa-lab/api@sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f",
+        "minio": "ghcr.io/spikeal8-maker/asa-lab/minio@sha256:27217a8714ac66d24c81f961656df5cb89d06d611e35cf36a62da493999d0e7e",
+        "scratch": "ghcr.io/spikeal8-maker/asa-lab/scratch@sha256:1989cee04b1e42dfbbce4c20861163db6fc0292ae4a00323336dde1449189c88",
+        "search": "ghcr.io/spikeal8-maker/asa-lab/search@sha256:9063a01e357c64176319c192b5330963b5195b98346173e6f1fc327abd96040e",
+        "web": "ghcr.io/spikeal8-maker/asa-lab/web@sha256:7efdf924ad5fc3b717a49d9fb26c66a0e8f3098f2a6607409c17b1f4dd9a0e37"
+      },
+      "platform": "linux/amd64",
+      "publicationRunId": 42415650186,
+      "repository": "spikeal8-maker/asa-lab",
+      "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+      "schema": 307
+    },
+    "package": "X-PREP-02E",
+    "profile": "production",
+    "project": "[REDACTED]",
+    "requiredLiveRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "requiredLiveSchema": 307,
+    "restoreCheck": "PASS",
+    "retainedTestDatabase": "asa_xprep02e_20261108t000534z_c632ca76_test",
+    "retention": "Leave the new test DB and receipts; remove only owned transient containers.",
+    "roleProvision": "NOT_RUN",
+    "root": "/srv/asa-lab",
+    "seed": "NOT_RUN",
+    "sourceInstance": "5ceaf3d6a2e4438086c54358fc9e175d",
+    "sourceProject": "asa-lab-dev",
+    "sourceRevision": "98d7fbb42ae9e53113cb45ada4b4301334de9c27",
+    "sourceSchema": 304,
+    "status": "X_PREP02E_PASSED",
+    "targetRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "targetSchema": 307
+  },
+  "rootAcceptance": {
+    "status": "ACCEPTED",
+    "source": "parent independently read the full same durable operation",
+    "scope": "New test DB restore from fresh H04 manifest0b09, 304→307 migration3 then0, data/ACL/RLS of240 old tables and old ledger preserved; liveX307 unchanged.",
+    "instruction": "Retain test DB and private receipts. No additional live actions. 02F source-only design may resume; no 02F execution GO."
+  },
+  "readinessLimits": [
+    "H04 source data was restored and migrated only in a new test DB.",
+    "MinIO runtime restore of this fresh H04 bundle was not performed by02E.",
+    "No source sessions/integrations/jobs sanitization or data import into liveX was performed.",
+    "This result does not qualify browser journeys, load capacity or production cutover."
+  ]
+}

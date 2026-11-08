@@ -1,0 +1,111 @@
+{
+  "package": "X-PREP-02C",
+  "status": "ROOT_ACCEPTED_APPLICATION_UPDATE_ONLY",
+  "rootAcceptanceRecordedAtUtc": "2026-11-08 00:04:29 UTC",
+  "rootAcceptanceEvidence": "Parent /root independently read the complete durable operation and explicitly accepted the application update.",
+  "operation": {
+    "id": "c52e4c9ad6574388bc4254701fb9c679",
+    "idempotencyKey": "school-xprep02c-switch-3e871-20261108-v1",
+    "completedAtUtc": "2026-11-08T00:02:56.020729Z",
+    "durationSeconds": 76.828,
+    "exitCode": 0,
+    "managerExitCode": 0,
+    "timedOut": false,
+    "outputTruncated": false
+  },
+  "installation": {
+    "host": "asa-school-01",
+    "id": "asa-school-vm100",
+    "root": "/srv/asa-lab",
+    "project": "asa-lab-school",
+    "profile": "production",
+    "instanceId": "fc0ba60fe1d946bba1694d73557cc11f",
+    "automaticUpdates": false
+  },
+  "previous": {
+    "revision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "schema": 300
+  },
+  "installed": {
+    "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "deploymentDigest": "sha256:7ce56323d2149ba12788b61af6d7f341ac2a8934a624074c0175be483252a4c5"
+  },
+  "health": {
+    "api": "healthy",
+    "minio": "healthy",
+    "postgres": "healthy",
+    "scratch": "healthy",
+    "search": "healthy",
+    "web": "healthy"
+  },
+  "preserved": {
+    "postgresContainerId": "6261ee4d145c302da86ba03ad669171910c775937323d2ecea70b704cfcc62f8",
+    "postgresImageId": "sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd",
+    "postgresServiceConfigHash": "5055aa3e4035186d28b149a9f6ca4382681342971e2e0e5a28f86279fba6704a",
+    "postgresUnchangedAcrossFiveObservations": true,
+    "projectsAndDraftsFingerprintsUnchanged": true,
+    "priorMigrationLedgerRetained": true,
+    "addedMigrations": 7,
+    "privateEnvUnchanged": true,
+    "instanceAndVolumesPreserved": true,
+    "installedReleaseAndCanonicalSuccessReceiptVerified": true,
+    "pendingMaintenanceFailureSelectionMarkersAbsent": true
+  },
+  "newBackup": {
+    "path": "/srv/asa-lab/backups/20261108T000200Z-32aed71e",
+    "manifestSha256": "a51340eb05eacbfefdb71a43b14731e140d41cd028a7ee8c5a4d1faed4eb018f",
+    "canonicalVerify": "PASS",
+    "runtimeRevision": "cdb77ed6ac003ef2eb4635b9f55c4eb1c9a35bfa",
+    "runtimeSchema": 300
+  },
+  "history": {
+    "result": "PASS_WITH_PROVEN_CANONICAL_RETIREMENT",
+    "application": {
+      "beforeFiles": 6075,
+      "newFiles": 2,
+      "unchangedFiles": 5950,
+      "verifiedApplicationRetention7d": 125,
+      "verifiedApplicationRetentionFilesSha256": "550b3de4cbf1b81fffca66c239a77c57d9f45fa2d485837a9a532ce96f045dc6",
+      "verifiedRetiredAfterGrace": 0,
+      "verifiedRetiredFilesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "host": {
+      "beforeFiles": 578,
+      "newFiles": 20,
+      "unchangedFiles": 566,
+      "verifiedApplicationRetention7d": 0,
+      "verifiedApplicationRetentionFilesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "verifiedRetiredAfterGrace": 12,
+      "verifiedRetiredFilesSha256": "305f58d41c9bd646bfca4c51ebdc9285a643b92b7fd8a728db5137f942590553"
+    },
+    "meaning": "Unchanged retained bytes, roots, keys and configuration; accepted host retirement had prior canonical receipts and600s grace; application expiration was the checksum-bound oldest prefix beyond unchanged7-day retention."
+  },
+  "collector": {
+    "coverageComplete": false,
+    "cycleState": "ok",
+    "note": "Process/source may change; coverage qualification remains separate.",
+    "processState": "running"
+  },
+  "limits": {
+    "fullReadinessAccepted": false,
+    "completeLoggingCoverage": false,
+    "authenticatedBrowserJourney": "NOT_RUN_IN_02C",
+    "loadTesting": "NOT_RUN_IN_02C",
+    "freshH04Import": "NOT_RUN",
+    "productionH04Changed": false,
+    "productionDomainCutover": "NOT_RUN",
+    "vpnAiQualification": "NOT_RUN",
+    "applicationOnlyRollback300Over307": "NOT_QUALIFIED_NOT_RUN"
+  },
+  "priorSelectRetrospectiveLimit": "Native SELECT was independently accepted. Its original file-only history baseline lacked active/retired partition; no complete retrospective proof of all64 subsequently missing host files is claimed. SWITCH used a fresh expanded baseline and passed its stricter receipt-backed retention checks.",
+  "evidence": {
+    "privateDirectory": "/var/lib/server-settings/xprep02c/20261108T000139Z-3432c7cd",
+    "fullSanitizedOperation": "switch-success-20261108T000256Z.json",
+    "sanitizedReceipt": "switch-receipt-20261108T000256Z.json",
+    "launcherSha256": "62f5e908c3c0b9ebc538bdd49084eecadfd87ab4c09e301245779d59c22fbc7e",
+    "postgresObserverSha256": "71a05a989398581c40a589a982203dccaf81f659838421762677c93ca6712d6f"
+  },
+  "runtimeActionsStopped": true,
+  "continuationRule": "No SELECT, SWITCH, repair, rollback or H04 import repeats. Any next bounded task requires the controller's separate scope."
+}
