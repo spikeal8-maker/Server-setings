@@ -1,0 +1,97 @@
+{
+  "applicationRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "applicationSchema": 307,
+  "collector": {
+    "currentManager": "systemd",
+    "historicalDockerGapWindowCountPreserve": 16,
+    "mode": "system-root",
+    "nativeHostSource": "linux:1panel-supervisor",
+    "pid": 867926,
+    "privateIndexBytes": 150335488,
+    "privateIndexContentRead": false,
+    "privateIndexInode": 816721,
+    "sourceCatalogMustBeReobserved": true,
+    "startedAt": "2026-11-08T00:23:08.548Z",
+    "targetManager": "1panel-supervisor"
+  },
+  "compose": {
+    "asaCreatedBy": "",
+    "managementClaim": "native-visible external project; not panel-created/adopted"
+  },
+  "format": "school-1panel-logging-prepared-v1",
+  "history": {
+    "databaseFreshnessBeforePatchNotCreditedToPatch": true,
+    "firstNativeProcessGetMayHaveCreatedEmptyDirectory": true,
+    "nullShapeEvidenceOperation": "e51327d2d7c24af29b6b71bf3e6125ea",
+    "preservedFailedOperations": [
+      "a2645c20cbe74959974e00ccc473e0d2",
+      "f6ce2d9fdfa548eca320448ec4fbc481"
+    ],
+    "rawMutationsZeroIsCallerIntentNotFilesystemProof": true,
+    "systemctlEmptyShapeEvidenceOperation": "f3e1afcfbb2d4f468a83b9e545d42ff5"
+  },
+  "hostname": "asa-school-01",
+  "instanceId": "fc0ba60fe1d946bba1694d73557cc11f",
+  "localTests": {
+    "asaAdapterFocused": 9,
+    "legacySnapshotCompatibility": 14,
+    "nativeBridgeInstallerFocused": 28,
+    "nativeSnapshotFocused": 6
+  },
+  "nextStep": "Independent exact-file review, Git publication and CI; then separately frozen school-only source switch and native 1Panel stage/adopt; preserve backup pins and old schedules until accepted replacement.",
+  "observedAt": "2026-11-08T12:04:16.604868+00:00",
+  "officialPanelSource": "65243c68c463cc055ab044093f641ea5d2e9e28b",
+  "panelVersion": "v2.3.2",
+  "preflight": {
+    "actualSafeReceiptSha256": "577fab4cd10547f8df2ac3d7309f40b050002df0c5cbc6a615a3b77c10e74354",
+    "automationClaimScope": "Known configured ASA updater only; not an exhaustive absence of third-party automation.",
+    "exitCode": 0,
+    "knownAsaAutomaticUpdaterDisabled": true,
+    "nativeCronTotal": 0,
+    "operationId": "9b3b5721a0fa4769ad8791c14e464404",
+    "packetSha256": "ecc1f73048f5ae41d6fd49d633071fbc4bebb9dc6e9ad48c8a93c0555f9044f2",
+    "readyForReviewedSourceOnlySwitch": true,
+    "sourceInputCount": 10,
+    "sourceInputMatches": true,
+    "trackedClean": true,
+    "untrackedCount": 0
+  },
+  "project": "asa-lab-school",
+  "python": {
+    "path": "/usr/bin/python3",
+    "version": [
+      3,
+      12,
+      3
+    ]
+  },
+  "root": "/srv/asa-lab",
+  "runtime": {
+    "domainCutover": "NOT_RUN",
+    "freshLinux1PanelInstallation": "NOT_RUN",
+    "nativeCollectorAdopt": "NOT_RUN",
+    "nativeCollectorStage": "NOT_RUN",
+    "newNativeMarkerHostZip": "NOT_RUN",
+    "normalizedNativeMarker": "NOT_RUN",
+    "sourceOnlyFastForward": "NOT_RUN",
+    "supervisorInstall": "NOT_RUN"
+  },
+  "secretsIncluded": false,
+  "settingsBaseline": "1816be1749a0ee1ce7ee7d08883b000cdc72337b",
+  "sourceBaseline": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "status": "LOCAL_CANDIDATE_READONLY_PREFLIGHT_ACCEPTED_RUNTIME_NOT_RUN",
+  "supervisor": {
+    "aptNewPackages": [
+      {
+        "name": "supervisor",
+        "version": "4.2.5-1ubuntu0.1"
+      }
+    ],
+    "aptPlanSha256": "00499ec5a6420994a75de6f532c5afd583138fdd7375bc78271681febf899dee",
+    "foreignConfigCount": 0,
+    "installed": false,
+    "nativeProgramCount": 0,
+    "removals": 0,
+    "upgrades": 0
+  }
+}

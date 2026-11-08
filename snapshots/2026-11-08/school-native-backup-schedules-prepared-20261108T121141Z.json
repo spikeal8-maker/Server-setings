@@ -1,0 +1,83 @@
+{
+  "task": "PANEL-CRON-01",
+  "status": "LOCAL_PREPARED_NOT_DEPLOYED",
+  "preparedAt": "2026-11-08T12:13:50Z",
+  "baseRepository": "spikeal8-maker/Server-setings",
+  "baseCommit": "1816be1749a0ee1ce7ee7d08883b000cdc72337b",
+  "officialPanelCommit": "65243c68c463cc055ab044093f641ea5d2e9e28b",
+  "officialPanelVersion": "v2.3.2",
+  "runtimeChanges": 0,
+  "gitMutations": 0,
+  "files": [
+    {
+      "path": "docs/56-SCHOOL-NATIVE-BACKUP-SCHEDULES.md",
+      "bytes": 16442,
+      "sha256": "f33d5a96098ff9bd73fd7300d746adf19a54ed2570bf1170e7af1b82cfbc62fd",
+      "gitBlob": "a8eb5b7813bb7238dc8f3a85bbb32a32aabac9f7"
+    },
+    {
+      "path": "scripts/install-school-nightly-settings-backup.py",
+      "bytes": 14861,
+      "sha256": "a8edad7982904a15565bf0fa02d9c742cc70221ae584c96bef084eb29dac755e",
+      "gitBlob": "5927c906ddee57132ae2daa0192718a48f74ee90"
+    },
+    {
+      "path": "scripts/school-1panel-backup-schedules.py",
+      "bytes": 54297,
+      "sha256": "444fb216343105457d3fe19ca6e17cea3296cb9502ea821fe57eb30774d9b2e0",
+      "gitBlob": "6506adaf78c1b0ef3132afabd51cc953a2e46780"
+    },
+    {
+      "path": "scripts/school-nightly-settings-backup.py",
+      "bytes": 14271,
+      "sha256": "8a4ba48ff6119bbf24305a134a7ba722672fffd8ccf7fef7835fa8928fd84c38",
+      "gitBlob": "5e8b9766b39bb4421caa422bb661890281a18023"
+    },
+    {
+      "path": "tests/test_school_1panel_backup_schedules.py",
+      "bytes": 30054,
+      "sha256": "7f828979c0094179dead2db91ea1105ce1f5eaec9c5fa4885b520ecb313accbb",
+      "gitBlob": "660d28512464b3867379d604b75321898f02872c"
+    }
+  ],
+  "dependency": {
+    "owner": "school_1panel_logging",
+    "path": "scripts/school_settings_snapshot.py",
+    "sha256": "2a0b49e5816aa6d145c717b33de4061c7ea65e39c48d59d93db2b80cf93fbea2"
+  },
+  "localValidation": {
+    "tests": 65,
+    "newNativeScheduleTests": 34,
+    "existingAndSnapshotCompatibilityTests": 31,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "executionAuthority": "local root test sandbox",
+    "serverAcceptance": false,
+    "transcriptSha256": "9012be891005768b56f72e21f1f3ede1a5b6b6ac714ddc2d59a3b462fe8188f8",
+    "testedProgramSha256": "444fb216343105457d3fe19ca6e17cea3296cb9502ea821fe57eb30774d9b2e0"
+  },
+  "requiredRuntimeAcceptance": [
+    "readonly preflight exact unit/source pins",
+    "native stage with closed gate; both cron jobs disabled",
+    "native gated database probe with one actual record ID and Supervisor log",
+    "native gated settings probe with one actual record ID and Supervisor log",
+    "each gated marker delivered to normalized source and exported ZIP",
+    "controlled activation: old timers disabled, native jobs enabled, source/clock owner verified",
+    "first automatic PostgreSQL/MinIO ciphertext roundtrip",
+    "first automatic configuration ciphertext roundtrip",
+    "isolated decrypt/restore for new configuration version"
+  ],
+  "unproven": [
+    "clean Linux deployment",
+    "global Supervisor/OS restart during database export",
+    "first automatic runs after native ownership"
+  ],
+  "backupPins": {
+    "settingsSnapshotSha256": "2a0b49e5816aa6d145c717b33de4061c7ea65e39c48d59d93db2b80cf93fbea2",
+    "settingsRunnerSha256": "8a4ba48ff6119bbf24305a134a7ba722672fffd8ccf7fef7835fa8928fd84c38",
+    "settingsReleaseSha256": "52887551f6bf27e9f73ff2ba6b754f082b2bbec19dd4ef59813ce287ab7b04e0",
+    "newLegacyServiceSha256": "aeb07a2d2d99cced1ce48db5801eb615643324a896626a224dafef7840410105",
+    "installerChange": "three-source-pin-updates-only"
+  }
+}
