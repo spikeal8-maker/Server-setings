@@ -9,6 +9,7 @@ never archived. No services, networking, deployment or schedules are changed.
 from __future__ import annotations
 
 import argparse
+import configparser
 import datetime as dt
 import fcntl
 import hashlib
@@ -130,6 +131,133 @@ PANEL_OPTIONAL = tuple(map(Path, (
 )))
 SCHEDULE_RELEASES = Path('/opt/asa-school-panel-schedules/releases')
 SCHEDULE_SOURCE = re.compile(r'/opt/asa-school-panel-schedules/releases/[a-f0-9]{16}/school-1panel-backup-schedules[.]py\Z')
+LEGACY_COLLECTOR = (Path('/etc/systemd/system/asa-log-collector-asa-lab-school.service'),)
+LEGACY_DATABASE = tuple(Path('/etc/systemd/system/asa-school-nightly-database-backup.' + suffix)
+                        for suffix in ('service', 'timer'))
+LEGACY_GROUPS = (LEGACY_COLLECTOR, LEGACY_DATABASE)
+LEGACY_PATHS = frozenset(LEGACY_COLLECTOR + LEGACY_DATABASE)
+PANEL_BRIDGE_SHA256 = 'ad0ba649f75f75fef511d5005843b3aebcf2994b8751fbc4ae1d3ec274970277'
+
+
+def legacy_omissions(paths):
+    """A legacy group is complete or replaced by the full native proof set."""
+    paths = set(paths)
+    missing = set()
+    for legacy, native in ((LEGACY_COLLECTOR, (*PANEL_COLLECTOR, PANEL_OPTIONAL[1])),
+                           (LEGACY_DATABASE, PANEL_SCHEDULES)):
+        present = paths.intersection(legacy)
+        need(not present or len(present) == len(legacy), 'PARTIAL_LEGACY_CONFIGURATION')
+        if not present:
+            need(set((*native, SUPERVISOR_CONFIG)).issubset(paths), 'NATIVE_OWNERSHIP_SCOPE_REQUIRED')
+            if legacy == LEGACY_DATABASE:
+                need(any(SCHEDULE_SOURCE.fullmatch(str(p)) for p in paths), 'MANIFEST_PANEL_RELEASE_MISSING')
+            missing.update(legacy)
+    return missing
+
+
+def native_ownership_for_omissions(paths, read_bytes):
+    """Validate captured bytes only. Never import archived code or call 1Panel."""
+    missing = legacy_omissions(paths)
+    if not missing:
+        return
+
+    def document(path):
+        value = json.loads(read_bytes(path))
+        need(isinstance(value, dict), 'NATIVE_OWNERSHIP_DOCUMENT')
+        return value
+
+    def ini(path):
+        value = configparser.ConfigParser(interpolation=None)
+        value.read_string(read_bytes(path).decode('utf-8'))
+        need(not value.defaults(), 'NATIVE_CONFIGURATION_DEFAULTS')
+        return value
+
+    supervisor = ini(SUPERVISOR_CONFIG)
+    need(supervisor.get('include', 'files', fallback='') == str(SUPERVISOR_ROOT / 'supervisor.d/*.ini')
+         and not any(section.startswith(('program:', 'group:')) for section in supervisor.sections()),
+         'NATIVE_SUPERVISOR_SCOPE')
+
+    if set(LEGACY_COLLECTOR).issubset(missing):
+        config = document(PANEL_COLLECTOR[0])
+        expected = {'format': 'asa-1panel-collector-v1', 'root': '/srv/asa-lab', 'project': PROJECT,
+                    'instanceId': INSTANCE, 'panelHost': 'http://127.0.0.1:19192',
+                    'panelKeyFile': '/var/lib/server-settings/1panel-api.key', 'panelVersion': 'v2.3.2',
+                    'python': '/usr/bin/python3', 'program': 'asa-log-collector-' + PROJECT}
+        need(config == expected and hashlib.sha256(read_bytes(PANEL_COLLECTOR[1])).hexdigest() == PANEL_BRIDGE_SHA256,
+             'NATIVE_COLLECTOR_BRIDGE_CHANGED')
+        settings = document(Path('/srv/asa-lab/.asa/installation.json'))
+        runner = document(Path('/srv/asa-lab/.asa/collector-runner.json'))
+        logs = document(Path('/srv/asa-lab/.asa/log-collector.json'))
+        handover = document(PANEL_OPTIONAL[1])
+        need(settings.get('instanceId') == INSTANCE and settings.get('project') == PROJECT
+             and settings.get('collectorMode') == 'system-root' and settings.get('collectorManager') == '1panel-supervisor'
+             and runner.get('root') == '/srv/asa-lab' and runner.get('project') == PROJECT
+             and runner.get('mode') == 'system-root' and runner.get('owner') == 'root'
+             and runner.get('name') == LEGACY_COLLECTOR[0].name and runner.get('manager') == '1panel-supervisor'
+             and re.fullmatch(r'[a-f0-9]{40}', str(runner.get('revision')))
+             and re.fullmatch(r'[a-f0-9]{64}', str(runner.get('scriptDigest'))), 'NATIVE_COLLECTOR_IDENTITY')
+        need(handover.get('format') == 'asa-1panel-handover-v1' and handover.get('state') == 'accepted'
+             and handover.get('instanceId') == INSTANCE and handover.get('project') == PROJECT
+             and handover.get('legacyState', {}).get('LoadState') == 'not-found'
+             and handover.get('targetRunner') == runner and handover.get('targetSettings') == settings
+             and handover.get('targetCollectorConfiguration') == logs, 'NATIVE_COLLECTOR_OWNERSHIP')
+        need(isinstance(logs.get('fileSources'), list) and
+             [v for v in logs['fileSources'] if isinstance(v, dict) and v.get('source') == 'linux:1panel-supervisor'] ==
+             [{'source': 'linux:1panel-supervisor', 'path': str(SUPERVISOR_ROOT / 'log')}], 'NATIVE_COLLECTOR_LOG_SOURCE')
+        section = 'program:' + config['program']
+        process = ini(PANEL_COLLECTOR[2])
+        values = {'command': '/usr/local/sbin/asa-1panel-collector run --root /srv/asa-lab --project ' + PROJECT,
+                  'directory': '/srv/asa-lab', 'autorestart': 'true', 'autostart': 'true', 'startsecs': '3',
+                  'user': 'root', 'priority': '999', 'numprocs': '1',
+                  'process_name': '%(program_name)s_%(process_num)02d', 'environment': ''}
+        for stream, suffix in (('stdout', 'out'), ('stderr', 'err')):
+            values[stream + '_logfile'] = str(SUPERVISOR_ROOT / 'log' / (config['program'] + '.' + suffix + '.log'))
+            values[stream + '_logfile_maxbytes'] = '2MB'
+        need(process.sections() == [section] and dict(process[section]) == values, 'NATIVE_COLLECTOR_PROCESS_CHANGED')
+
+    if set(LEGACY_DATABASE).issubset(missing):
+        state = document(PANEL_SCHEDULES[0])
+        kinds = ('database', 'settings')
+        generation = str(state.get('generation'))
+        checksum = str(state.get('programSha256'))
+        source = Path(str(state.get('programPath')))
+        need(state.get('format') == 'asa-school-native-backup-schedules-v1'
+             and state.get('instance') == INSTANCE and state.get('project') == PROJECT
+             and state.get('phase') == 'ACTIVE' and state.get('owner') == '1panel'
+             and state.get('originalOwner') == 'none' and state.get('clockTimeZone') == 'Europe/Moscow'
+             and state.get('legacy') == {kind: {'timer': None, 'service': None} for kind in kinds}
+             and re.fullmatch(r'[a-f0-9]{32}', generation) and re.fullmatch(r'[a-f0-9]{64}', checksum)
+             and source == SCHEDULE_RELEASES / checksum[:16] / 'school-1panel-backup-schedules.py'
+             and source in paths and hashlib.sha256(read_bytes(source)).hexdigest() == checksum,
+             'NATIVE_SCHEDULE_OWNERSHIP')
+        jobs = state.get('jobs')
+        need(isinstance(jobs, dict) and set(jobs) == set(kinds), 'NATIVE_SCHEDULE_JOBS')
+        dispatches, job_ids = set(), set()
+        for kind, path in zip(kinds, PANEL_SCHEDULES[1:]):
+            job = jobs[kind]
+            probe = job.get('probe', {}) if isinstance(job, dict) else {}
+            need(isinstance(job, dict) and type(job.get('id')) is int and job['id'] > 0
+                 and job.get('processConfigured') is True and probe.get('status') == 'NATIVE_GATED_PROBE_PASS'
+                 and probe.get('backupExecuted') is False and probe.get('programSha256') == checksum
+                 and re.fullmatch(r'[a-f0-9]{32}', str(probe.get('dispatchId'))), 'NATIVE_SCHEDULE_PROBE')
+            dispatches.add(probe['dispatchId'])
+            job_ids.add(job['id'])
+            program = 'asa-school-nightly-' + kind + '-backup'
+            values = {'command': '/usr/bin/python3 -B ' + str(source) + ' worker --kind ' + kind +
+                      ' --generation ' + generation + ' --apply', 'directory': '/srv/asa-lab', 'user': 'root',
+                      'numprocs': '1', 'process_name': '%(program_name)s_%(process_num)02d',
+                      'autostart': 'false', 'autorestart': 'false', 'startsecs': '0', 'startretries': '0',
+                      'stopsignal': 'TERM', 'stopwaitsecs': '2147483647', 'stopasgroup': 'false',
+                      'killasgroup': 'false', 'exitcodes': '0', 'priority': '999', 'umask': '0077',
+                      'environment': 'PYTHONDONTWRITEBYTECODE="1",PYTHONUNBUFFERED="1",TZ="Europe/Moscow",LC_ALL="C"'}
+            for stream, suffix in (('stdout', 'out'), ('stderr', 'err')):
+                values[stream + '_logfile'] = str(SUPERVISOR_ROOT / 'log' / (program + '.' + suffix + '.log'))
+                values[stream + '_logfile_maxbytes'] = '2MB'
+                values[stream + '_logfile_backups'] = '10'
+            process = ini(path)
+            need(process.sections() == ['program:' + program] and dict(process['program:' + program]) == values,
+                 'NATIVE_SCHEDULE_PROCESS_CHANGED')
+        need(len(dispatches) == 2 and len(job_ids) == 2, 'NATIVE_SCHEDULE_DUPLICATE_IDENTITY')
 
 
 def panel_configuration_paths():
@@ -344,7 +472,9 @@ def config_inputs():
     need(isinstance(mounts, list) and len(mounts) <= 16, 'OPENRESTY_MOUNTS_BOUND')
     bindings = [(m['Destination'], m['Source']) for m in mounts
                 if m.get('Type') == 'bind' and str(m.get('Source', '')).startswith('/opt/1panel/')]
-    pending = list(STATIC) + panel_configuration_paths()
+    pending = [path for path in STATIC if path not in LEGACY_PATHS or path.exists() or path.is_symlink()] \
+        + panel_configuration_paths()
+    missing_legacy = legacy_omissions(pending)
     observations = {}
     if STREAM.exists():
         trusted(STREAM, directory=True)
@@ -355,7 +485,7 @@ def config_inputs():
     else:
         need(not STREAM.is_symlink(), 'STREAM_DIRECTORY_SYMLINK')
         observations[str(STREAM)] = None
-    files, snapshots, dependencies = {}, {}, []
+    files, snapshots, dependencies = {}, {str(path): None for path in missing_legacy}, []
     while pending:
         path = pending.pop(0)
         if path in files:
@@ -399,6 +529,7 @@ def config_inputs():
             dependencies.append({'config': str(path), 'directive': directive,
                                  'target': str(target), 'matchedFiles': len(found)})
             pending += found
+    native_ownership_for_omissions(files, lambda path: files[path][0])
     for path in files:
         for parent in path.parents:
             if parent == Path('/'):
@@ -649,7 +780,8 @@ def validate_manifest(manifest, name):
          and manifest.get('gatewayOAuthContinuity') is False
          and manifest.get('gatewayLiveDatabaseIncluded') is False, 'MANIFEST_SCOPE')
     rows = manifest.get('entries')
-    need(isinstance(rows, list) and len(STATIC) + 5 <= len(rows) <= MAX_FILES + 5, 'MANIFEST_ENTRY_BOUND')
+    need(isinstance(rows, list) and len(STATIC) - len(LEGACY_PATHS) + 5 <= len(rows) <= MAX_FILES + 5,
+         'MANIFEST_ENTRY_BOUND')
     result = {}
     for row in rows:
         name = row.get('member')
@@ -691,7 +823,9 @@ def validate_manifest(manifest, name):
              and all(type(meta.get(k)) is int and meta[k] >= 0 for k in ('uid','gid','mode','bytes','mtimeNs'))
              and meta['mode'] <= 0o7777, 'MANIFEST_DIRECTORY_PERMISSIONS')
     need(parents.issubset(seen_dirs), 'MANIFEST_DIRECTORY_MISSING')
-    required = {'files/' + str(p).lstrip('/') for p in STATIC}
+    available = {Path('/' + member[6:]) for member, row in result.items() if row['kind'] == 'config'}
+    missing_legacy = legacy_omissions(available)
+    required = {'files/' + str(p).lstrip('/') for p in STATIC if p not in missing_legacy}
     panel_members = {p: 'files/' + str(p).lstrip('/') for p in (SUPERVISOR_CONFIG, *PANEL_COLLECTOR, *PANEL_SCHEDULES)}
     for group in (PANEL_COLLECTOR, PANEL_SCHEDULES):
         if any(panel_members[p] in result for p in group):
@@ -751,6 +885,9 @@ def verify_tar(tar_path, destination, name):
         stream.seek(expected_offset)
         tail = stream.read(10241)
         need(1024 <= len(tail) <= 10240 and not any(tail), 'TAR_END_MARKER')
+    configurations = {Path('/' + member[6:]) for member, row in expected.items() if row['kind'] == 'config'}
+    native_ownership_for_omissions(configurations,
+        lambda path: (destination / 'files' / str(path).lstrip('/')).read_bytes())
     for db in DB_NAMES:
         sqlite_integrity(destination / 'sqlite' / db)
     logs = {kind: verify_zip(destination / 'normalized' / (kind + '.zip'), kind)
@@ -936,7 +1073,9 @@ def main():
     if not args.apply:
         print(json.dumps({'status': 'PLAN_ONLY', 'archive': args.archive,
             'action': 'isolated_decrypt_and_verify' if args.verify_stdin_identity else 'managed_configuration_snapshot',
-            'configurationRequiredFiles': len(STATIC), 'sqliteDatabases': list(DB_NAMES),
+            'configurationRequiredFiles': len(STATIC) - len(LEGACY_PATHS),
+            'conditionalLegacyFiles': len(LEGACY_PATHS), 'legacyOmissionRequires': 'complete fresh native ownership',
+            'sqliteDatabases': list(DB_NAMES),
             'normalizedLogExports': ['host','application'], 'coverageComplete': False,
             'gatewayOAuthContinuity': False, 'changes': False}))
         return 0
