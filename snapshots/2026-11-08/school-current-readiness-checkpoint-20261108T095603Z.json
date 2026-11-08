@@ -1,0 +1,396 @@
+{
+  "format": "school-current-readiness-checkpoint-derived-v1",
+  "asOfUtc": "2026-11-08T09:56:03Z",
+  "status": "BLOCKER_FOR_PRODUCTION_CUTOVER",
+  "provenance": {
+    "kind": "DERIVED_ALLOWLIST_SUMMARY_WITH_LINKED_EXACT_SAFE_SOURCES",
+    "rootAcceptedMilestonesOnly": true,
+    "copiedSafeFilesRehashedLocally": true,
+    "privateCredentialsOrRawLedgerValuesIncluded": false,
+    "historicalStopsRewritten": false,
+    "controllerAccessIssueAt0749IsHistorical": true,
+    "previousSummary": "school-current-readiness-evidence-20261108T074925Z.json",
+    "previousSummaryOnlyTerminologyCorrection": "Recover exact load driver sources -> Recover exact load controller sources"
+  },
+  "runtime": {
+    "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "liveDatabaseOid": "117178",
+    "officialMainVerifiedAtUtc": "2026-11-08T09:56:03Z",
+    "officialMainSource": "https://api.github.com/repos/spikeal8-maker/asa-lab/branches/main",
+    "h04RemainsProductionWriter": true,
+    "productionDomainSwitched": false,
+    "currentLiveCountsNotAsserted": true,
+    "acceptedPostRefreshArchiveCounts": {
+      "accounts": 102,
+      "projects": 2352,
+      "studentSeats": 554
+    },
+    "archiveCountsScope": "Post-refresh snapshot before later own QA projects; not current live counts."
+  },
+  "ordinaryUi": {
+    "sourceSnapshot": "school-ui-v4-pass-2548-20261108.json",
+    "sourceSha256": "60d7baafd45167232eecd4e4a7c631181c22a0ed702d580d3d6a07cd5b56d700",
+    "d2Pid": 2548,
+    "exitCode": 0,
+    "durationSeconds": 92.01,
+    "rootAcceptanceMinuteUtc": "2026-11-08T08:25Z",
+    "acceptanceTimePrecision": "minute as reported by root",
+    "status": "ORDINARY_SMOKE_PASS",
+    "users": 1,
+    "ordinaryLogins": 3,
+    "nativeLogouts": 3,
+    "newProjects": 0,
+    "scratchSaveAndFreshReopen": true,
+    "threeDSaveAndFreshReopen": true,
+    "cleanupConfirmed": true,
+    "pageErrors": 0,
+    "requestFailures": 0,
+    "http5xx": 0,
+    "expectedLogoutAdjacentHttp401Events": 9,
+    "allHttpStatuses200": false,
+    "oldUiStopsPreserved": true,
+    "fullBrowserLoadProven": false,
+    "allApplicationFeaturesProven": false
+  },
+  "firstLoadAttempt": {
+    "driverSnapshot": "school-load-v1-generator-stop-9956-20261108.json",
+    "serverObservationSnapshot": "school-load-v1-server-observation-74d16f-20261108.json",
+    "logoutReconciliationSnapshot": "school-load-v1-logout-root-reconciliation-16532-20261108.json",
+    "d2Pid": 9956,
+    "status": "STOP_NO_RETRY",
+    "failure": {
+      "code": "GENERATOR_RESOURCE_LIMIT",
+      "kind": "GENERATOR_LIMIT",
+      "phase": "measured-api-work"
+    },
+    "measuredStartUtc": "2026-11-08T08:39:22.652Z",
+    "measuredEndUtc": "2026-11-08T08:39:31.706Z",
+    "generatorHostCpuMaximumPercent": 99.9,
+    "generatorThresholdCause": "Measured generator resource guard fired; later lower CPU samples do not establish the historical CPU cause or invalidate the original measurement.",
+    "waves": [
+      {
+        "planned": 2,
+        "acknowledged": 2,
+        "readBack": 2,
+        "integrityErrors": 0,
+        "dispatchSpreadMs": 1.3274000000001251
+      }
+    ],
+    "usersWithTwoVerifiedWaves": 0,
+    "maximumConfirmedUsers": null,
+    "capacityAccepted": false,
+    "originalCleanupConfirmed": false,
+    "observerOperationId": "74d16f6f08ed4667839aa77128b6487d",
+    "observerFactAcceptedByRoot": true,
+    "observerSamples": 106,
+    "observerResourceBreaches": [],
+    "observerCoveredActualFailedMeasurementWindow": true,
+    "observerDoesNotAcceptWholeLoadStage": true,
+    "teacherLogoutDiagnosticPid": 16532,
+    "teacherLogoutReconciled": true,
+    "observedTeacherAuthSequence": [
+      {
+        "method": "GET",
+        "route": "/api/auth/me",
+        "status": 200,
+        "errors": 0
+      },
+      {
+        "method": "POST",
+        "route": "/api/auth/logout",
+        "status": 200,
+        "errors": 0
+      },
+      {
+        "method": "GET",
+        "route": "/api/auth/me",
+        "status": 401,
+        "errors": 1
+      }
+    ],
+    "freshHttpLogoutNeeded": false,
+    "diagnosticHttpRequests": 0,
+    "originalTeacherLoggedOutFalsePreserved": true
+  },
+  "abortDiagnosticHistory": {
+    "pid": 22324,
+    "exitCode": 0,
+    "durationSeconds": 0.53,
+    "effectivePolicy": "Restricted",
+    "currentPolicyWouldBlockDirectPs1": true,
+    "historicalPid41004CauseProven": false,
+    "policyChanged": false,
+    "scriptInvoked": false,
+    "oldStopPreserved": true,
+    "rootReadExactTimestampProvided": false
+  },
+  "loadR2Preparation": {
+    "status": "CODE_STAGE_AND_ISOLATED_ABORT_SELFTEST_ACCEPTED_NO_CAPACITY_RESULT",
+    "controllerAccessRecovery": "Controllers reconstructed and reviewed for current execution; previous unavailable-workspace blocker is superseded.",
+    "runId": "0e969b15e9014ea383f9f01a8694f551",
+    "vmStage": {
+      "operationId": "97039abac7db40ae88e7cab9bd36b673",
+      "exitCode": 0,
+      "durationSeconds": 0.054
+    },
+    "d2Stage": [
+      {
+        "pid": 40976,
+        "exitCode": 0,
+        "durationSeconds": 0.84,
+        "file": "xload-driver-r2.mjs",
+        "bytes": 45244,
+        "sha256": "58605bdc46db7dd42820e95efe97b8afa0563544fa4c7f415554b39d0c125921"
+      },
+      {
+        "pid": 40392,
+        "exitCode": 0,
+        "durationSeconds": 0.74,
+        "file": "xload-abort-r2.mjs",
+        "bytes": 9587,
+        "sha256": "0b7ea6cb8f0b16650700b7e08b59b9cf5f68c4b35dbf146793a7d26e07bcb58a"
+      }
+    ],
+    "stageRootAccepted": true,
+    "oldSourcesPreserved": true,
+    "abortSelfTest": {
+      "pid": 32292,
+      "exitCode": 0,
+      "durationSeconds": 3.59,
+      "watcherPid": 40556,
+      "watcherExitCode": 0,
+      "separateWatcherConfirmed": true,
+      "actualMarkerBytesHashed": true,
+      "markerBytes": 162,
+      "liveNamespaceTouched": false,
+      "oldNamespaceTouched": false,
+      "httpRequests": 0,
+      "credentialsRead": false,
+      "policyChanged": false,
+      "powershellScriptFileInvoked": false,
+      "sourceSafeSha256": "1f563aff033a46b7596b7738465c38c604c3628d96331dc437e58741978741fb",
+      "rootAcceptedAtUtc": "2026-11-08T09:45:15Z"
+    },
+    "newCapacityResultAccepted": false,
+    "preflightOrPreparationIsNotLoadAcceptance": true
+  },
+  "adminLoggingV3": {
+    "sourceSnapshot": "school-admin-logs-v3-partial-57f71913-20261108.json",
+    "sourceSha256": "6e4f3944d34fa1408eccc12c5dd5328780cdba464e0ffcc65712623683c484d3",
+    "stdoutSha256": "f8bc0e1059bee7529d4adc33809e6e9b92510a5a1c85e2f5c83fd83598da1cee",
+    "rootAcceptedAtUtc": "2026-11-08T09:50:44Z",
+    "result": {
+      "status": "AUTH_SCOPE_PRESERVATION_PASS_LOG_COVERAGE_PARTIAL",
+      "operationId": "57f71913b0ae4dcb899d5c256dc80e49",
+      "commandPid": 2170336,
+      "startedAt": "2026-11-08T09:49:19.804514+00:00",
+      "completedAt": "2026-11-08T09:49:45.283658+00:00",
+      "exitCode": 2,
+      "durationSeconds": 25.469,
+      "timedOut": false,
+      "outputTruncated": false,
+      "authSequence": [
+        401,
+        403,
+        200,
+        403,
+        401
+      ],
+      "authScopePreservationPassed": true,
+      "cleanup": {
+        "accountStatus": "suspended",
+        "auditedStatusReads": 20,
+        "platformAdmin": false,
+        "platformGrantState": "revoked",
+        "unrevokedFamilies": 0,
+        "unrevokedSessions": 0,
+        "unrevokedTokens": 0
+      },
+      "cleanupVerified": true,
+      "foreignControlBaselineIncludesNullOwners": true,
+      "foreignControlRowsUnchanged": true,
+      "protectedFilesUnchanged": true,
+      "sourcePinsUnchanged": true,
+      "sixContainerIdentitiesUnchanged": true,
+      "statusReads": 20,
+      "readAuditVerified": true,
+      "firstNativeIntegrityOkAttempt": 9,
+      "statusPollingStopReason": "attempt_limit",
+      "statusPollingSeconds": 22.889,
+      "coverage": {
+        "applicationCollection": "embedded",
+        "collectorHealthAgeSeconds": 20.785,
+        "collectorHealthState": "ok",
+        "coverageComplete": false,
+        "currentFreshnessChecksPassed": false,
+        "embeddedCollection": "ok",
+        "excludedSources": 4,
+        "historyAuditReason": "recent_retained_integrity_verified",
+        "historyAuditState": "ok",
+        "hostCollection": "ok",
+        "limitations": 2,
+        "nativeCounters": {
+          "accepted": 1596,
+          "dropped": 0,
+          "failures": 0,
+          "pending": 0,
+          "persisted": 1596
+        },
+        "nativeReason": "native_writer_and_recent_integrity_verified",
+        "nativeState": "ok",
+        "nonOkSources": [
+          {
+            "applicable": true,
+            "checkedAgeSeconds": 21.448,
+            "currentFreshnessWithRecordedGap": false,
+            "incomplete": null,
+            "lastCollectedAgeSeconds": 46.059,
+            "maxAgeSeconds": 300,
+            "possibleCoverageGap": null,
+            "reason": "source_pending",
+            "requireThrough": true,
+            "source": "database-events:ai_usage_journal",
+            "sourceState": "pending",
+            "stale": false,
+            "state": "incomplete",
+            "throughAgeSeconds": 46.087
+          },
+          {
+            "applicable": true,
+            "checkedAgeSeconds": 21.381,
+            "currentFreshnessWithRecordedGap": true,
+            "incomplete": null,
+            "lastCollectedAgeSeconds": 21.381,
+            "maxAgeSeconds": 300,
+            "possibleCoverageGap": true,
+            "reason": "source_gap_or_stale",
+            "requireThrough": true,
+            "source": "docker-lifecycle",
+            "sourceState": "ok",
+            "stale": false,
+            "state": "incomplete",
+            "throughAgeSeconds": 21.447
+          }
+        ],
+        "observedSources": 26,
+        "requiredCoverageAccepted": false,
+        "requiredCoverageState": "incomplete",
+        "requiredSources": 26,
+        "sourceStateCounts": {
+          "incomplete": 2,
+          "ok": 24,
+          "unknown": 0
+        },
+        "state": "ok"
+      },
+      "remoteReplay": false,
+      "separateCleanupExecuted": false,
+      "workerReleased": true
+    },
+    "overallP10": "PARTIAL",
+    "authenticatedAdminApiRun": true,
+    "authorizationAndScopePreservationAccepted": true,
+    "fullLoggingCoverageAccepted": false,
+    "historicalV2": {
+      "operationId": "bb3e29964afa45f4915061e4712acd5a",
+      "status": "STOP_WITH_AUTH_PASS_FOREIGN_COMPARATOR_FAILURE_AND_PARTIAL_COVERAGE",
+      "sourceSafeReceiptSha256": "ef95c00e070c236bd579003c0427e2dab14b497a66cc910491b2199304e38672",
+      "rootForwardedHistory": true,
+      "sourceRecordRewritten": false,
+      "v3NullOwnerInclusiveForeignControlCheckPassed": true
+    }
+  },
+  "configurationRecovery": {
+    "sourceSnapshot": "school-config-roundtrip-root-accepted-20261108.json",
+    "sourceSha256": "2d6ca761e2bd8db68d43afa0f3864216fbfb0b5aa2469ee031e679ae44184459",
+    "rootAcceptedAtUtc": "2026-11-08T09:53:41Z",
+    "archive": "asa-school-config-01-20261108T092203Z-fc8b50ef.tar.age",
+    "bytes": 25186504,
+    "ciphertextSha256": "e772ecf0e98b9624f8231e9e7887310fd7080fbd10ecc28e8502e5f992afdbd0",
+    "remoteDirectory": "app:/School-VM100/Configuration-Backups",
+    "configurationFiles": 54,
+    "payloadFiles": 59,
+    "manifestSeparateFromPayload": true,
+    "sqliteDatabases": 3,
+    "sqliteIntegrity": {
+      "agent.db": "ok",
+      "core.db": "ok",
+      "xpack.db": "ok"
+    },
+    "normalizedLogZipArchives": 2,
+    "normalizedLogs": {
+      "application": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 16,
+        "recordBytes": 15788132,
+        "records": 19596
+      },
+      "host": {
+        "coverageComplete": false,
+        "crcAndPartSha256Verified": true,
+        "normalized": true,
+        "parts": 504,
+        "recordBytes": 161816055,
+        "records": 201417
+      }
+    },
+    "manifestVerified": true,
+    "permissionsManifestValidated": true,
+    "fullCloudDownloadVerified": true,
+    "authenticatedDecryptAndIsolatedRestoreVerified": true,
+    "d2NativePid": 8348,
+    "d2NativeExitCode": 0,
+    "durationSeconds": 12.11,
+    "pythonPid": 27748,
+    "guestExitCode": 0,
+    "privateKeyInArgvOrNamedFile": false,
+    "strictIdentityAclVerified": true,
+    "identityAclChanged": false,
+    "guestReceiptPersisted": true,
+    "guestReceiptPath": "/var/backups/server-settings/x-config-verify-v2-20261108t093916z-83251330.json",
+    "initialHttp302StopPreserved": true,
+    "initialD2PythonParseStopPreserved": true,
+    "coverageComplete": false,
+    "gatewayOAuthContinuity": false,
+    "livePathsWritten": false,
+    "liveOsRestoreProven": false,
+    "schedulerState": "PREPARE_ONLY_NOT_INSTALLED",
+    "servicesChanged": false,
+    "schedulesChanged": false
+  },
+  "backupSchedules": {
+    "dataBackup": {
+      "status": "EXISTING_TIMER_ENABLED",
+      "time": "03:20 Europe/Moscow",
+      "nextAtUtc": "2026-11-09T00:20:00Z"
+    },
+    "configurationBackup": {
+      "status": "PREPARE_ONLY_NOT_INSTALLED"
+    }
+  },
+  "remaining": [
+    "Accepted progressive HTTP capacity run; 100 HTTP seats is not 100 browser editors",
+    "Logging required coverage and documented historical gap disposition",
+    "Separate acceptance and deployment of configuration backup schedule",
+    "Final frozen fresh H04 sync, relogin decision and public HTTPS acceptance",
+    "Later explicit production cutover instruction; full live rollback NOT_RUN",
+    "AI/VPN later"
+  ],
+  "sheetCheckpoint": {
+    "rootReportedAtMsk": "2026-11-08T12:50:43+03:00",
+    "cells": 21,
+    "neighborsChecked": 103,
+    "adminV3AndConfigurationDecryptIncludedInThatSheetCheckpoint": false,
+    "sheetWritesByThisWorker": false
+  },
+  "scope": {
+    "documentationOnly": true,
+    "vmWrites": false,
+    "d2Writes": false,
+    "dnsWrites": false,
+    "runtimeSourceChanges": false
+  }
+}
