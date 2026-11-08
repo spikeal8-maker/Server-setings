@@ -1,0 +1,31 @@
+{
+  "format": "asa-final-health-root-acceptance-v1",
+  "recordType": "derived-root-message-annotation",
+  "operationId": "235074862bdc4700ab2002a474b73752",
+  "rootIndependentReadAt": "2026-11-08T10:46:36Z",
+  "source": "Root collaboration message: independent actual operation_get read and scoped metadata acceptance.",
+  "acceptedScope": {
+    "sixHealthyRestartCountsZero": true,
+    "oid117178Schema307": true,
+    "bothTimersEnabledScheduled": true,
+    "settingsInstallReceiptVerified": true,
+    "collectorMetadataFresh": true,
+    "metadataOnly": true
+  },
+  "limitations": {
+    "authenticatedCoverageReevaluated": false,
+    "nativeIntegrityReevaluated": false,
+    "hostSourceStateCounts": {
+      "ok": 22,
+      "incomplete": 4,
+      "unknown": 0
+    },
+    "threeOtherIncompleteSourceReasonsNotCaptured": true,
+    "olderSnapshotWillNotBeRelabeledFromNewObservation": true
+  },
+  "evidence": {
+    "receiptSha256": "20c236c3a9ed9465069d5809b524a73f650a95ebdb65eb479062d546818fb045",
+    "stdoutSha256": "d77ec1ca22db6a9267946cccd465b89efc9271f5d038d51afe8fea85c5793632",
+    "settingsInstallReceiptSha256": "f6f8f28a55d05b69e2ee8b503699f36c63e544abefe56f66bdd5add033bd0eb8"
+  }
+}

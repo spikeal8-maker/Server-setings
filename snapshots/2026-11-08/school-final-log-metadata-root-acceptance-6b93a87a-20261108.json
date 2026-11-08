@@ -1,0 +1,24 @@
+{
+  "format": "asa-nonok-host-metadata-root-acceptance-v1",
+  "recordType": "derived-root-message-annotation",
+  "operationId": "6b93a87aa3594a18909081a95e010448",
+  "observedAt": "2026-11-08T10:53:35.073Z",
+  "rootIndependentReadAt": "2026-11-08T10:53:54Z",
+  "source": "Root collaboration message confirming independent actual operation_get read.",
+  "acceptedAs": "OBSERVATION_NOT_COVERAGE_PASS",
+  "metadataOnly": true,
+  "sourceStateCounts": {
+    "ok": 22,
+    "incomplete": 4,
+    "unknown": 0
+  },
+  "allFourCurrentNonOkRowsAccepted": true,
+  "authenticatedCoverageReevaluated": false,
+  "nativeIntegrityReevaluated": false,
+  "older2350SnapshotReclassified": false,
+  "evidence": {
+    "receiptSha256": "d7b51ad3c4b96f2f1e2d7c750df79ec0eb4271b0c7610d4840f73d5b9de2d5fa",
+    "stdoutSha256": "6c0457743ce5263f58a060b5a1dca8184f40a1c2cd4f715a1427d044f9b163d4",
+    "decodedSourcesSha256": "a4165883f3567a005c5c1babfaed4a8171141c211837a6a9c419adf0141c4c86"
+  }
+}

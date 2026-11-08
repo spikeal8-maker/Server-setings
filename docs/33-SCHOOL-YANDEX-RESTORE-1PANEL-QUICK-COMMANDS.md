@@ -1,8 +1,8 @@
 # ASA Lab School VM100 — Яндекс Диск, восстановление и быстрые команды 1Panel
 
-**Актуальный краткий статус: [готовность школы и следующий шаг](34-SCHOOL-CURRENT-READINESS.md)**, срез **08.11.2026 12:56 МСК / 09:56 UTC**. Обычный UI, PG/MinIO restore и config roundtrip приняты; нагрузка и полное покрытие журналов ещё не приняты. Production-переход остаётся **БЛОКЕР**.
+**Актуальный краткий статус: [готовность школы и следующий шаг](34-SCHOOL-CURRENT-READINESS.md)**, срез **08.11.2026 13:53:54 МСК / 10:53:54 UTC**. Обычный UI, PG/MinIO restore, config roundtrip, HTTP-этапы 2/20/50/100 и cleanup этого run приняты. Settings timer установлен; заключительный health принят, оба расписания включены. Первый автоматический config backup и полное покрытие журналов ещё не закрыты. Production-переход остаётся **БЛОКЕР**; H04 и основной домен не переключались.
 
-[Последний безопасный checkpoint](../snapshots/2026-11-08/school-current-readiness-checkpoint-20261108T095603Z.json) · [регламент перехода и возврата](30-SCHOOL-DOMAIN-MIGRATION-RUNBOOK.md).
+[Последний безопасный checkpoint](../snapshots/2026-11-08/school-readiness-load-checkpoint-20261108T105354Z.json) · [регламент перехода и возврата](30-SCHOOL-DOMAIN-MIGRATION-RUNBOOK.md) · [опубликованный код и порядок конфигурационных копий](54-SCHOOL-MANAGED-CONFIGURATION-BACKUPS.md). Установка timer принята отдельной фактической операцией после PR81; первый автоматический backup ещё NOT_RUN.
 
 ## Архив сведений и команд — срезы до 08.11.2026 08:39:03 МСК
 

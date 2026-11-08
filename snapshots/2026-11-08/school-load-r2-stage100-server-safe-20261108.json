@@ -1,0 +1,80 @@
+{
+  "actualServedOidMatched": true,
+  "applicationDataWrites": false,
+  "completedUtc": "2026-11-08T10:42:36.133425+00:00",
+  "dataValuesEmitted": false,
+  "evidence": "/var/lib/server-settings/xload/run-0e969b15e9014ea383f9f01a8694f551/stage-100-0e969b15e9014ea383f9f01a8694f551",
+  "firstSampleUtc": "2026-11-08T10:39:05.180324+00:00",
+  "hostCpuPercentBasis": "all_logical_cpus",
+  "hostMemoryBasis": "MemAvailable",
+  "identityPreserved": true,
+  "intervalSeconds": 2,
+  "lastSampleUtc": "2026-11-08T10:42:35.203136+00:00",
+  "logicalCpus": 12,
+  "mode": "observe",
+  "package": "X-LOAD-NATIVE-OBSERVER",
+  "privateEvidenceWrites": true,
+  "profileSha256": "5227231e314336de3c7aac792631bb368d4709afbc45923dbdd20c792f2e11d3",
+  "resourceBreaches": [],
+  "restartCountsUnchanged": true,
+  "scriptSha256": "b303ee70d5dcc644875ab7914ab41d70e99c25d66a24fbbc97572b4433e31127",
+  "seconds": 210,
+  "sourceAddressCardinality": "NOT_MEASURED",
+  "stage": 100,
+  "startedTimesUnchanged": true,
+  "startedUtc": "2026-11-08T10:39:05.003693+00:00",
+  "status": "OBSERVER_PASS",
+  "summary": {
+    "containers": {
+      "api": {
+        "maximumCpuCoresUsed": 0.8623728898365439,
+        "maximumMemoryBytes": 348893184,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      },
+      "minio": {
+        "maximumCpuCoresUsed": 0.09437483128335958,
+        "maximumMemoryBytes": 117858304,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      },
+      "postgres": {
+        "maximumCpuCoresUsed": 1.6518071174694728,
+        "maximumMemoryBytes": 1023758336,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      },
+      "scratch": {
+        "maximumCpuCoresUsed": 0.022441619223848814,
+        "maximumMemoryBytes": 10989568,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      },
+      "search": {
+        "maximumCpuCoresUsed": 0.08448382447299775,
+        "maximumMemoryBytes": 93802496,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      },
+      "web": {
+        "maximumCpuCoresUsed": 0.1943292785968447,
+        "maximumMemoryBytes": 68620288,
+        "oomDelta": 0,
+        "oomKillDelta": 0
+      }
+    },
+    "hostCpuMaximumPercent": 27.073684210526316,
+    "maximumPgConnections": 16,
+    "maximumPgLockWaitSeconds": 0,
+    "maximumPgWaitingLocks": 0,
+    "minimumAvailableBytes": 31216398336,
+    "minimumPgDiskFreeBytes": 183176683520,
+    "postgresCounterDeltas": {
+      "commits": 6813,
+      "deadlocks": 0,
+      "rollbacks": 98,
+      "tempBytes": 2924544
+    },
+    "samples": 106
+  }
+}
