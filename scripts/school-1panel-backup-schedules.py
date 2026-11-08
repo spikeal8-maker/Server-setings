@@ -1110,7 +1110,9 @@ def main():
             else:
                 with lock(DB_LOCK):
                     value = Controller(panel, legacy).restore_original(load_state())
-    print(json.dumps(value, sort_keys=True), flush=True)
+    # The worker owns its streaming output, including the terminal result.
+    if args.action != 'worker':
+        print(json.dumps(value, sort_keys=True), flush=True)
     return 0
 
 
