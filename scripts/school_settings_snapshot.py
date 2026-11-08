@@ -110,6 +110,58 @@ SOURCE_BLOBS = {
     'cloud_storage.py': '9264f512f2e5f4e974cb17f04973c231486f0aea',
 }
 
+# Optional versioned 1Panel integration. Old verified archives remain valid.
+# Once a feature is present, its complete configuration set is mandatory.
+SUPERVISOR_CONFIG = Path('/etc/supervisor/supervisord.conf')
+SUPERVISOR_ROOT = Path('/opt/1panel/tools/supervisord')
+PANEL_COLLECTOR = tuple(map(Path, (
+    '/var/lib/server-settings/asa-1panel-collector.json',
+    '/usr/local/sbin/asa-1panel-collector',
+    '/opt/1panel/tools/supervisord/supervisor.d/asa-log-collector-asa-lab-school.ini',
+)))
+PANEL_SCHEDULES = tuple(map(Path, (
+    '/var/lib/server-settings/1panel-backup-schedules/state.json',
+    '/opt/1panel/tools/supervisord/supervisor.d/asa-school-nightly-database-backup.ini',
+    '/opt/1panel/tools/supervisord/supervisor.d/asa-school-nightly-settings-backup.ini',
+)))
+PANEL_OPTIONAL = tuple(map(Path, (
+    '/var/lib/server-settings/supervisord-before-1panel.conf',
+    '/srv/asa-lab/.asa/diagnostics/private/1panel-handover.json',
+)))
+SCHEDULE_RELEASES = Path('/opt/asa-school-panel-schedules/releases')
+SCHEDULE_SOURCE = re.compile(r'/opt/asa-school-panel-schedules/releases/[a-f0-9]{16}/school-1panel-backup-schedules[.]py\Z')
+
+
+def panel_configuration_paths():
+    """Only known process/config/code files; no raw log trees or cursor DBs."""
+    selected = []
+    for group in (PANEL_COLLECTOR, PANEL_SCHEDULES):
+        present = [p for p in group if p.exists() or p.is_symlink()]
+        if present:
+            need(len(present) == len(group), 'PANEL_CONFIGURATION_INCOMPLETE')
+            selected += present
+    if not selected:
+        return []
+    need(SUPERVISOR_CONFIG.is_file() and not SUPERVISOR_CONFIG.is_symlink(), 'PANEL_SUPERVISOR_CONFIG_MISSING')
+    selected.append(SUPERVISOR_CONFIG)
+    selected += [p for p in PANEL_OPTIONAL if p.exists() or p.is_symlink()]
+    directory = SUPERVISOR_ROOT / 'supervisor.d'
+    trusted(directory, directory=True)
+    actual = list(directory.iterdir())
+    allowed = set(PANEL_COLLECTOR + PANEL_SCHEDULES)
+    need(len(actual) <= 3 and all(p in allowed for p in actual), 'PANEL_FOREIGN_PROGRAM_REQUIRES_REVIEW')
+    if PANEL_SCHEDULES[0] in selected:
+        trusted(SCHEDULE_RELEASES, directory=True)
+        releases = list(SCHEDULE_RELEASES.iterdir())
+        need(1 <= len(releases) <= 4 and all(re.fullmatch(r'[a-f0-9]{16}', p.name) for p in releases),
+             'PANEL_RELEASE_SET_BOUND')
+        for release in releases:
+            trusted(release, directory=True)
+            source = release / 'school-1panel-backup-schedules.py'
+            need(source.is_file() and not source.is_symlink(), 'PANEL_RELEASE_SOURCE_MISSING')
+            selected.append(source)
+    return selected
+
 
 class SnapshotError(Exception):
     pass
@@ -279,7 +331,9 @@ def api_runtime():
 
 
 def allowed_config(path):
-    return path in STATIC or bool(re.fullmatch(r'/[A-Za-z0-9_./-]{1,512}', str(path))) and any(path.is_relative_to(root) and path.suffix in
+    return path in STATIC or path in (SUPERVISOR_CONFIG, *PANEL_COLLECTOR, *PANEL_SCHEDULES, *PANEL_OPTIONAL) \
+        or bool(SCHEDULE_SOURCE.fullmatch(str(path))) \
+        or bool(re.fullmatch(r'/[A-Za-z0-9_./-]{1,512}', str(path))) and any(path.is_relative_to(root) and path.suffix in
         ('.conf', '.pem', '.crt', '.key', '.types', '.htpasswd') for root in CONFIG_ROOTS)
 
 
@@ -290,7 +344,7 @@ def config_inputs():
     need(isinstance(mounts, list) and len(mounts) <= 16, 'OPENRESTY_MOUNTS_BOUND')
     bindings = [(m['Destination'], m['Source']) for m in mounts
                 if m.get('Type') == 'bind' and str(m.get('Source', '')).startswith('/opt/1panel/')]
-    pending = list(STATIC)
+    pending = list(STATIC) + panel_configuration_paths()
     observations = {}
     if STREAM.exists():
         trusted(STREAM, directory=True)
@@ -638,6 +692,13 @@ def validate_manifest(manifest, name):
              and meta['mode'] <= 0o7777, 'MANIFEST_DIRECTORY_PERMISSIONS')
     need(parents.issubset(seen_dirs), 'MANIFEST_DIRECTORY_MISSING')
     required = {'files/' + str(p).lstrip('/') for p in STATIC}
+    panel_members = {p: 'files/' + str(p).lstrip('/') for p in (SUPERVISOR_CONFIG, *PANEL_COLLECTOR, *PANEL_SCHEDULES)}
+    for group in (PANEL_COLLECTOR, PANEL_SCHEDULES):
+        if any(panel_members[p] in result for p in group):
+            required |= {panel_members[p] for p in (*group, SUPERVISOR_CONFIG)}
+    if panel_members[PANEL_SCHEDULES[0]] in result:
+        need(any(name.startswith('files/') and SCHEDULE_SOURCE.fullmatch('/' + name[6:]) for name in result),
+             'MANIFEST_PANEL_RELEASE_MISSING')
     required |= {'sqlite/' + n for n in DB_NAMES} | {'normalized/host.zip','normalized/application.zip'}
     need(required.issubset(result) and sum(r['bytes'] for r in rows) <= MAX_CIPHER - 4 * 1024**2,
          'MANIFEST_REQUIRED_SCOPE')
@@ -904,3 +965,4 @@ if __name__ == '__main__':
         code = str(exc) if isinstance(exc, SnapshotError) else type(exc).__name__
         print(json.dumps({'status': 'CONFIG_BACKUP_STOP', 'code': code, 'secretValuesPrinted': False}), file=sys.stderr)
         raise SystemExit(2)
+
