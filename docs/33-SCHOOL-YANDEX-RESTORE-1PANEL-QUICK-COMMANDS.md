@@ -1,12 +1,12 @@
 # ASA Lab School VM100 — Яндекс Диск, восстановление и быстрые команды 1Panel
 
-Текущая запись: **08.11.2026 03:07:20 МСК / 08.11.2026 00:07:20 UTC**.
+Текущая запись: **08.11.2026 03:23:12 МСК / 08.11.2026 00:23:12 UTC**.
 Сервер: `asa-school-01`, Proxmox VM100, установка `asa-school-vm100`,
 Compose-проект `asa-lab-school`. Прямой MCP из ChatGPT принят
 ([доступ и исходники](53-SCHOOL-HOST-ADMIN-MCP.md)). Команды ниже предназначены
 для терминала **хоста Ubuntu в 1Panel**, не для Docker-контейнера.
 
-## Текущее состояние X — 02C, 02E и наблюдение 03 приняты
+## Текущее состояние X — 02C, 02E, наблюдение 03 и подключение receipt 03A приняты
 
 **Рабочий школьный X обновлён до `3e8713476cafedda3e24a39665458e833efd7c22`,
 schema 307.** В 02C все шесть компонентов — API, web, Scratch, search,
@@ -20,7 +20,7 @@ PostgreSQL и MinIO — healthy. Это приёмка обновления пр
 | Свежий H04 `eaa56899/0b090…`, 02E | **PostgreSQL restore PASS** в новой `asa_xprep02e_20261108t000534z_c632ca76_test`; три миграции 304 → 307, повтор — 0; данные и ACL/RLS 240 прежних таблиц и ledger сохранены | Это тестовая БД; live H04 import и MinIO runtime restore свежего набора **NOT_RUN** |
 | Журналы, наблюдение 03 | Collector running; 26 применимых обязательных источников state=ok и свежие; host history audit **494/494 complete**; API UID1000 читает catalog/health | `docker-lifecycle.possibleCoverageGap=true`, `coverageComplete=false`; authenticated API `requiredCoverage=NOT_EVALUATED` |
 | Ротация и PostgreSQL logging | У шести работающих контейнеров `json-file`, `max-size=10m`, `max-file=5`; проверенный logging contract PostgreSQL совпал | Native live counters/flush и независимый побайтный аудит всех сегментов не выполнялись |
-| Подключение школьной backup receipt, 03 | `schoolBackupReceiptConfigured=false`; сохранён прежний manual/cloud_sha256 receipt от 01:30 МСК | Подключение указателя и новый автоматический результат этим наблюдением ещё не приняты |
+| Ночной backup и его receipt, 03A | Автоматический backup завершён 03:21:20 МСК, `cloud_sha256`; в 03:23 принят единственный config field `operationalSources.backupSuccessReceipt`, collector прочитал новый receipt (`externalReceiptReadByCollector=true`) | Runtime/schema внутри нового облачного архива и его decrypt/restore отдельно не проверены; полнота журналов не заявляется |
 
 ### 02C — принято обновление приложения
 
@@ -80,15 +80,59 @@ Nightly timer был active/enabled с ближайшим запуском 03:20
 manual/cloud_sha256 receipt сама по себе не доказывает runtime внутри архива.
 Новые backup/restore и authenticated admin status не выполнялись этой
 операцией. [Снимок наблюдения 03](../snapshots/2026-11-08/actual-logging-observation-20261108T000720Z.json)
-сохраняет все исходные false/NOT_EVALUATED flags.
+сохраняет все исходные false/NOT_EVALUATED flags. Отсутствовавший в 03:07
+указатель подключён отдельным принятым 03A ниже; остальные пределы наблюдения
+этим не закрываются.
 
-### Следующие проверки после 02C/02E/03
+### 03A — ночная копия и подключение её квитанции в 03:23 МСК
 
-Проверить фактический запуск ночного backup и подключение его receipt к
-коллектору отдельным 03A; пока его успех здесь не предполагается.
-Далее нужны собственный MinIO restore/readback свежего H04, безопасная
-подготовка данных для изолированного импорта, authenticated logging coverage,
-пользовательские сценарии и нагрузка. Финальная синхронизация, VPN/ИИ,
+Штатный автоматический backup начался **08.11.2026 03:20:25 МСК** и
+завершился **03:21:20 МСК**, service result=success, exit0.
+Новый receipt от `2026-11-08T00:21:20.165Z` подтверждает
+`trigger=automatic`, `verification=cloud_sha256`,
+**231337304 байта**, cipher SHA256
+`1787b730459a6328e2278ab814c8a9d081421f2d0011478631fab22dbc5a4f95`.
+Операция prerequisite `c1ea7b2292bb465ebb3a44c08cbc2fa1`
+прочитала результат в **03:22:41 МСК**, success/exit0, **0.926 секунды**.
+После backup приложение ready, revision 3e871347/schema307.
+**Это не отдельная проверка версии внутри архива:** его age-аутентификация,
+canonical manifest и восстановление новым этапом ещё не проверены.
+Timer остался активным; ближайший запуск — **09.11.2026 03:20 МСК**.
+Ручной backup не запускался, расписание не менялось.
+
+Операция apply `38fefec475f84a7a9822d3b44658ccfc`
+завершилась **08.11.2026 03:23:12 МСК / 00:23:12 UTC**,
+success/exit0, **6.261 секунды**. Контролёр независимо принял durable result.
+Единственное смысловое изменение конфигурации —
+`operationalSources.backupSuccessReceipt`.
+SHA256 конфигурации изменился с
+`ca02ff3022f050f1aa1f48b08b14b9194792dc2a992615e0fdc1bd7e2ba25ce5` на
+`45336c778bff304846a141ab48ad74f5ca7cf99fc629202cf4415ca588e0d066`.
+Исходные байты сохранены приватно в
+`/srv/asa-lab/.asa/diagnostics/private/xprep03a-log-collector.before.json`;
+содержимое приватной конфигурации в Git не публикуется.
+
+Выполнен один перезапуск штатного коллектора; новый process nonce,
+свежий cycle=ok и backup source=ok подтверждены.
+`externalReceiptReadByCollector=true`: прочитан именно новый automatic receipt
+с указанными размером и SHA256. Revision/schema остались 3e871347/307.
+`dockerLifecycleGapBefore=true` и `dockerLifecycleGapAfter=true`;
+`fullCoverage=NOT_CLAIMED`. История не сбрасывалась, retention не менялась,
+full reconcile и reader sentinel не применялись; rollback не выполнялся.
+Authenticated `requiredCoverage` остаётся `NOT_EVALUATED`.
+
+Оба первичных снимка сохранены побайтно:
+[scheduled prerequisite](../snapshots/2026-11-08/scheduled-prerequisite-20261108T002241Z.json) и
+[actual apply](../snapshots/2026-11-08/actual-apply-20261108T002312Z.json).
+Исторический снимок 03 остаётся свидетельством состояния **до** этого изменения.
+
+### Следующие проверки после 02C/02E/03/03A
+
+Для нового автоматического облачного архива отдельно подтвердить его runtime
+и schema, age-аутентификацию, canonical manifest и восстановление PostgreSQL/MinIO.
+Для свежего H04 нужны собственный MinIO restore/readback и безопасная
+подготовка данных для изолированного импорта. Далее — authenticated logging
+coverage, пользовательские сценарии и нагрузка. Финальная синхронизация, VPN/ИИ,
 USB ACL и перенос production-домена остаются отдельными незакрытыми пунктами.
 Рабочую schema 307 нельзя считать основанием для непроверенного отката
 одного приложения на schema 300.

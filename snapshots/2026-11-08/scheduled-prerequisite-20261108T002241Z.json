@@ -1,0 +1,62 @@
+{
+  "format": "x-prep03a-scheduled-prerequisite-safe-evidence-v1",
+  "freshAdminIdentity": {
+    "enabled": true,
+    "hostname": "asa-school-01",
+    "uid": 0,
+    "installation_id": "asa-school-vm100",
+    "installation_instance_id": "fc0ba60fe1d946bba1694d73557cc11f",
+    "authority": "root shell; owner-authorized"
+  },
+  "operation": {
+    "operationId": "c1ea7b2292bb465ebb3a44c08cbc2fa1",
+    "installationId": "asa-school-vm100",
+    "status": "success",
+    "phase": "complete",
+    "created": "2026-11-08T00:22:40.024179+00:00",
+    "updated": "2026-11-08T00:22:41.074582+00:00",
+    "startedAt": "2026-11-08T00:22:40.137707+00:00",
+    "exitCode": 0,
+    "timedOut": false,
+    "durationSeconds": 0.926,
+    "outputMayBeTruncated": false
+  },
+  "result": {
+    "applyStarted": false,
+    "cutoff": "2026-11-08T00:20:00+00:00",
+    "directMutations": false,
+    "observedAt": "2026-11-08T00:22:41.051521+00:00",
+    "package": "X-PREP-03A-SCHEDULED-PREREQUISITE",
+    "readyVerified": true,
+    "receipt": {
+      "archiveBytes": 231337304,
+      "archiveSha256": "1787b730459a6328e2278ab814c8a9d081421f2d0011478631fab22dbc5a4f95",
+      "at": "2026-11-08T00:21:20.165Z",
+      "operation": "backup",
+      "producer": "backup-receipt",
+      "status": "succeeded",
+      "trigger": "automatic",
+      "verification": "cloud_sha256",
+      "version": 1
+    },
+    "revision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "service": {
+      "ActiveState": "inactive",
+      "ExecMainStatus": 0,
+      "LoadState": "loaded",
+      "Result": "success",
+      "SubState": "dead",
+      "exitedAt": "2026-11-08T00:21:20+00:00",
+      "startedAt": "2026-11-08T00:20:25+00:00"
+    },
+    "status": "SCHEDULED_BACKUP_CONFIRMED",
+    "timer": {
+      "active": true,
+      "lastTriggeredAt": "2026-11-08T00:20:25+00:00",
+      "nextTriggerAt": "2026-11-09T00:20:00+00:00"
+    }
+  },
+  "manualBackupStarted": false,
+  "timerChanged": false
+}
