@@ -1,0 +1,123 @@
+{
+  "format": "asa-school-settings-scheduler-preparation-v1",
+  "preparedAt": "2026-11-08T10:20:50.319452+00:00",
+  "host": "asa-school-01",
+  "installation": "asa-lab-school",
+  "publicationBaseRevision": "9d93dc1c89c6a93fe88d6472b7482f418de188bd",
+  "sourceReviewBaseRevision": "68b20c23dfb07ebb533b2ca62dd04c4a6ce758fe",
+  "configurationArchive": {
+    "status": "CONFIG_CLOUD_DOWNLOAD_DECRYPT_ISOLATED_VERIFY_PASS",
+    "rootAcceptedAt": "2026-11-08T09:53:41Z",
+    "remoteDirectory": "app:/School-VM100/Configuration-Backups",
+    "verification": {
+      "archive": "asa-school-config-01-20261108T092203Z-fc8b50ef.tar.age",
+      "bytes": 25186504,
+      "ciphertextSha256": "e772ecf0e98b9624f8231e9e7887310fd7080fbd10ecc28e8502e5f992afdbd0",
+      "coverageComplete": false,
+      "fileCount": 59,
+      "gatewayOAuthContinuity": false,
+      "livePathsWritten": false,
+      "manifestVerified": true,
+      "normalizedLogs": {
+        "application": {
+          "coverageComplete": false,
+          "crcAndPartSha256Verified": true,
+          "normalized": true,
+          "parts": 16,
+          "recordBytes": 15788132,
+          "records": 19596
+        },
+        "host": {
+          "coverageComplete": false,
+          "crcAndPartSha256Verified": true,
+          "normalized": true,
+          "parts": 504,
+          "recordBytes": 161816055,
+          "records": 201417
+        }
+      },
+      "permissionsManifestValidated": true,
+      "sqliteIntegrity": {
+        "agent.db": "ok",
+        "core.db": "ok",
+        "xpack.db": "ok"
+      },
+      "status": "CONFIG_CLOUD_DOWNLOAD_DECRYPT_ISOLATED_VERIFY_PASS",
+      "verifiedDirectory": "/var/backups/server-settings/school-recovery/verified/asa-school-config-01-20261108T092203Z-fc8b50ef"
+    },
+    "operations": {
+      "readability": "b232d605a15b4deab77b339a06491f64",
+      "create": "d35f94e116b1418a8a693f4831d4a362",
+      "initialCloud": "5cab5904dfd94a81ba4640edfddd74fd",
+      "initialCloudResult": "STOP_CONFIG_DOWNLOAD_HTTP_STATUS",
+      "providerHeaders": "d56cfc41cdbe4eae9a391f0c59919cd6",
+      "providerObservedStatus": 302,
+      "providerRedirectAllowlistMatched": true,
+      "existingObjectDownload": "d1435b651f96477e9ab144812127912a",
+      "initialD2LauncherPid": 39984,
+      "initialD2LauncherResult": "PYTHON_PARSE_ERROR_BEFORE_PAYLOAD",
+      "correctedD2StagePid": 35496,
+      "verificationRdcPid": 8348,
+      "verificationPythonPid": 27748,
+      "guestOperationId": "x-config-verify-v2-20261108t093916z-83251330",
+      "guestReceiptPath": "/var/backups/server-settings/x-config-verify-v2-20261108t093916z-83251330.json",
+      "guestReceiptPersisted": true
+    }
+  },
+  "scheduler": {
+    "state": "NOT_INSTALLED",
+    "firstAutomaticRun": "NOT_RUN",
+    "preparedPackageStatus": "LOCAL_PREPARE_REVIEWED_BY_ROOT_NOT_EXECUTED",
+    "reviewedAt": "2026-11-08T10:14:51Z",
+    "releaseDirectory": "/opt/asa-school-settings-backup/releases/ffb8bf2a3540cb55",
+    "releaseSha256": "ffb8bf2a3540cb5546587fe6eb5d12aace6e6f479b448e6bc2db81e9003f7f7a",
+    "publicCodeSha256": {
+      "backup-settings.sh": "069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36",
+      "school-settings-cloud-roundtrip.py": "bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f",
+      "school_settings_snapshot.py": "3eb55ec49eb5ee44a9400514bb7ed92f4603fdac56dedef623f053ab0d1c383d",
+      "school_yandex_app_folder.py": "64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20",
+      "cloud_storage.py": "c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08",
+      "school-nightly-settings-backup.py": "6d1874d1fe947b53605b674eeef5abc918afcfeb7a0d2afdc9570ca2f7a5c19d"
+    },
+    "schedule": "*-*-* 04:00:00 Europe/Moscow",
+    "persistentCatchup": false,
+    "allowedStartWindow": "04:00 <= Europe/Moscow time < 05:00",
+    "sharedDatabaseLock": "/run/lock/asa-school-nightly-db.lock",
+    "lockWaitSeconds": 600,
+    "totalRunSeconds": 1800,
+    "backupRunsDuringInstall": false,
+    "nightlyDecryption": false,
+    "baselineDecryptionAcceptedAt": "2026-11-08T09:53:41Z",
+    "missedRun": "No off-window catch-up or automatic retry; inspect current attempt and next timer event.",
+    "retention": "append-only; no cleanup authorized",
+    "newCodeOrUnitsInFirstArchive": false,
+    "newCodeRecoverySource": "reviewed pinned Server-setings scripts",
+    "privateKeyInstalled": false,
+    "existingDatabaseScheduleChanged": false,
+    "collectorSourceAdded": false,
+    "failureJournalPriority": 3,
+    "existingCollectorSource": "linux:journal"
+  },
+  "tests": {
+    "managedSnapshot": 14,
+    "downloadRedirects": 4,
+    "scheduler": 4,
+    "unchangedGenericCloud": 3,
+    "allExecutedLocally": true,
+    "localResult": "25_PASS",
+    "schedulerRootOwnedFixtures": "Executed locally as root; explicitly skipped by non-root CI.",
+    "syntax": "Python AST and bash -n PASS"
+  },
+  "knownLimits": {
+    "coverageComplete": false,
+    "gatewayOAuthContinuity": false,
+    "sqliteConsistency": "Each of three SQLite snapshots individually consistent, no global transaction.",
+    "cleanHostInstallationTested": false,
+    "schedulerInstalled": false,
+    "firstAutomaticRunVerified": false,
+    "newUnitFailureInCollectorActuallyObserved": false
+  },
+  "privateValuesPublished": false,
+  "privateFileHashesPublished": false,
+  "nativeVmOperationsDuringSchedulerPreparation": 0
+}
