@@ -1,0 +1,112 @@
+{
+  "format": "school-native-worker-output-diagnosis-v1",
+  "status": "ACTUAL_CAUSE_CONFIRMED_SOURCE_CORRECTION_PREPARED",
+  "observedAt": "2026-11-08T15:11:03.489863+00:00",
+  "host": "asa-school-01",
+  "project": "asa-lab-school",
+  "settingsRevisionAtObservation": "c23b8d970b7160b2146301c2af514a21071216dc",
+  "installedWrapperSha256": "6f5a51cbe94a7bf22152884eeb7d7c0efd149667cdc21b60e889d682740e18b2",
+  "candidateWrapperSha256": "4b391bbd4b4589212acffc25a4239b79d15e5830176300610dfd1f7fc3ef596b",
+  "hostSourceRevision": "17d937c01660025e6b5030f44bcb0d776e7c79aa",
+  "applicationRevisionUnchanged": "3e8713476cafedda3e24a39665458e833efd7c22",
+  "failedProbeOperation": "fa96a791e4ab4dbdad81fbd768797729",
+  "failedProbeErrorCode": "NATIVE_JSON_MARKER_NOT_UNIQUE",
+  "readonlyDiagnosticOperation": "2b1a67931c7c4fb480c8a3d9d714c465",
+  "readonlyDiagnosticReceiptSha256": "1783dec703a8c5d90d30a55e9d6992923b4bd9a7a13933abf646af2cd20909fd",
+  "evidence": {
+    "diagnosis": "DOUBLE_IDENTICAL_WORKER_TERMINAL_OUTPUT_CONFIRMED",
+    "nativeRecords": {
+      "acceptedRecordMatches": 1,
+      "acceptedRecordSuccess": true,
+      "recordId": 1,
+      "singleSuccessfulRecord": true,
+      "totalRecordsSinceStage": 1
+    },
+    "nativeLog": {
+      "allMatchingObjectsEqualSavedRun": true,
+      "dispatchContainingLines": 2,
+      "dispatchJsonObjectLines": 2,
+      "dispatchMalformedJsonLines": 0,
+      "exactRunObjectLines": 2,
+      "exactRunSerializedLinesIdentical": true,
+      "jsonObjectLines": 2,
+      "lines": 2,
+      "nonemptyLines": 2,
+      "operatorMatchingMarkerLines": 2,
+      "responseType": "string",
+      "twoIdenticalTerminalLinesAndNoOtherContent": true,
+      "utf8Bytes": 1006
+    },
+    "nativeLogEqualsOwnedFileBytes": true,
+    "retainedStateRunDispatchUnchanged": true,
+    "ownLogUnchanged": true,
+    "native": {
+      "collector": {
+        "autoRestart": "true",
+        "autoStart": "true",
+        "pid": 2770698,
+        "status": "RUNNING"
+      },
+      "database": {
+        "autoRestart": "false",
+        "autoStart": "false",
+        "id": 1,
+        "payloadExact": true,
+        "processStatus": "EXITED",
+        "status": "Disable"
+      },
+      "settings": {
+        "autoRestart": "false",
+        "autoStart": "false",
+        "id": 2,
+        "payloadExact": true,
+        "processStatus": "STOPPED",
+        "status": "Disable"
+      }
+    },
+    "generation": "dc880db9be0e49b0953973ba39f19cde",
+    "phase": "STAGED",
+    "owner": "legacy",
+    "backupExecuted": false,
+    "repeatedProbeHandle": false
+  },
+  "sourceCorrection": {
+    "changedFunction": "main",
+    "behavior": "Worker owns streaming stdout/stderr and terminal result; the CLI no longer prints the returned worker object a second time. Other command results remain printed.",
+    "workerTriggerAndClockGuardsChanged": false,
+    "uniqueMarkerCheckWeakened": false,
+    "installedImmutableCodeChanged": false
+  },
+  "localValidation": {
+    "workerCliTestsPassed": 2,
+    "workerCliChildCasesPassed": 4,
+    "realStagedWorkerKinds": [
+      "database",
+      "settings"
+    ],
+    "activeStreamingBoundaryKinds": [
+      "database",
+      "settings"
+    ],
+    "existingCronTestsPassed": 34,
+    "baselineDoubleTerminalReproducedAllFourCases": true,
+    "realExporterExecuted": false,
+    "vmNativeGitMutationCalls": 0
+  },
+  "runtimeClaims": {
+    "correctedWrapperApplied": false,
+    "stagedRollForwardExecuted": false,
+    "settingsProbeExecuted": false,
+    "activationExecuted": false,
+    "normalizedMarkerHostZipAccepted": false,
+    "firstAutomaticNativeBackupProven": false,
+    "cleanLinuxInstallProven": false,
+    "domainCutover": false
+  },
+  "nextSteps": [
+    "Publish exact source fix and receive successful CI plus independent review",
+    "Use a separately reviewed published STAGED roll-forward that preserves old generation/state/dispatch/run/probe/history and keeps owner legacy",
+    "Run and accept two new closed-gate probes with a new generation and exactly one terminal marker each",
+    "Verify normalized/published/HOST ZIP and time zone before separate activation"
+  ]
+}
