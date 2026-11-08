@@ -54,10 +54,10 @@ SETTINGS_BASE = Path('/opt/asa-school-settings-backup/releases')
 SETTINGS_FILES = {
     'backup-settings.sh': '069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36',
     'school-settings-cloud-roundtrip.py': 'bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f',
-    'school_settings_snapshot.py': '2a0b49e5816aa6d145c717b33de4061c7ea65e39c48d59d93db2b80cf93fbea2',
+    'school_settings_snapshot.py': '9a7719c5705fb6883857b0c25be1e19f9ee7f3009c8594a43ca15d04d0bffbe2',
     'school_yandex_app_folder.py': '64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20',
     'cloud_storage.py': 'c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08',
-    'school-nightly-settings-backup.py': '8a4ba48ff6119bbf24305a134a7ba722672fffd8ccf7fef7835fa8928fd84c38',
+    'school-nightly-settings-backup.py': 'fd27a26dba0850663010501ad4456a494bf0203e4974c288a59c3e0474b0352b',
 }
 LEGACY_PINS = {
     'database': {
@@ -65,7 +65,8 @@ LEGACY_PINS = {
         'timer': '581928a86a62cbbc2c9f345f729400fe2cecb0d26df53b7cf70a9ee93812f439'},
     'settings': {
         'service': ('f213e01a07157b2cf4d46a1e7bd776367539aa4f046a67626eddb556cc128c2c',
-                    'aeb07a2d2d99cced1ce48db5801eb615643324a896626a224dafef7840410105'),
+                    'aeb07a2d2d99cced1ce48db5801eb615643324a896626a224dafef7840410105',
+                    '6ad097408388a6b5dbb551cce6484438c41b46680fad6fe681b40242ef7ac997'),
         'timer': '170aeb53744297ef04abe45408993b464008a38569e46ddb78889efabec2bb92'},
 }
 DATABASE_SCRIPT = Path('/srv/Server-setings/scripts/school-nightly-database-backup.py')
