@@ -1,0 +1,12 @@
+{
+  "status": "ROOT_ACCEPTED",
+  "stage": 2,
+  "runId": "0e969b15e9014ea383f9f01a8694f551",
+  "observerOperationId": "93c296ab85964df3bdfff1ac3c55fc4d",
+  "nativeOperationSha256": "45acca2765b8101de01c1e3a2aff9998243374446128e86431c5c10b968b04a2",
+  "observerSafeSha256": "c6efce7488756aff68c050602ad2fea306ead46e36c86e87a5cd46926ce4d809",
+  "driverSafeSha256": "c41ab2f15e9156483f21148b9ef1a1eaaecae10d208b84557429fa8f65523fdd",
+  "measuredStartUtc": "2026-11-08T09:59:56.371Z",
+  "measuredEndUtc": "2026-11-08T10:00:32.505Z",
+  "reviewedAtUTC": "2026-11-08T10:03:47Z"
+}

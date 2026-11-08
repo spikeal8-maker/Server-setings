@@ -1,0 +1,517 @@
+{
+  "kind": "DERIVED_SAFE_CHECKPOINT",
+  "asOfUtc": "2026-11-08T10:53:54Z",
+  "provenance": "Exact safe driver/server receipts and separate independent root acceptances; summaries are derived, not native operation output.",
+  "baseCommit": "fb22071b20b025990ba5386619c6601883bd9934",
+  "sourceCodePublication": {
+    "pr": 81,
+    "merge": "fb22071b20b025990ba5386619c6601883bd9934",
+    "mergedAtUtc": "2026-11-08T10:26:39Z",
+    "pushCi": 42471450950,
+    "ciConclusion": "success",
+    "ciUpdatedAtUtc": "2026-11-08T10:27:02Z"
+  },
+  "publishedBaselinePr80": {
+    "pr": 80,
+    "merge": "9d93dc1c89c6a93fe88d6472b7482f418de188bd",
+    "mergedAtUtc": "2026-11-08T10:18:48Z",
+    "mainPushCi": 42470889838,
+    "mainPushCiConclusion": "success"
+  },
+  "additionalReceipts": {
+    "timerActual": {
+      "path": "snapshots/2026-11-08/school-settings-timer-install-4606bb0b-20261108.json",
+      "sha256": "53d6c2f9e67187249796558785e114c090708e8bb2c6c311030d8699b3f10bd4",
+      "bytes": 2572
+    },
+    "timerRootAcceptance": {
+      "path": "snapshots/2026-11-08/school-settings-timer-root-acceptance-4606bb0b-20261108.json",
+      "sha256": "38aca255eeda73ce1506f6350fd85ba00edb7ede72d86aa290686aa50bb40f51",
+      "bytes": 1457
+    },
+    "healthActual": {
+      "path": "snapshots/2026-11-08/school-final-health-metadata-23507486-20261108.json",
+      "sha256": "d77ec1ca22db6a9267946cccd465b89efc9271f5d038d51afe8fea85c5793632",
+      "bytes": 2199
+    },
+    "healthRootAcceptance": {
+      "path": "snapshots/2026-11-08/school-final-health-root-acceptance-23507486-20261108.json",
+      "sha256": "1857211d6cc25d1c08bb39d5395b4092e60b0cf16e9f9e92d643c3978bcfc5f9",
+      "bytes": 1195
+    },
+    "loggingActual": {
+      "path": "snapshots/2026-11-08/school-final-log-metadata-6b93a87a-20261108.json",
+      "sha256": "6c0457743ce5263f58a060b5a1dca8184f40a1c2cd4f715a1427d044f9b163d4",
+      "bytes": 1345
+    },
+    "loggingRootAcceptance": {
+      "path": "snapshots/2026-11-08/school-final-log-metadata-root-acceptance-6b93a87a-20261108.json",
+      "sha256": "73985f31243203913075a8da63683934f340b1e27ee17149a103e63061fcdd2c",
+      "bytes": 969
+    }
+  },
+  "settingsTimer": {
+    "operationId": "4606bb0b95264d548aab2d134289e926",
+    "installedAt": "2026-11-08T10:45:07.272068+00:00",
+    "rootAcceptedAt": "2026-11-08T10:45:49Z",
+    "status": "CONFIG_DAILY_TIMER_INSTALLED_NOT_RUN",
+    "nextFireUtc": "2026-11-09T01:00:00+00:00",
+    "enabled": true,
+    "active": true,
+    "firstAutomaticRun": "NOT_RUN",
+    "nightlyRestoreValidated": false,
+    "databaseTimerChanged": false
+  },
+  "finalHealth": {
+    "operationId": "235074862bdc4700ab2002a474b73752",
+    "observedAt": "2026-11-08T10:46:23.058594+00:00",
+    "rootAcceptedAt": "2026-11-08T10:46:36Z",
+    "sixHealthy": true,
+    "restartCountersZero": true,
+    "oomKilled": false,
+    "stableRuntimeAndSourcePins": true,
+    "database": {
+      "oid": "117178",
+      "readOnly": true,
+      "schema": 307
+    },
+    "readOnlyFieldDescribesProbeTransaction": true,
+    "backupTimers": {
+      "database": {
+        "active": true,
+        "enabled": true,
+        "matchesSchedule": true,
+        "nextFireUtc": "2026-11-09T00:20:00+00:00"
+      },
+      "settings": {
+        "active": true,
+        "enabled": true,
+        "matchesSchedule": true,
+        "nextFireUtc": "2026-11-09T01:00:00+00:00"
+      }
+    },
+    "metadataOnly": true,
+    "authenticatedCoverageEvaluated": false,
+    "nativeIntegrityReevaluated": false,
+    "sourceStateCounts": {
+      "incomplete": 4,
+      "ok": 22,
+      "unknown": 0
+    },
+    "selectedSources": {
+      "database-events:ai_usage_journal": {
+        "applicable": true,
+        "checkedAgeSeconds": 24,
+        "detailClass": "typed_ledger_observed",
+        "incomplete": null,
+        "lastCollectedAgeSeconds": 24,
+        "maxAgeSeconds": 300,
+        "possibleCoverageGap": null,
+        "reason": "verified",
+        "requireThrough": true,
+        "sourceState": "ok",
+        "stale": false,
+        "state": "ok",
+        "throughAgeSeconds": 24
+      },
+      "docker-lifecycle": {
+        "applicable": true,
+        "checkedAgeSeconds": 24,
+        "incomplete": null,
+        "lastCollectedAgeSeconds": 24,
+        "maxAgeSeconds": 300,
+        "possibleCoverageGap": true,
+        "reason": "source_gap_or_stale",
+        "requireThrough": true,
+        "sourceState": "ok",
+        "stale": false,
+        "state": "incomplete",
+        "throughAgeSeconds": 24
+      }
+    },
+    "threeOtherIncompleteReasonsNotCaptured": true
+  },
+  "overallProductionReadiness": "BLOCKER",
+  "latestLoggingMetadataObservation": {
+    "operationId": "6b93a87aa3594a18909081a95e010448",
+    "observedAt": "2026-11-08T10:53:35.073Z",
+    "rootAcceptedAt": "2026-11-08T10:53:54Z",
+    "acceptedAs": "OBSERVATION_NOT_COVERAGE_PASS",
+    "metadataOnly": true,
+    "knownSources": 26,
+    "policy": "asa-connected-v1",
+    "sourceStateCounts": {
+      "incomplete": 4,
+      "ok": 22,
+      "unknown": 0
+    },
+    "collectorHealthState": "ok",
+    "catalogAgeSeconds": 6,
+    "healthAgeSeconds": 6,
+    "lastSuccessAgeSeconds": 6,
+    "nonOkSources": [
+      {
+        "source": "database-events",
+        "state": "incomplete",
+        "reason": "source_pending",
+        "sourceState": "pending",
+        "checkedAgeSeconds": 7,
+        "lastCollectedAgeSeconds": 1658,
+        "throughAgeSeconds": null,
+        "maxAgeSeconds": 300,
+        "requireThrough": false,
+        "applicable": true,
+        "stale": false,
+        "possibleCoverageGap": null,
+        "incomplete": null
+      },
+      {
+        "source": "database-events:audit_events",
+        "state": "incomplete",
+        "reason": "source_pending",
+        "sourceState": "pending",
+        "checkedAgeSeconds": 9,
+        "lastCollectedAgeSeconds": 813,
+        "throughAgeSeconds": 109,
+        "maxAgeSeconds": 300,
+        "requireThrough": true,
+        "applicable": true,
+        "stale": true,
+        "possibleCoverageGap": null,
+        "incomplete": null
+      },
+      {
+        "source": "database-events:classroom_activity_events",
+        "state": "incomplete",
+        "reason": "source_pending",
+        "sourceState": "pending",
+        "checkedAgeSeconds": 8,
+        "lastCollectedAgeSeconds": 838,
+        "throughAgeSeconds": 159,
+        "maxAgeSeconds": 300,
+        "requireThrough": true,
+        "applicable": true,
+        "stale": true,
+        "possibleCoverageGap": null,
+        "incomplete": null
+      },
+      {
+        "source": "docker-lifecycle",
+        "state": "incomplete",
+        "reason": "source_gap_or_stale",
+        "sourceState": "ok",
+        "checkedAgeSeconds": 6,
+        "lastCollectedAgeSeconds": 6,
+        "throughAgeSeconds": 6,
+        "maxAgeSeconds": 300,
+        "requireThrough": true,
+        "applicable": true,
+        "stale": false,
+        "possibleCoverageGap": true,
+        "incomplete": null
+      }
+    ],
+    "causeOfPendingNotProven": true,
+    "processingPageProgressNotMeasured": true,
+    "olderSnapshotReclassified": false,
+    "authenticatedCoverageEvaluated": false,
+    "nativeIntegrityReevaluated": false
+  },
+  "acceptedApiProfileStages": [
+    {
+      "stage": 2,
+      "driverStatus": "VALID_CALIBRATION",
+      "rootStatus": "ROOT_ACCEPTED",
+      "reviewedAtUtc": "2026-11-08T10:03:47Z",
+      "measurementStartUtc": "2026-11-08T09:59:56.371Z",
+      "measurementEndUtc": "2026-11-08T10:00:32.505Z",
+      "observerOperationId": "93c296ab85964df3bdfff1ac3c55fc4d",
+      "observerCoversCompleteMeasurement": true,
+      "twoVerifiedWaves": true,
+      "newStudentLogins": 2,
+      "p95Ms": {
+        "login": 99.17,
+        "read": 79.39,
+        "save": 77.15,
+        "readback": 47.23
+      },
+      "hostCpuMaximumPercent": 11.139134089953762,
+      "minimumAvailableBytes": 31373230080,
+      "maximumPgConnections": 10,
+      "observerSamples": 106,
+      "postgresCounterDeltas": {
+        "commits": 648,
+        "deadlocks": 0,
+        "rollbacks": 92,
+        "tempBytes": 2916352
+      },
+      "retainedOwnStudentSessionsAtStageEnd": 2,
+      "stageCleanup": {
+        "attempted": false,
+        "projectsTrashed": 0,
+        "projectsRetainedForEvidence": 0,
+        "studentSessionsRevoked": 0,
+        "seatsRemoved": 0,
+        "joinCodesRevoked": 0,
+        "classroomsSoftDeleted": 0,
+        "teacherLoggedOut": true,
+        "failures": 0,
+        "teacherOldCookieRevocationConfirmed": true,
+        "confirmed": false,
+        "disposition": "RETAINED_FOR_NEXT_APPROVED_STAGE"
+      },
+      "teacherLogoutAndOldCookieProof": true,
+      "finalCleanupConfirmed": false,
+      "receipts": {
+        "driver-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage2-driver-safe-20261108.json",
+          "sha256": "c41ab2f15e9156483f21148b9ef1a1eaaecae10d208b84557429fa8f65523fdd",
+          "bytes": 3333
+        },
+        "server-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage2-server-safe-20261108.json",
+          "sha256": "c6efce7488756aff68c050602ad2fea306ead46e36c86e87a5cd46926ce4d809",
+          "bytes": 2504
+        },
+        "root-acceptance.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage2-root-acceptance-20261108.json",
+          "sha256": "785b3bc3bc123ae6b5d66c2778694204065f32890054c9b92bcc67602555d1b3",
+          "bytes": 572
+        }
+      }
+    },
+    {
+      "stage": 20,
+      "driverStatus": "PASS",
+      "rootStatus": "ROOT_ACCEPTED",
+      "reviewedAtUtc": "2026-11-08T10:18:44Z",
+      "measurementStartUtc": "2026-11-08T10:15:08.976Z",
+      "measurementEndUtc": "2026-11-08T10:15:45.348Z",
+      "observerOperationId": "993f1c4d5aea40e68798cc451258a343",
+      "observerCoversCompleteMeasurement": true,
+      "twoVerifiedWaves": true,
+      "newStudentLogins": 18,
+      "p95Ms": {
+        "login": 284.43,
+        "read": 162.49,
+        "save": 172.42,
+        "readback": 78.49
+      },
+      "hostCpuMaximumPercent": 13.661202185792353,
+      "minimumAvailableBytes": 31283970048,
+      "maximumPgConnections": 16,
+      "observerSamples": 106,
+      "postgresCounterDeltas": {
+        "commits": 1439,
+        "deadlocks": 0,
+        "rollbacks": 104,
+        "tempBytes": 2916352
+      },
+      "retainedOwnStudentSessionsAtStageEnd": 20,
+      "stageCleanup": {
+        "attempted": false,
+        "projectsTrashed": 0,
+        "projectsRetainedForEvidence": 0,
+        "studentSessionsRevoked": 0,
+        "seatsRemoved": 0,
+        "joinCodesRevoked": 0,
+        "classroomsSoftDeleted": 0,
+        "teacherLoggedOut": true,
+        "failures": 0,
+        "teacherOldCookieRevocationConfirmed": true,
+        "confirmed": false,
+        "disposition": "RETAINED_FOR_NEXT_APPROVED_STAGE"
+      },
+      "teacherLogoutAndOldCookieProof": true,
+      "finalCleanupConfirmed": false,
+      "receipts": {
+        "driver-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage20-driver-safe-20261108.json",
+          "sha256": "2f4fb30ee4408ce96ed7abad4b8ac99cd0a532c42e48e28d75be999cb95b158d",
+          "bytes": 3199
+        },
+        "server-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage20-server-safe-20261108.json",
+          "sha256": "e3bf831aa25ba6c9424f464ad4b2f10e824335db47ec4b5deba94c7cfdfe1c15",
+          "bytes": 2507
+        },
+        "root-acceptance.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage20-root-acceptance-20261108.json",
+          "sha256": "56e56faaeb891ce16702cbadc9457c9881d882278b63091a3b3e53f197e2b4e8",
+          "bytes": 573
+        }
+      }
+    },
+    {
+      "stage": 50,
+      "driverStatus": "PASS",
+      "rootStatus": "ROOT_ACCEPTED",
+      "reviewedAtUtc": "2026-11-08T10:30:58Z",
+      "measurementStartUtc": "2026-11-08T10:26:21.305Z",
+      "measurementEndUtc": "2026-11-08T10:26:58.543Z",
+      "observerOperationId": "1ff501c868c945fc8582636f9b00a621",
+      "observerCoversCompleteMeasurement": true,
+      "twoVerifiedWaves": true,
+      "newStudentLogins": 30,
+      "p95Ms": {
+        "login": 369.19,
+        "read": 245.92,
+        "save": 408.04,
+        "readback": 197.64
+      },
+      "hostCpuMaximumPercent": 19.09590198563582,
+      "minimumAvailableBytes": 31281471488,
+      "maximumPgConnections": 16,
+      "observerSamples": 106,
+      "postgresCounterDeltas": {
+        "commits": 2617,
+        "deadlocks": 0,
+        "rollbacks": 97,
+        "tempBytes": 2916352
+      },
+      "retainedOwnStudentSessionsAtStageEnd": 50,
+      "stageCleanup": {
+        "attempted": false,
+        "projectsTrashed": 0,
+        "projectsRetainedForEvidence": 0,
+        "studentSessionsRevoked": 0,
+        "seatsRemoved": 0,
+        "joinCodesRevoked": 0,
+        "classroomsSoftDeleted": 0,
+        "teacherLoggedOut": true,
+        "failures": 0,
+        "teacherOldCookieRevocationConfirmed": true,
+        "confirmed": false,
+        "disposition": "RETAINED_FOR_NEXT_APPROVED_STAGE"
+      },
+      "teacherLogoutAndOldCookieProof": true,
+      "finalCleanupConfirmed": false,
+      "receipts": {
+        "driver-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage50-driver-safe-20261108.json",
+          "sha256": "2db76a764060c6115261f991f7f1d1028364dcbf42e131fc553029752e97a824",
+          "bytes": 3205
+        },
+        "server-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage50-server-safe-20261108.json",
+          "sha256": "7db853a4a3cc825474d8d420106b8f2f5a4b8ad22ec9493f8994024baaa78fd2",
+          "bytes": 2505
+        },
+        "root-acceptance.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage50-root-acceptance-20261108.json",
+          "sha256": "09b24633c0f0d1bc511b29740733ce96e77ab5d518a7c34f8dcf55296385eb10",
+          "bytes": 573
+        }
+      }
+    },
+    {
+      "stage": 100,
+      "driverStatus": "PASS",
+      "rootStatus": "ROOT_ACCEPTED",
+      "reviewedAtUtc": "2026-11-08T10:42:42Z",
+      "measurementStartUtc": "2026-11-08T10:39:53.509Z",
+      "measurementEndUtc": "2026-11-08T10:40:32.340Z",
+      "observerOperationId": "4942d3807a2a4975936d2c5bfb0f1849",
+      "observerCoversCompleteMeasurement": true,
+      "twoVerifiedWaves": true,
+      "newStudentLogins": 50,
+      "p95Ms": {
+        "login": 539.52,
+        "read": 574.36,
+        "save": 780.79,
+        "readback": 382.57
+      },
+      "hostCpuMaximumPercent": 27.073684210526316,
+      "minimumAvailableBytes": 31216398336,
+      "maximumPgConnections": 16,
+      "observerSamples": 106,
+      "postgresCounterDeltas": {
+        "commits": 6813,
+        "deadlocks": 0,
+        "rollbacks": 98,
+        "tempBytes": 2924544
+      },
+      "retainedOwnStudentSessionsAtStageEnd": null,
+      "stageCleanup": {
+        "attempted": true,
+        "projectsTrashed": 100,
+        "projectsRetainedForEvidence": 0,
+        "studentSessionsRevoked": 100,
+        "seatsRemoved": 100,
+        "joinCodesRevoked": 4,
+        "classroomsSoftDeleted": 4,
+        "teacherLoggedOut": true,
+        "failures": 0,
+        "allKnownSessionsRevoked": true,
+        "allKnownSeatsRemoved": true,
+        "allKnownClassroomsSoftDeleted": true,
+        "ambiguousCreationRemaining": false,
+        "teacherOldCookieRevocationConfirmed": true,
+        "confirmed": true,
+        "disposition": "OWNED_ACCESS_REVOKED"
+      },
+      "teacherLogoutAndOldCookieProof": true,
+      "finalCleanupConfirmed": true,
+      "receipts": {
+        "driver-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage100-driver-safe-20261108.json",
+          "sha256": "bbf548bcea55299a9a28a04acada396ea2409d4a18fdb1d4b5b3442b33571af3",
+          "bytes": 3328
+        },
+        "server-safe.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage100-server-safe-20261108.json",
+          "sha256": "666a3d764f14185f0c26f006de2d3c4cc7049a7645c911805c77ee9fa2f79833",
+          "bytes": 2508
+        },
+        "root-acceptance.json": {
+          "path": "snapshots/2026-11-08/school-load-r2-stage100-root-acceptance-20261108.json",
+          "sha256": "faee63b02415e819bb53982295a1146aff8a132ee44cc7e46f76e019f12bdc82",
+          "bytes": 574
+        }
+      }
+    }
+  ],
+  "profileLimits": {
+    "generatorHosts": 1,
+    "fullBrowserEditorLoad": false,
+    "serverSourceAddressCardinality": "NOT_MEASURED",
+    "fullCapacityClaim": false,
+    "rawMaximumConfirmedUsersNullPreserved": true,
+    "postgresRollbacksAreNotInterpretedAsSqlErrors": true,
+    "firstRunGeneratorStopPreserved": true,
+    "rawPendingServerAcceptanceAndCleanupFalsePreserved": true
+  },
+  "pendingAtCutoff": {
+    "firstAutomaticSettingsBackup": "NOT_RUN",
+    "fullLoggingCoverage": "PARTIAL",
+    "productionFinalSyncAuthenticationDomainSwitch": "NOT_RUN",
+    "fullLiveRollback": "NOT_RUN",
+    "gitPublication": "WAIT_FOR_ROOT_FINAL_DIFF_REVIEW",
+    "representativeSchoolClassBrowserNetworkAndBroaderUserScenarios": "NOT_ACCEPTED",
+    "loggingPendingCauseAndProgress": "DIAGNOSE_READ_ONLY_METADATA_FIRST_NO_CURSOR_RESET"
+  },
+  "stage100FinalAcceptance": {
+    "fullPair": "ROOT_ACCEPTED",
+    "cleanup": "ROOT_ACCEPTED_FOR_THIS_RUN",
+    "reviewedAtUtc": "2026-11-08T10:42:42Z"
+  },
+  "maximumAcceptedApiProfileUsers": 100,
+  "latestOfficialProjectMain": {
+    "commit": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "githubPrimaryReadAtUtc": "2026-11-08T10:53:03Z",
+    "readBy": "root, independent primary GitHub read reported in collaboration message",
+    "url": "https://api.github.com/repos/spikeal8-maker/asa-lab/branches/main"
+  },
+  "unchangedAcceptedBaseline": {
+    "currentStatusBeforeThisCheckpoint": "snapshots/2026-11-08/school-current-readiness-checkpoint-20261108T095603Z.json",
+    "uiV4": "PASS",
+    "postRefreshDataArchiveIsolatedRecovery": "PASS",
+    "configurationArchiveIsolatedRecovery": "PASS",
+    "authenticatedLogging": "PARTIAL_24_OF_26",
+    "archiveCounts102_2352_554AreNotCurrentLiveCounts": true,
+    "h04RemainsProductionWriter": true,
+    "productionDomainSwitch": "NOT_RUN",
+    "fullLiveRollback": "NOT_RUN",
+    "aiVpn": "LATER"
+  }
+}
