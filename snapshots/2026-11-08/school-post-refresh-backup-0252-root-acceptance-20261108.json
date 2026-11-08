@@ -1,0 +1,57 @@
+{
+  "status": "ROOT_ACCEPTED_POST_REFRESH_CLOUD_BACKUP_AND_CURRENT_RUNTIME",
+  "acceptedAtUtc": "2026-11-08T05:37:26.619293+00:00",
+  "operationId": "0252c7fa4bb94973865cf1ed8b65e138",
+  "nativeOuterExitCode": 2,
+  "originalStatusPreserved": "POST_REFRESH_BACKUP_ONESHOT_REVIEW_REQUIRED",
+  "exactSafeReceiptSha256": "d149ac101ba69c606e80d2de4a8f5a07e2afa8c7a5cbf24face13bfc7d282ac9",
+  "exactSafeReceiptBytes": 2718,
+  "nativeBackupExitCode": 0,
+  "all15PreservationHealthGates": true,
+  "actualOneshotDeltasReviewed": [
+    {
+      "afterExitCode": 0,
+      "afterFinishedAt": "2026-11-08T05:34:58.211882797Z",
+      "afterStartedAt": "2026-11-08T05:34:57.750447659Z",
+      "beforeFinishedAt": "2026-11-08T03:54:43.685244541Z",
+      "beforeStartedAt": "2026-11-08T03:54:43.224638329Z",
+      "service": "migration"
+    },
+    {
+      "afterExitCode": 0,
+      "afterFinishedAt": "2026-11-08T05:35:03.379977942Z",
+      "afterStartedAt": "2026-11-08T05:35:03.092937837Z",
+      "beforeFinishedAt": "2026-11-08T03:54:43.330825562Z",
+      "beforeStartedAt": "2026-11-08T03:54:43.064063987Z",
+      "service": "minio-init"
+    }
+  ],
+  "basis": "Same eight identities, environment, roles/ACL/RLS and exact ledger; PostgreSQL/search lifecycle unchanged; both changed oneshots exited 0; six healthy and fresh readiness. Actual canonical backup source invokes Compose start with dependencies.",
+  "newRuntimeBaselineEvidence": "/var/lib/server-settings/xpostrefresh-backup/x-postrefresh-backup-20261108t051114z-96876cd7d9814e6c/after-snapshot.private.json",
+  "cloudArchive": {
+    "archive": "asa-school-01-20261108T053513Z-daeffc88.tar.age",
+    "authenticatedDecryption": "NOT_RUN",
+    "bytes": 278452792,
+    "createdAtUtc": "2026-11-08T05:35:38.074806+00:00",
+    "independentLocalCipherSha256": true,
+    "innerManifest": "NOT_BOUND",
+    "latestSuccessReceiptSha256": "84ffef98f08a7958c54d21d077e630bc3c2381335e55ce09da37f7f6f77e822c",
+    "nativeFullCloudDownloadSha256": true,
+    "postgresMinioRestore": "NOT_RUN",
+    "remote": "app:/School-VM100/Database-Backups/asa-school-01-20261108T053513Z-daeffc88.tar.age",
+    "remoteCreated": "2026-11-08T05:35:26+00:00",
+    "remoteMetadataReadback": true,
+    "remoteModified": "2026-11-08T05:35:26+00:00",
+    "sha256": "a896cbdac3648b2fa7576a7c989ad1bc9a1d0a101217cfd6c2f8237104866711"
+  },
+  "counts": {
+    "accounts": 102,
+    "projects": 2352,
+    "studentSeats": 554
+  },
+  "uiAccepted": false,
+  "loadRun": false,
+  "decryptionAndRestore": "NOT_RUN",
+  "originalRefreshJournalChanged": false,
+  "rollbackCodeFutureAdaptationStillRequired": true
+}
