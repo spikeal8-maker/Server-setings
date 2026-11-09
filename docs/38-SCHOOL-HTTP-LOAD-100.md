@@ -146,3 +146,20 @@ AI выключен по умолчанию. В mixed оператор отде�
 100 браузеров, первый запуск Scratch, WebGL/3D rendering, численная симуляция цепей, действия login/admin forms, реальное обновление/rollback/restore, source-IP/NAT из класса и100-job SQL queue correctness остаются NOT_RUN. Fixture может содержать `evidenceReferences` только как `sha256:<digest>`; ссылка сама не превращает NOT_RUN в PASS. Не установлен publisher/update hook. Полная приёмка требует отдельных проверенных evidence и решения владельца.
 
 CI workflow `release-load-contract.yml` проверяет только синтетические transport fixtures и plan20/50/100, без школьных адресов/credentials/нагрузки. Локально: `python -m unittest discover -s tests -p 'test_release_load*.py' -v`. Проверены отказы fixture, redirects, неверная identity/schema, HTTP429, HTML вместо API, paid default, stale/missing logs, route drift, hard deadline/partial receipt, SSE framing, scoped cancel/retry и PNG corruption. Snapshot фиксирует именно author-prepared/NOT_RUN, не реальный100-user PASS.
+
+## Дополнительные браузерные ступени 15 → 30 → 50 → 75 → 100
+
+Сценарий: `scripts/school-browser-load.mjs` запускается на **внешнем генераторе** (D2-R2 / домашняя Linux VM), но не на школьной VM100.
+Node.js 22+, локальный Chrome и отдельно установленный Puppeteer 25.16.0. По умолчанию — PLAN-ONLY, без сети или браузера.
+Реальный запуск требует `--apply`, точного опубликованного `--revision`, отдельного `--output`, `--browser` с абсолютным путём к Chrome.
+Пример только плана для действующего релиза (после обновления проекта SHA надо поменять):
+
+    node scripts/school-browser-load.mjs --origin https://x.asa-lab.ru --revision 3e8713476cafedda3e24a39665458e833efd7c22 --stage 15 --seconds 45
+
+Отдельные stages: 15, 30, 50, 75 и 100. Переходить только после PASS предыдущей ступени и проверки CPU/RAM/журналов/контейнеров.
+Тест использует независимые анонимные Chrome-контексты: главная, страницы Electronics/3D/Blocks, оболочка входа в проекты и прокрутка.
+**НЕ проверяет** настоящий авторизованный Scratch/3D/WebGL/электронику, создание/сохранение проектов, БД и MinIO.
+Для этих действий отдельно использовать существующий авторизованный ASA HTTP load с owned QA-учениками, а затем настоящий браузерный e2e с отдельной QA-когортой.
+Браузерный stage блокируется при HTTP429/5xx, несоответствии SHA, повторном отказе readiness, p95 более 5с и p99 более 10с.
+Источник D2-R2 (одна сеть) не заменяет второго независимого источника H-03 и школьный вход 30 учеников за общим NAT.
+Полное принятие перед переносом asa-lab.ru также требует актуального age/restore, 1Panel/FRP, подтверждённого покрытия логов и долгого soak-теста.
