@@ -10,7 +10,6 @@ No application install/update, network changes, or live restore are performed.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import datetime as dt
 import fcntl
 import hashlib
@@ -106,19 +105,6 @@ def get_provider(tier: str):
     provider = cloud.AppFolder(cloud.fresh_token())
     provider.folder_preflight()
     return provider
-
-
-def before_export(kind: str) -> dict:
-    record = basic_preflight()
-    get_provider("hourly-db" if kind == "hourly" else "daily-full")
-    if kind == "hourly":
-        status = command(["docker", "inspect", "--format", "{{.State.Health.Status}}", POSTGRES])
-        require(status.stdout.decode("utf-8", "replace").strip() == "healthy",
-                "POSTGRES_NOT_HEALTHY")
-    else:
-        require(dt.datetime.now(MOSCOW).hour in (0, 1),
-                "FULL_BACKUP_NIGHT_ONLY")
-    return record
 
 
 def db_query(sql: str) -> str:
