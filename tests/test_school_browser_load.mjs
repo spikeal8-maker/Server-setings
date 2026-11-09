@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { LEVELS, SCENARIOS, parseArgs, quantiles, gate } from "../scripts/school-browser-load.mjs";
+import { LEVELS, SCENARIOS, parseArgs, quantiles, gate, ensureRenderedTitle } from "../scripts/school-browser-load.mjs";
 
 const sha = "3e8713476cafedda3e24a39665458e833efd7c22";
 const base = ["--origin", "https://x.asa-lab.ru", "--revision", sha, "--stage", "15"];
@@ -67,6 +67,31 @@ test("failed health, 429, 5xx, slow stage stop escalation", () => {
   assert.equal(gate({...good,navigationFailed:5}),"FAIL_NAVIGATION");
   assert.equal(gate({...good,latencies:Array(50).fill(10001)}),"FAIL_LATENCY");
   assert.equal(gate({...good,abortReason:"SERVER_HEALTH_OR_REVISION"}),"STOP_SERVER_HEALTH_OR_REVISION");
+});
+
+test("wait for hydrated document title before classifying navigation failure", async () => {
+  let calls = 0;
+  let waited = 0;
+  const page = {
+    async title() { return calls++ === 0 ? "" : "ASA Lab — Электроника"; },
+    async waitForFunction(f, options) {
+      waited++;
+      assert.equal(options.timeout, 2500);
+      assert.equal(options.polling, 100);
+    },
+  };
+  await ensureRenderedTitle(page);
+  assert.equal(waited, 1);
+});
+
+test("persist a deterministic failure reason for truly missing title", async () => {
+  await assert.rejects(
+    () => ensureRenderedTitle({
+      async title() { return ""; },
+      async waitForFunction() { throw new Error("browser timeout with arbitrary URL"); },
+    }),
+    /TITLE_NOT_READY/,
+  );
 });
 
 test("percentiles use actual observed request latencies", () => {
