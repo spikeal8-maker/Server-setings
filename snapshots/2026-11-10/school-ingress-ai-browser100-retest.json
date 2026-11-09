@@ -1,0 +1,107 @@
+{
+  "observedDate": "2026-11-10",
+  "target": {
+    "host": "asa-school-01",
+    "origin": "https://x.asa-lab.ru",
+    "revision": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+    "schema": 308
+  },
+  "issue": "https://github.com/spikeal8-maker/asa-lab/issues/1032",
+  "ingress": {
+    "router": "asa-stage-x-https",
+    "source": "Traefik RateLimit reproduced with TLS/SNI through edge loopback",
+    "configurationCommit": "7cee63f990a2e30f08b95a36baa77f81997446d0",
+    "previous": {
+      "requestsPerMinute": 6000,
+      "burst": 2000
+    },
+    "active": {
+      "requestsPerMinute": 12000,
+      "burst": 5000
+    },
+    "before": {
+      "http200": 2167,
+      "http429": 5,
+      "seconds": 2.64
+    },
+    "after": {
+      "http200": 4480,
+      "http429": 0,
+      "seconds": 4.54
+    },
+    "previousConfigSha256": "6591c6696cd95d02d52af462d444ee8a6dc4db51df558105222702afc185b984",
+    "activeConfigSha256": "0c14a7dd2b7ea93aa811e8f3bfe0e3458ef29a9cdd2fab82c7abf1fa4c89b40f",
+    "rollback": "Restore the private receipt with the exact active config SHA. The config tool verifies ownership, mode and both digests."
+  },
+  "inference": {
+    "cause": "School application had local Ollama and image generation disabled, with no active settings for its existing private relay. New classrooms default to deny.",
+    "chatModel": "qwen3.8:27b",
+    "imageRecipe": "flux2-klein-4b-fp8-izo-v1",
+    "configuredImageConcurrency": 1,
+    "policiesChangedOnlyForSyntheticClasses": 4,
+    "workingClassPoliciesChanged": false,
+    "chat": {
+      "submitted": 10,
+      "correctSseAnswers": 10,
+      "correctAnswersReadFromHistory": 10
+    },
+    "images": {
+      "submitted": 6,
+      "completed": 6,
+      "downloadedAndChecksumVerified": 6,
+      "width": 768,
+      "height": 768
+    }
+  },
+  "test": {
+    "id": "a22382d96eb4488a",
+    "startUtc": "2026-11-09T21:54:20.913Z",
+    "endUtc": "2026-11-09T21:56:39.009Z",
+    "browserGenerator": "D2-R2 Playwright Chromium",
+    "pupilContexts": 100,
+    "peakProjectPages": 100,
+    "editors": {
+      "scratch": {
+        "assigned": 34,
+        "opened": 0,
+        "saved": 0,
+        "reopened": 0
+      },
+      "electronics": {
+        "assigned": 33,
+        "opened": 33,
+        "saved": 12,
+        "reopened": 12
+      },
+      "3d": {
+        "assigned": 33,
+        "opened": 33,
+        "saved": 24,
+        "reopened": 24
+      }
+    },
+    "aiTransport": "Authenticated application requests from the same Chromium contexts during the editor run",
+    "overall": "FAIL",
+    "http429": 0,
+    "http5xx": 0,
+    "scratchRuntimeSessionWebLog": {
+      "success": 27,
+      "statusZero": 5
+    },
+    "scratchClientStartTimeouts": 34,
+    "vmPeakCpuPct": 81.916,
+    "vmMinimumAvailableGiB": 28.615,
+    "generatorMinimumAvailableGiB": 3.71,
+    "probeLimitations": [
+      "The first chat persistence read used a wrong URL. The correct owner-bound API then returned all ten stored answers.",
+      "Two image polls timed out during the load run. The owner-bound PNG read and digest check then succeeded for all six.",
+      "Continuous container state sampling failed. CPU and memory were sampled separately."
+    ]
+  },
+  "controlSmoke": {
+    "pupils": 3,
+    "fullEditorCycles": 3,
+    "http429": 0,
+    "http5xx": 0
+  }
+}
