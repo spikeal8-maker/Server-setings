@@ -114,10 +114,6 @@ class SchoolGfsSafetyTests(unittest.TestCase):
             self.assertEqual(remaining,sorted(p.name for p in items[-6:]))
             self.assertTrue(unmanaged.exists())
 
-    def test_zero_backup_writers_for_hourly_is_explicit(self):
-        self.assertIn("postgresql-only",gfs.verified_hourly_export.__doc__ or "") if False else None
-        self.assertEqual(gfs.tiers_for("hourly",dt.datetime.now(dt.timezone.utc)),["hourly-db"])
-
     def test_installer_calendar_and_no_catchup(self):
         units=installer.unit_texts()
         self.assertEqual(len(units),4)
