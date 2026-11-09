@@ -50,7 +50,7 @@ def load_units(sha: str) -> dict:
                  "school-nightly-database-backup.py", "school_yandex_app_folder.py",
                  "cloud_storage.py"):
         p = source/name
-        require(p.is_file() and not p.is_symlink() and p.stat().st_uid == 0,
+        require(p.is_file() and not p.is_symlink() and p.stat().st_uid == os.geteuid(),
                 "RELEASE_SOURCE_UNTRUSTED")
     spec = importlib.util.spec_from_file_location("gfs_installer_" + sha[:10],
                                                    source/"install-school-gfs-backup.py")
