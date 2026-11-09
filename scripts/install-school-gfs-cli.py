@@ -24,6 +24,12 @@ def require(condition: bool, code: str) -> None:
         raise InstallError(code)
 
 
+def is_managed_link(previous: Path, releases_dir: Path) -> bool:
+    return (previous.is_absolute() and previous.name == "asa-school-gfs-cli.py"
+            and previous.parent.parent == releases_dir
+            and re.fullmatch(r"[a-f0-9]{40}", previous.parent.name) is not None)
+
+
 def preflight() -> Path:
     require(os.geteuid() == 0 and socket.gethostname() == "asa-school-01",
             "VM100_ROOT_REQUIRED")
@@ -38,10 +44,7 @@ def preflight() -> Path:
     if DESTINATION.exists() or DESTINATION.is_symlink():
         require(DESTINATION.is_symlink(), "EXISTING_SHORTCUT_NOT_MANAGED")
         previous = Path(os.readlink(DESTINATION))
-        require(previous.is_absolute() and
-                previous.name == "asa-school-gfs-cli.py" and
-                previous.parent.parent == SOURCE.parent and
-                re.fullmatch(r"[a-f0-9]{40}", previous.parent.name) is not None,
+        require(is_managed_link(previous, SOURCE.parent),
                 "FOREIGN_SHORTCUT_REFUSE_OVERWRITE")
     return cli
 
