@@ -340,6 +340,38 @@ def preflight(kind: str) -> None:
     print("GFS_PREFLIGHT_PASS", kind, "writers_stopped=NO", flush=True)
 
 
+def record_attempt(kind: str, trigger: str, outcome: str, *, code: str = "OK") -> None:
+    """Durable, sanitized append-only audit for manual and scheduled GFS jobs.
+
+    The systemd journal is additional evidence; this owner-only event stream
+    survives service restarts and does not contain secrets or customer data.
+    """
+    require(kind in ("hourly", "full"), "AUDIT_KIND_INVALID")
+    require(trigger in ("manual", "scheduled"), "AUDIT_TRIGGER_INVALID")
+    require(outcome in ("success", "failure"), "AUDIT_OUTCOME_INVALID")
+    require(bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,79}", code)),
+            "AUDIT_CODE_INVALID")
+    require(RECEIPTS.is_dir() and not RECEIPTS.is_symlink(), "AUDIT_DIR_UNAVAILABLE")
+    event = {
+        "format": "asa-school-gfs-event-v1",
+        "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "kind": kind, "trigger": trigger, "outcome": outcome, "code": code,
+    }
+    path = RECEIPTS / "events.jsonl"
+    fd = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY |
+                 os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+    try:
+        info = os.fstat(fd)
+        require(info.st_uid == os.geteuid() and stat.S_IMODE(info.st_mode) == 0o600
+                and stat.S_ISREG(info.st_mode), "AUDIT_FILE_PERMISSIONS")
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        data = (json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kind", choices=("hourly", "full"), required=True)
@@ -353,6 +385,7 @@ def main(argv=None) -> int:
             preflight(args.kind)
         elif args.apply:
             execute(args.kind, manual=args.manual)
+            record_attempt(args.kind, "manual" if args.manual else "scheduled", "success")
         else:
             print("PLAN", args.kind, "remote", REMOTE,
                   "retention", json.dumps(RETENTION, sort_keys=True))
@@ -361,6 +394,12 @@ def main(argv=None) -> int:
             cloud.BackupTransportError, subprocess.SubprocessError,
             BlockingIOError) as error:
         safe = str(error) if isinstance(error, (GfsError, cloud.BackupTransportError)) else type(error).__name__
+        if args.apply:
+            try:
+                record_attempt(args.kind, "manual" if args.manual else "scheduled",
+                               "failure", code=safe if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,79}", safe) else type(error).__name__)
+            except (GfsError, OSError, ValueError) as audit_error:
+                print("GFS_AUDIT_WRITE_FAILED=" + type(audit_error).__name__, file=sys.stderr)
         print("GFS_BLOCKED=" + safe, file=sys.stderr)
         return 2
 
