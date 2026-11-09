@@ -269,6 +269,33 @@ def manual(kind: str) -> int:
     return job.returncode
 
 
+def restore(action: str | None, source: str | None, archive: str | None, identity: str | None) -> int:
+    """Delegate to the existing age-safe Yandex restoration tool, never to live DB."""
+    if action == "live":
+        print("LIVE_RESTORE_BLOCKED: рабочие PostgreSQL и MinIO нельзя принудительно",
+              "переписывать без предварительной новой копии, испытания восстановления",
+              "и отдельно согласованного плана с потерей/переносом новых записей.",
+              file=sys.stderr)
+        return 2
+    if bool(source) != bool(archive):
+        print("Для заданного архива нужны одновременно --source и --archive", file=sys.stderr)
+        return 2
+    script = Path(__file__).resolve().parent / "school-yandex-restore.py"
+    if not script.is_file() or script.is_symlink() or script.stat().st_uid != 0:
+        print("VERSIONED_RESTORE_TOOL_MISSING", file=sys.stderr)
+        return 2
+    command = ["/usr/bin/python3", "-B", str(script), action or "list"]
+    if source:
+        command.extend(["--source", source, "--archive", archive])
+    if identity:
+        command.extend(["--identity", identity])
+    try:
+        return subprocess.run(command, check=False).returncode
+    except OSError:
+        print("RESTORE_HELPER_EXEC_FAILED", file=sys.stderr)
+        return 2
+
+
 def check() -> int:
     sha, runner = current_runner()
     print("GFS source SHA:", sha)
@@ -282,7 +309,11 @@ def check() -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("hourly", "full", "status", "errors", "check"))
+    parser.add_argument("action", choices=("hourly", "full", "status", "errors", "check", "restore"))
+    parser.add_argument("restore_action", nargs="?", choices=("list", "download", "prepare", "restore-test", "live"))
+    parser.add_argument("--source", choices=("school","legacy","gfs-daily","gfs-weekly","gfs-monthly","gfs-hourly"))
+    parser.add_argument("--archive")
+    parser.add_argument("--identity")
     parser.add_argument("--hours", type=int, default=24)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -291,6 +322,10 @@ def main(argv=None) -> int:
         return 2
     if args.json and args.action not in ("status", "errors"):
         parser.error("--json доступен только для status и errors")
+    if args.action != "restore" and (args.restore_action or args.source or args.archive or args.identity):
+        parser.error("параметры восстановления допустимы только с restore")
+    if args.action == "restore":
+        return restore(args.restore_action, args.source, args.archive, args.identity)
     try:
         if args.action in ("hourly", "full"):
             return manual(args.action)
