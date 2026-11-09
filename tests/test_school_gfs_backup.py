@@ -130,6 +130,11 @@ class SchoolGfsSafetyTests(unittest.TestCase):
             self.assertNotIn("docker compose up",service)
             self.assertNotIn("DROP DATABASE",service)
 
+    def test_pg_archive_verification_can_read_root_owned_docker_copy(self):
+        source=(SCRIPTS/"school-gfs-backup.py").read_text(encoding="utf-8")
+        self.assertIn('["docker", "exec", "--user", "0", POSTGRES, "pg_restore", "--list"',source)
+        self.assertIn('["docker", "exec", "--user", "0", POSTGRES, "rm", "-f"',source)
+
     def test_no_unencrypted_uploads_in_source(self):
         code=(SCRIPTS/"school-gfs-backup.py").read_text(encoding="utf-8")
         self.assertIn("age_encrypt(stage, saved, archive)",code)
