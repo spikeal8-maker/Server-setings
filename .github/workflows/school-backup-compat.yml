@@ -5,6 +5,9 @@ on:
       - 'scripts/install-school-nightly-database-backup.py'
       - 'scripts/school-nightly-database-backup.py'
       - 'scripts/school-gfs-backup.py'
+      - 'scripts/asa-school-gfs-cli.py'
+      - 'scripts/install-school-gfs-cli.py'
+      - 'tests/test_school_gfs_operator.py'
       - 'scripts/install-school-gfs-backup.py'
       - 'scripts/switch-school-gfs-release.py'
       - 'tests/test_school_nightly_timer.py'
@@ -34,4 +37,6 @@ jobs:
         run: python -m unittest discover -s tests -p test_school_backup_receipt_contract.py -v
       - name: VM100 GFS backup retention and safety contracts
         run: python -m unittest discover -s tests -p test_school_gfs_backup.py -v
+      - name: GFS manual CLI status errors and protected audit
+        run: python -m unittest discover -s tests -p test_school_gfs_operator.py -v
       - run: git diff --check
