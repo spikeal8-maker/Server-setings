@@ -66,6 +66,12 @@ export function parseArgs(argv) {
            output: found.output, browser: found.browser, apply: !!found.apply };
 }
 
+export function documentNavigationOK(status, loadedBefore) {
+  // HTTP 304 is a normal conditional browser-cache response, but only after
+  // the same context actually loaded the document with HTTP 200.
+  return status === 200 || (status === 304 && loadedBefore);
+}
+
 export function quantiles(values) {
   if (!values.length) return null;
   const copy = [...values].sort((a, b) => a - b);
@@ -129,7 +135,7 @@ async function execute(config) {
     users: config.stage, navigationTotal: 0, navigationFailed: 0,
     http429: 0, http5xx: 0, healthFailures: 0, jsExceptions: 0,
     firstPartyResourceFailures: 0, thirdPartyBlocked: 0,
-    latencies: [], byScenario: Object.fromEntries(SCENARIOS.map(s => [s.id, { ok: 0, failed: 0, latency: [], failureCodes: {} }])),
+    latencies: [], cached304: 0, byScenario: Object.fromEntries(SCENARIOS.map(s => [s.id, { ok: 0, failed: 0, latency: [], failureCodes: {} }])),
     abortReason: null, peakOpenPages: 0, generatorMaxRssMiB: 0,
   };
   const originHost = new URL(config.origin).host;
@@ -196,6 +202,7 @@ async function execute(config) {
             try { if (new URL(req.url()).host === originHost) stats.firstPartyResourceFailures++; }
             catch { /* ignore */ }
           });
+          const previouslyLoaded = new Set();
           let step = index % SCENARIOS.length;
           while (performance.now() < end && !stats.abortReason) {
             const scenario = SCENARIOS[step % SCENARIOS.length];
@@ -205,7 +212,10 @@ async function execute(config) {
               const response = await page.goto(config.origin + scenario.path,
                 { waitUntil: "domcontentloaded", timeout: 15000 });
               const ms = performance.now() - started;
-              if (!response || response.status() !== 200) throw new Error("DOCUMENT_NON_200");
+              if (!response || !documentNavigationOK(response.status(), previouslyLoaded.has(scenario.path)))
+                throw new Error("DOCUMENT_NON_200");
+              if (response.status() === 304) stats.cached304++;
+              if (response.status() === 200) previouslyLoaded.add(scenario.path);
               await ensureRenderedTitle(page);
               // Real browser render/scroll, not authorized project editing.
               await page.evaluate(() => window.scrollTo(0, Math.min(document.body.scrollHeight, 350)));
@@ -250,6 +260,7 @@ async function execute(config) {
     coveredUserActions: ["public pages", "3d/electronics/blocks product information", "project sign-in shell", "scroll"],
     excludes: ["authenticated Scratch editing", "3D WebGL", "electronics simulation", "project writes", "database persistence"],
     navigationCount: stats.navigationTotal, navigationErrors: stats.navigationFailed,
+    cachedDocument304: stats.cached304,
     request429: stats.http429, request5xx: stats.http5xx,
     javascriptExceptions: stats.jsExceptions, firstPartyResourceFailures: stats.firstPartyResourceFailures,
     blockedThirdPartyRequests: stats.thirdPartyBlocked,
