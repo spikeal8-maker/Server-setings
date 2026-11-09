@@ -173,6 +173,36 @@ class SchoolGfsSafetyTests(unittest.TestCase):
                     switcher.atomic_unit(link,"altered")
                 self.assertEqual(target.read_text(),"original")
 
+    def test_source_switch_success_does_not_double_close_lock_fd(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory)
+            receipts=base/"receipts"
+            receipts.mkdir()
+            changes={}
+            for kind in ("hourly","full"):
+                path=base/f"asa-school-gfs-{kind}.service"
+                path.write_text("old",encoding="utf-8")
+                changes[kind]=(path,"old","new")
+            old_sha,new_sha="a"*40,"b"*40
+            def fake_run(args, timeout=35):
+                if args[:2]==["systemctl","show"]:
+                    return "ExecStart=/usr/bin/python3 /opt/asa-school-gfs/releases/"+new_sha+"/runner"
+                if args[:2]==["systemctl","is-enabled"]:
+                    return "enabled"
+                if args[:2]==["systemctl","is-active"]:
+                    return "active"
+                return ""
+            with patch.object(switcher,"LOCK",base/"lock"), \
+                 patch.object(switcher,"UNIT_DIR",base), \
+                 patch.object(switcher,"RECEIPT",receipts/"latest-source-switch.json"), \
+                 patch.object(switcher,"preflight",return_value=changes), \
+                 patch.object(switcher,"run",side_effect=fake_run):
+                switcher.apply(old_sha,new_sha)
+            self.assertTrue((base/"lock").is_file())
+            self.assertEqual((receipts/"latest-source-switch.json").stat().st_mode & 0o777,0o600)
+            for path,_,new in changes.values():
+                self.assertEqual(path.read_text(),new)
+
     def test_no_unencrypted_uploads_in_source(self):
         code=(SCRIPTS/"school-gfs-backup.py").read_text(encoding="utf-8")
         self.assertIn("age_encrypt(stage, saved, archive)",code)
