@@ -1,0 +1,111 @@
+{
+  "format": "asa-school-browser-load-derived-evidence-v1",
+  "asOfDate": "2026-11-09",
+  "source": "Verified tool outputs: D2-R2 Desktop Commander, VM100 authorized root observer, H03 authorized test-host shell; not an authenticated editor load",
+  "runtime": {
+    "hostname": "asa-school-01",
+    "origin": "https://x.asa-lab.ru",
+    "gitRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "databaseSchema": 307
+  },
+  "browserSourceSha": "9bf9cbf41ff2358370e0a93a0a3283fb1a6926b7",
+  "browserGenerator": "D2-R2",
+  "stage15": {
+    "count": 15,
+    "seconds": 46.8,
+    "verdict": "PASS",
+    "navigations": 569,
+    "cached304": 509,
+    "navigationErrors": 0,
+    "http429": 0,
+    "http5xx": 0,
+    "javascriptExceptions": 0,
+    "latencyMs": {
+      "p50": 98,
+      "p95": 220,
+      "p99": 1217
+    },
+    "VM100Observer": {
+      "timeWindow": "2026-11-09T14:43:56Z/2026-11-09T14:44:51Z",
+      "averageCpuPercent": 4.5,
+      "peakCpuPercent": 12.22,
+      "minimumAvailableGiB": 29.34,
+      "sixHealthy": true,
+      "containerRestarts": 0,
+      "oomKills": 0
+    }
+  },
+  "stage30": {
+    "count": 30,
+    "seconds": 55.3,
+    "verdict": "STOP_HTTP_429",
+    "navigations": 921,
+    "cached304": 801,
+    "navigationErrors": 0,
+    "http429": 6,
+    "http5xx": 0,
+    "javascriptExceptions": 0,
+    "latencyMs": {
+      "p50": 444,
+      "p95": 1042,
+      "p99": 1348
+    },
+    "serverCpuObserver": "MEASUREMENT_WINDOW_NOT_ALIGNED_WITH_GENERATOR",
+    "serverApiWeb429Audit": {
+      "window": "2026-11-09T14:43Z/14:51Z",
+      "webRecordsStatus429": 13,
+      "apiRecordsStatus429": 13,
+      "distinctCount": "NOT_DEDUPLICATED",
+      "route": "POST /api/diagnostics/quality",
+      "note": "Same requests logged in web and API; do not add as independent counts"
+    },
+    "reason": "Per-source IP anonymous quality endpoint fixed-window rate limit 600 requests per 60s; test navigation was faster than realistic users"
+  },
+  "homeHttpControl": {
+    "hostname": "admins-MS-7D22",
+    "clients": 30,
+    "seconds": 62,
+    "requests": 189,
+    "http200": 189,
+    "http429": 0,
+    "http5xx": 0,
+    "p50Ms": 103,
+    "p95Ms": 134,
+    "p99Ms": 158,
+    "mode": "read-only HTTPS GET, no Chrome or DB writes"
+  },
+  "stagesNotRun": [
+    50,
+    75,
+    100
+  ],
+  "logging": {
+    "collectorCycle": "ok",
+    "sourceStates": {
+      "ok": 44,
+      "pending": 1,
+      "excludedWindowsNotApplicable": 1
+    },
+    "coverageComplete": false,
+    "pendingSource": "database-history:classroom_activity_events",
+    "pendingSourceLag": "approximately 7 hours at observation",
+    "historyAuditVerifiedSegments": 708
+  },
+  "scopeLimits": [
+    "anonymous public pages",
+    "no authenticated Scratch editor",
+    "no 3D WebGL rendering",
+    "no electronics simulation",
+    "no project save/reopen in this browser test",
+    "home generators do not simulate a school classroom NAT independently"
+  ],
+  "cutoverToProductionApproved": false,
+  "openBlockers": [
+    "source NAT diagnostics rate limit and coalescing",
+    "log history pending",
+    "real user editor/browser stage 30/50/75/100",
+    "real school NAT and multi-generator soak",
+    "backup/restore and rollback qualification"
+  ],
+  "relatedIssue": "https://github.com/spikeal8-maker/asa-lab/issues/1032"
+}
