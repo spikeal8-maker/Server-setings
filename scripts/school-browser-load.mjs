@@ -87,6 +87,18 @@ export function gate(stats) {
   return "PASS";
 }
 
+export async function ensureRenderedTitle(page) {
+  let title = await page.title();
+  if (!title.includes("ASA")) {
+    try {
+      await page.waitForFunction(() => document.title.includes("ASA"),
+        { timeout: 2500, polling: 100 });
+    } catch { throw new Error("TITLE_NOT_READY"); }
+    title = await page.title();
+    if (!title.includes("ASA")) throw new Error("TITLE_NOT_READY");
+  }
+}
+
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function failName(error) { return (error && error.name || "UNKNOWN").replace(/[^A-Za-z0-9]/g, "").slice(0, 55); }
 
@@ -117,7 +129,7 @@ async function execute(config) {
     users: config.stage, navigationTotal: 0, navigationFailed: 0,
     http429: 0, http5xx: 0, healthFailures: 0, jsExceptions: 0,
     firstPartyResourceFailures: 0, thirdPartyBlocked: 0,
-    latencies: [], byScenario: Object.fromEntries(SCENARIOS.map(s => [s.id, { ok: 0, failed: 0, latency: [] }])),
+    latencies: [], byScenario: Object.fromEntries(SCENARIOS.map(s => [s.id, { ok: 0, failed: 0, latency: [], failureCodes: {} }])),
     abortReason: null, peakOpenPages: 0, generatorMaxRssMiB: 0,
   };
   const originHost = new URL(config.origin).host;
@@ -194,8 +206,7 @@ async function execute(config) {
                 { waitUntil: "domcontentloaded", timeout: 15000 });
               const ms = performance.now() - started;
               if (!response || response.status() !== 200) throw new Error("DOCUMENT_NON_200");
-              const title = await page.title();
-              if (!title || !title.includes("ASA")) throw new Error("UNEXPECTED_DOCUMENT");
+              await ensureRenderedTitle(page);
               // Real browser render/scroll, not authorized project editing.
               await page.evaluate(() => window.scrollTo(0, Math.min(document.body.scrollHeight, 350)));
               stats.latencies.push(ms);
@@ -205,6 +216,10 @@ async function execute(config) {
             } catch (e) {
               stats.navigationFailed++;
               stats.byScenario[scenario.id].failed++;
+              const safe = e.message === "TITLE_NOT_READY" || e.message === "DOCUMENT_NON_200"
+                ? e.message : "NAVIGATION_" + failName(e);
+              stats.byScenario[scenario.id].failureCodes[safe] =
+                (stats.byScenario[scenario.id].failureCodes[safe] || 0) + 1;
               if (stats.navigationFailed > 1) fail("NAVIGATION_FAILURE");
             }
             await sleep(750 + (index % 7) * 110);
@@ -240,7 +255,7 @@ async function execute(config) {
     blockedThirdPartyRequests: stats.thirdPartyBlocked,
     healthFailures: stats.healthFailures, navigationLatencyMs: quantiles(stats.latencies),
     perScenario: Object.fromEntries(Object.entries(stats.byScenario).map(([name, s]) =>
-      [name, { successes: s.ok, errors: s.failed, latencyMs: quantiles(s.latency) }])),
+      [name, { successes: s.ok, errors: s.failed, failureCodes: s.failureCodes, latencyMs: quantiles(s.latency) }])),
     generatorMaxNodeRssMiB: stats.generatorMaxRssMiB,
     peakOpenBrowserPages: stats.peakOpenPages, verdict, stopReason: stats.abortReason,
   };
