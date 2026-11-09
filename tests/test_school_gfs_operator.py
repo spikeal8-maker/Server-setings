@@ -92,6 +92,33 @@ class GfsCommandTests(unittest.TestCase):
             self.assertEqual(args[0][-4:], ["--kind", "hourly", "--apply", "--manual"])
             self.assertEqual(args[1][-4:], ["--kind", "full", "--apply", "--manual"])
 
+    def test_restore_uses_pinned_helper_and_never_passes_force(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            helper=Path(tmp)/"school-yandex-restore.py"
+            helper.write_text("#!/usr/bin/env python3\n",encoding="utf-8")
+            with patch.object(cli, "__file__", str(Path(tmp)/"asa-school-gfs-cli.py")), \
+                 patch.object(cli.subprocess,"run",
+                              return_value=subprocess.CompletedProcess(args=[],returncode=0)) as run:
+                # Tests run under CI user; ownership is tied to the actual euid.
+                helper.chmod(0o600)
+                with patch.object(cli.os,"geteuid",return_value=os.geteuid()):
+                    rc=cli.restore("list",None,None,None)
+                self.assertEqual(rc, 0)
+                argv=run.call_args.args[0]
+                self.assertEqual(argv[-1],"list")
+                self.assertEqual(argv[2],str(helper))
+                self.assertNotIn("--force",argv)
+
+    def test_live_force_restore_is_never_automatic(self):
+        with patch.object(cli.subprocess,"run") as run:
+            self.assertEqual(cli.restore("live",None,None,None),2)
+            run.assert_not_called()
+
+    def test_restore_archive_requires_source_and_name_together(self):
+        with patch.object(cli.subprocess,"run") as run:
+            self.assertEqual(cli.restore("download","gfs-daily",None,None),2)
+            run.assert_not_called()
+
     def test_both_scheduled_services_must_match_exact_sha(self):
         sha="a"*40
         def fake(unit):

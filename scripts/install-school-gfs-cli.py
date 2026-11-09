@@ -37,8 +37,9 @@ def preflight() -> Path:
             re.fullmatch(r"[a-f0-9]{40}", SOURCE.name) is not None,
             "PINNED_GITHUB_RELEASE_REQUIRED")
     cli = SOURCE / "asa-school-gfs-cli.py"
-    require(cli.is_file() and not cli.is_symlink() and cli.stat().st_uid == 0,
-            "VERSIONED_CLI_UNAVAILABLE")
+    for file in (cli, SOURCE / "school-yandex-restore.py"):
+        require(file.is_file() and not file.is_symlink() and file.stat().st_uid == 0,
+                "VERSIONED_CLI_OR_RESTORE_UNAVAILABLE")
     require(DESTINATION.parent.is_dir() and not DESTINATION.parent.is_symlink(),
             "SYSTEM_BIN_UNAVAILABLE")
     if DESTINATION.exists() or DESTINATION.is_symlink():

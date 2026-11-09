@@ -17,6 +17,21 @@ spec.loader.exec_module(subject)
 
 
 class SchoolYandexRestoreTests(unittest.TestCase):
+    def test_gfs_full_tiers_and_hourly_destination_are_known(self):
+        self.assertEqual(subject.SOURCES["gfs-daily"],
+                         "app:/School-VM100/ASA-Lab-Full-Server/daily-full")
+        self.assertEqual(subject.SOURCES["gfs-weekly"],
+                         "app:/School-VM100/ASA-Lab-Full-Server/weekly-full")
+        self.assertEqual(subject.SOURCES["gfs-monthly"],
+                         "app:/School-VM100/ASA-Lab-Full-Server/monthly-full")
+        self.assertEqual(subject.SOURCES["gfs-hourly"],
+                         "app:/School-VM100/ASA-Lab-Full-Server/hourly-db")
+        self.assertEqual(subject.name_ok(
+            "gfs-daily", "asa-school-01-20261109T002038Z-024601f2.tar.age"),
+            "asa-school-01-20261109T002038Z-024601f2.tar.age")
+        with self.assertRaises(subject.RestoreError):
+            subject.name_ok("gfs-daily", "asa-lab-20261107T231505Z-eaa56899.tar.age")
+
     def test_explicit_sources_and_archive_shapes(self):
         self.assertEqual(subject.SOURCES["school"],"app:/School-VM100/Database-Backups")
         self.assertEqual(subject.SOURCES["legacy"],"disk:/ASA-Backups")

@@ -48,10 +48,19 @@ HOST="asa-school-01"
 SOURCES={
     "school": "app:/School-VM100/Database-Backups",
     "legacy": "disk:/ASA-Backups",
+    "gfs-daily": "app:/School-VM100/ASA-Lab-Full-Server/daily-full",
+    "gfs-weekly": "app:/School-VM100/ASA-Lab-Full-Server/weekly-full",
+    "gfs-monthly": "app:/School-VM100/ASA-Lab-Full-Server/monthly-full",
+    "gfs-hourly": "app:/School-VM100/ASA-Lab-Full-Server/hourly-db",
 }
+SCHOOL_ARCHIVE=re.compile(r"asa-school-01-\d{8}T\d{6}Z-[a-f0-9]{8}\.tar\.age\Z")
 NAMES={
-    "school":re.compile(r"asa-school-01-\d{8}T\d{6}Z-[a-f0-9]{8}\.tar\.age\Z"),
-    "legacy":re.compile(r"asa-lab-\d{8}T\d{6}Z-[a-f0-9]{8}\.tar\.age\Z"),
+    "school": SCHOOL_ARCHIVE,
+    "legacy": re.compile(r"asa-lab-\d{8}T\d{6}Z-[a-f0-9]{8}\.tar\.age\Z"),
+    "gfs-daily": SCHOOL_ARCHIVE,
+    "gfs-weekly": SCHOOL_ARCHIVE,
+    "gfs-monthly": SCHOOL_ARCHIVE,
+    "gfs-hourly": SCHOOL_ARCHIVE,
 }
 MAX_ARCHIVE_SIZE=25*1024**3
 MAX_UNPACKED=50*1024**3
@@ -374,6 +383,13 @@ def main():
             raise RestoreError("SOURCE_AND_ARCHIVE_MUST_BE_SUPPLIED_TOGETHER")
         client=yandex.AppFolder(yandex.fresh_token())
         rows=inventory(client)
+        if opts.action in ("prepare", "restore-test"):
+            # Hourly files contain only pg_dump, not a verified ASA manager
+            # PostgreSQL+MinIO+configuration manifest. They are not full
+            # restoration candidates and cannot be promoted by this tool.
+            if opts.source == "gfs-hourly":
+                raise RestoreError("GFS_HOURLY_DATABASE_ONLY_USE_FULL_FOR_RESTORE_TEST")
+            rows=[x for x in rows if x["source"]!="gfs-hourly"]
         if opts.action=="list":
             if not rows:
                 print("Архивов age в Яндексе пока нет.")
