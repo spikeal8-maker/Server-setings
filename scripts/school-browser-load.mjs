@@ -37,7 +37,7 @@ export function parseArgs(argv) {
     const key = argv[i];
     if (!key.startsWith("--") || !(key in {
       "--origin": 1, "--revision": 1, "--stage": 1, "--seconds": 1,
-      "--output": 1, "--browser": 1, "--apply": 1
+      "--output": 1, "--browser": 1, "--think-ms": 1, "--apply": 1
     })) throw new Error("INVALID_ARGUMENT");
     if (key === "--apply") {
       if (found.apply) throw new Error("DUPLICATE_ARGUMENT");
@@ -58,11 +58,14 @@ export function parseArgs(argv) {
   if (!SHA40.test(found.revision ?? "")) throw new Error("EXACT_RUNTIME_SHA_REQUIRED");
   const stage = Number(found.stage);
   const seconds = Number(found.seconds ?? "45");
+  const thinkMs = Number(found["think-ms"] ?? "12000");
   if (!Number.isInteger(stage) || !LEVELS.includes(stage)) throw new Error("INVALID_STAGE");
   if (!Number.isInteger(seconds) || seconds < 30 || seconds > 180)
     throw new Error("INVALID_DURATION");
+  if (!Number.isInteger(thinkMs) || thinkMs < 4000 || thinkMs > 20000)
+    throw new Error("INVALID_THINK_TIME");
   if (found.apply && !found.output) throw new Error("EXCLUSIVE_OUTPUT_REQUIRED");
-  return { origin, revision: found.revision, stage, seconds,
+  return { origin, revision: found.revision, stage, seconds, thinkMs,
            output: found.output, browser: found.browser, apply: !!found.apply };
 }
 
@@ -71,6 +74,16 @@ export function cacheDocumentKey(origin, route) {
   // document and the same conditional HTTP cache validators.
   const u = new URL(origin + route);
   return u.pathname + u.search;
+}
+
+export function classify429Path(url) {
+  try {
+    // Only route category; never print query string, client identifiers or URL.
+    return new URL(url).pathname === "/api/diagnostics/quality"
+      ? "diagnostic-quality" : "application-or-gateway";
+  } catch {
+    return "application-or-gateway";
+  }
 }
 
 export function documentNavigationOK(status, loadedBefore) {
@@ -140,7 +153,7 @@ async function execute(config) {
 
   const stats = {
     users: config.stage, navigationTotal: 0, navigationFailed: 0,
-    http429: 0, http5xx: 0, healthFailures: 0, jsExceptions: 0,
+    http429: 0, diagnosticQuality429: 0, other429: 0, http5xx: 0, healthFailures: 0, jsExceptions: 0,
     firstPartyResourceFailures: 0, thirdPartyBlocked: 0,
     latencies: [], cached304: 0, byScenario: Object.fromEntries(SCENARIOS.map(s => [s.id, { ok: 0, failed: 0, latency: [], failureCodes: {} }])),
     abortReason: null, peakOpenPages: 0, generatorMaxRssMiB: 0,
@@ -201,7 +214,19 @@ async function execute(config) {
           });
           page.on("response", response => {
             if (!response.url().startsWith(config.origin + "/")) return;
-            if (response.status() === 429) { stats.http429++; fail("HTTP_429"); }
+            if (response.status() === 429) {
+              stats.http429++;
+              // The anonymous technical quality intake has its own per-IP
+              // budget. Keep it a blocker but distinguish it from project or UI requests.
+              const quality = classify429Path(response.url());
+              if (quality === "diagnostic-quality") {
+                stats.diagnosticQuality429++;
+                fail("CLIENT_QUALITY_RATE_LIMIT");
+              } else {
+                stats.other429++;
+                fail("APPLICATION_OR_GATEWAY_429");
+              }
+            }
             if (response.status() >= 500) { stats.http5xx++; fail("HTTP_5XX"); }
           });
           page.on("pageerror", () => { stats.jsExceptions++; });
@@ -240,7 +265,7 @@ async function execute(config) {
                 (stats.byScenario[scenario.id].failureCodes[safe] || 0) + 1;
               if (stats.navigationFailed > 1) fail("NAVIGATION_FAILURE");
             }
-            await sleep(750 + (index % 7) * 110);
+            await sleep(config.thinkMs + (index % 7) * 250);
           }
         } catch (e) {
           stats.navigationFailed++;
@@ -262,14 +287,15 @@ async function execute(config) {
   return {
     format: "asa-school-browser-load-v1", runAt: new Date().toISOString(),
     origin: config.origin, revision: config.revision, stage: config.stage,
-    requestedSeconds: config.seconds, observedSeconds: +( (performance.now()-begin) / 1000).toFixed(1),
+    requestedSeconds: config.seconds, thinkMs: config.thinkMs, observedSeconds: +( (performance.now()-begin) / 1000).toFixed(1),
     generator: os.hostname(), device: "external-browser-generator",
     authenticatedPupilSessions: 0, actualEditorOpened: false,
     coveredUserActions: ["public pages", "3d/electronics/blocks product information", "project sign-in shell", "scroll"],
     excludes: ["authenticated Scratch editing", "3D WebGL", "electronics simulation", "project writes", "database persistence"],
     navigationCount: stats.navigationTotal, navigationErrors: stats.navigationFailed,
     cachedDocument304: stats.cached304,
-    request429: stats.http429, request5xx: stats.http5xx,
+    request429: stats.http429, diagnosticQuality429: stats.diagnosticQuality429,
+    other429: stats.other429, request5xx: stats.http5xx,
     javascriptExceptions: stats.jsExceptions, firstPartyResourceFailures: stats.firstPartyResourceFailures,
     blockedThirdPartyRequests: stats.thirdPartyBlocked,
     healthFailures: stats.healthFailures, navigationLatencyMs: quantiles(stats.latencies),
@@ -286,7 +312,8 @@ export async function main(argv = process.argv.slice(2)) {
   catch (e) { console.error("BLOCKED_" + failName(e)); return 2; }
   if (!args.apply) {
     console.log(JSON.stringify({ mode: "PLAN_ONLY", networkRequests: 0, browserLaunches: 0,
-      levels: LEVELS, stage: args.stage, seconds: args.seconds, origin: args.origin,
+      levels: LEVELS, stage: args.stage, seconds: args.seconds,
+      thinkMs: args.thinkMs, origin: args.origin,
       coverage: "anonymous public Chrome browsing, no project edits" }));
     return 0;
   }
@@ -305,7 +332,9 @@ export async function main(argv = process.argv.slice(2)) {
   } catch { console.error("BLOCKED_REPORT_WRITE"); return 2; }
   console.log(JSON.stringify({ result: report.verdict, stage: report.stage,
     observedSeconds: report.observedSeconds, navigations: report.navigationCount,
-    p95ms: report.navigationLatencyMs?.p95, http429: report.request429, http5xx: report.request5xx,
+    p95ms: report.navigationLatencyMs?.p95,
+    http429: report.request429, diagnosticQuality429: report.diagnosticQuality429,
+    other429: report.other429, http5xx: report.request5xx,
     jsExceptions: report.javascriptExceptions, peakOpenBrowserPages: report.peakOpenBrowserPages,
     reportFile: args.output }));
   return report.verdict === "PASS" ? 0 : 1;
