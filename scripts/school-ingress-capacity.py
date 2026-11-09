@@ -118,6 +118,10 @@ def render(raw, host, router, old_middleware, average=6000, burst=2000):
     if not isinstance(previous, dict) or set(previous) != {'rateLimit'} or not isinstance(previous['rateLimit'], dict):
         raise Blocked('predecessor must be only a rate limiter, never an auth/header chain')
     owned = 'asa-capacity-100-' + hashlib.sha256(host.encode()).hexdigest()[:12]
+    if (average, burst) != (6000, 2000):
+        owned = f'{owned}-{average}-{burst}'
+    if old_middleware == owned:
+        raise Blocked('predecessor and requested profile must differ')
     wanted = copy.deepcopy(previous)
     wanted['rateLimit'].update(average=average, period='1m', burst=burst)
     if owned in definitions and definitions[owned] != wanted:

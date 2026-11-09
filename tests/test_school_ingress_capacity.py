@@ -55,6 +55,23 @@ class IngressCapacityTests(unittest.TestCase):
         self.assertFalse(plan['changed'])
         self.assertEqual(raw, repeated)
 
+    def test_higher_budget_replaces_only_the_named_router_profile(self):
+        raw, initial = self.render(fixture())
+        previous = gate.parse(raw)
+        previous['http']['routers']['test2']['middlewares'].append(initial['middleware'])
+        raw = json.dumps(previous).encode()
+        args = ('school.example', 'school', initial['middleware'], 12000, 5000)
+        upgraded, plan = gate.render(raw, *args)
+        expected = copy.deepcopy(previous)
+        expected['http']['middlewares'][plan['middleware']] = {
+            'rateLimit': {'average': 12000, 'period': '1m', 'burst': 5000},
+        }
+        expected['http']['routers']['school']['middlewares'][1] = plan['middleware']
+        self.assertEqual(gate.parse(upgraded), expected)
+        repeated, no_change = gate.render(upgraded, *args)
+        self.assertEqual(repeated, upgraded)
+        self.assertFalse(no_change['changed'])
+
     def test_refuses_nonexact_host_nontls_or_auth_replacement(self):
         for change in ['wrong-host', 'non-tls', 'tls-false', 'auth']:
             data = fixture()
