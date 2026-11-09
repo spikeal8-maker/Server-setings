@@ -2,6 +2,7 @@
 import datetime as dt
 import importlib.util
 import os
+import shutil
 from pathlib import Path
 import sys
 import tempfile
@@ -19,6 +20,7 @@ def load(name,path):
 
 gfs=load("gfs_school","school-gfs-backup.py")
 installer=load("gfs_installer","install-school-gfs-backup.py")
+switcher=load("gfs_switcher","switch-school-gfs-release.py")
 
 
 class FakeFolder:
@@ -134,6 +136,42 @@ class SchoolGfsSafetyTests(unittest.TestCase):
         source=(SCRIPTS/"school-gfs-backup.py").read_text(encoding="utf-8")
         self.assertIn('["docker", "exec", "--user", "0", POSTGRES, "pg_restore", "--list"',source)
         self.assertIn('["docker", "exec", "--user", "0", POSTGRES, "rm", "-f"',source)
+
+    def test_pinned_release_upgrade_changes_only_exact_sha(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory)/"releases"
+            old, new = "a"*40, "b"*40
+            for sha in (old,new):
+                release=base/sha
+                release.mkdir(parents=True)
+                shutil.copy2(SCRIPTS/"install-school-gfs-backup.py",
+                             release/"install-school-gfs-backup.py")
+                for name in ("school-gfs-backup.py", "school-nightly-database-backup.py",
+                             "school_yandex_app_folder.py", "cloud_storage.py"):
+                    (release/name).write_text("pass\n",encoding="utf-8")
+            with patch.object(switcher,"BASE",base):
+                original=switcher.load_units(old)
+                replacement=switcher.load_units(new)
+            for kind in ("hourly","full"):
+                service=f"asa-school-gfs-{kind}.service"
+                self.assertEqual(
+                    replacement[service],
+                    original[service].replace("/releases/"+old+"/","/releases/"+new+"/"))
+                self.assertEqual(
+                    replacement[f"asa-school-gfs-{kind}.timer"],
+                    original[f"asa-school-gfs-{kind}.timer"])
+
+    def test_atomic_unit_rejects_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory)
+            target=base/"actual.service"
+            target.write_text("original",encoding="utf-8")
+            link=base/"link.service"
+            link.symlink_to(target)
+            with patch.object(switcher,"UNIT_DIR",base):
+                with self.assertRaisesRegex(switcher.SwitchError,"SERVICE_UNIT_DISAPPEARED"):
+                    switcher.atomic_unit(link,"altered")
+                self.assertEqual(target.read_text(),"original")
 
     def test_no_unencrypted_uploads_in_source(self):
         code=(SCRIPTS/"school-gfs-backup.py").read_text(encoding="utf-8")
