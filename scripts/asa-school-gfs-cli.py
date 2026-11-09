@@ -281,7 +281,7 @@ def restore(action: str | None, source: str | None, archive: str | None, identit
         print("Для заданного архива нужны одновременно --source и --archive", file=sys.stderr)
         return 2
     script = Path(__file__).resolve().parent / "school-yandex-restore.py"
-    if not script.is_file() or script.is_symlink() or script.stat().st_uid != 0:
+    if not script.is_file() or script.is_symlink() or script.stat().st_uid != os.geteuid():
         print("VERSIONED_RESTORE_TOOL_MISSING", file=sys.stderr)
         return 2
     command = ["/usr/bin/python3", "-B", str(script), action or "list"]
