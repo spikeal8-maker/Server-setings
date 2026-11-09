@@ -267,6 +267,19 @@ def local_retention(kind: str) -> None:
         file.unlink()
 
 
+def tiers_for(kind: str, clock: dt.datetime) -> list[str]:
+    require(kind in ("hourly", "full"), "UNKNOWN_BACKUP_KIND")
+    if kind == "hourly":
+        return ["hourly-db"]
+    local = clock.astimezone(MOSCOW)
+    destinations = ["daily-full"]
+    if local.weekday() == 6:
+        destinations.append("weekly-full")
+    if local.day == 1:
+        destinations.append("monthly-full")
+    return destinations
+
+
 def execute(kind: str, *, manual: bool = False) -> None:
     require(kind in ("hourly", "full"), "UNKNOWN_BACKUP_KIND")
     if kind == "full" and not manual:
@@ -294,13 +307,7 @@ def execute(kind: str, *, manual: bool = False) -> None:
             # the protected staged data for human recovery rather than delete.
             if not (ASA/".asa/maintenance.json").exists():
                 shutil.rmtree(stage)
-        kinds = [tier]
-        now = dt.datetime.now(MOSCOW)
-        if kind == "full":
-            if now.weekday() == 6:
-                kinds.append("weekly-full")
-            if now.day == 1:
-                kinds.append("monthly-full")
+        kinds = tiers_for(kind, dt.datetime.now(MOSCOW))
         verified = {}
         for destination in kinds:
             target_provider = get_provider(destination)
