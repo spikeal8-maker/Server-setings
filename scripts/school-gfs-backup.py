@@ -248,7 +248,7 @@ def local_retention(kind: str) -> None:
     old = sorted(p for p in directory.iterdir()
                  if p.is_file() and not p.is_symlink() and BACKUP_NAME.fullmatch(p.name))
     for file in old[:-LOCAL_KEEP[kind]]:
-        require(file.stat().st_uid == 0 and stat.S_IMODE(file.stat().st_mode) == 0o600,
+        require(file.stat().st_uid == os.geteuid() and stat.S_IMODE(file.stat().st_mode) == 0o600,
                 "LOCAL_ARCHIVE_OWNER_MODE")
         file.unlink()
 
