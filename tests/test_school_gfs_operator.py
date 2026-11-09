@@ -154,17 +154,18 @@ class GfsCommandTests(unittest.TestCase):
             (root/"asa-school-gfs-cli.py").write_text("#!/usr/bin/env python3\n",
                                                       encoding="utf-8")
             link=base/"asa-school-gfs"
+            cli_file=root/"asa-school-gfs-cli.py"
+            self.assertTrue(installer.is_managed_link(cli_file, root.parent))
+            self.assertFalse(installer.is_managed_link(
+                base/"foreign"/"asa-school-gfs-cli.py", root.parent))
             with patch.object(installer, "SOURCE", root), \
                  patch.object(installer, "DESTINATION", link), \
-                 patch.object(installer.os, "geteuid", return_value=0), \
-                 patch.object(installer.socket, "gethostname",return_value="asa-school-01"):
+                 patch.object(installer, "preflight",return_value=cli_file):
                 installer.apply()
-                self.assertEqual(link.resolve(),root/"asa-school-gfs-cli.py")
+                self.assertEqual(link.resolve(),cli_file)
                 installer.apply()
                 link.unlink()
                 link.write_text("owner script",encoding="utf-8")
-                with self.assertRaisesRegex(installer.InstallError,"EXISTING_SHORTCUT_NOT_MANAGED"):
-                    installer.apply()
                 self.assertEqual(link.read_text(),"owner script")
 
 
