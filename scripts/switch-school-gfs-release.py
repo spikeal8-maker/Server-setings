@@ -106,9 +106,9 @@ def atomic_unit(path: Path, content: str) -> None:
 
 
 def apply(old_sha: str, new_sha: str) -> None:
-    fd=os.open(LOCK,os.O_CREAT|os.O_RDWR|os.O_CLOEXEC|os.O_NOFOLLOW,0o600)
+    lock_fd=os.open(LOCK,os.O_CREAT|os.O_RDWR|os.O_CLOEXEC|os.O_NOFOLLOW,0o600)
     try:
-        fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        fcntl.flock(lock_fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
         expected=preflight(old_sha,new_sha)
         changed=[]
         try:
@@ -140,18 +140,18 @@ def apply(old_sha: str, new_sha: str) -> None:
                  "runtimeUnchanged":True}
         require(RECEIPT.parent.is_dir() and not RECEIPT.parent.is_symlink(),
                 "RECEIPT_DIRECTORY_MISSING")
-        fd,tmp=tempfile.mkstemp(prefix=".switch-receipt-",dir=RECEIPT.parent)
+        receipt_fd,receipt_tmp=tempfile.mkstemp(prefix=".switch-receipt-",dir=RECEIPT.parent)
         try:
-            with os.fdopen(fd,"w",encoding="utf-8") as output:
+            with os.fdopen(receipt_fd,"w",encoding="utf-8") as output:
                 os.fchmod(output.fileno(),0o600)
                 json.dump(receipt,output,sort_keys=True);output.write("\n")
                 output.flush();os.fsync(output.fileno())
-            os.replace(tmp,RECEIPT)
+            os.replace(receipt_tmp,RECEIPT)
         finally:
-            if os.path.exists(tmp):os.unlink(tmp)
+            if os.path.exists(receipt_tmp):os.unlink(receipt_tmp)
         print("GFS_RELEASE_SWITCH_VERIFIED",old_sha,"->",new_sha,flush=True)
     finally:
-        os.close(fd)
+        os.close(lock_fd)
 
 
 def main() -> int:
