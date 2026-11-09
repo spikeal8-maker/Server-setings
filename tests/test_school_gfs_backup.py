@@ -193,6 +193,7 @@ class SchoolGfsSafetyTests(unittest.TestCase):
                     return "active"
                 return ""
             with patch.object(switcher,"LOCK",base/"lock"), \
+                 patch.object(switcher,"UNIT_DIR",base), \
                  patch.object(switcher,"RECEIPT",receipts/"latest-source-switch.json"), \
                  patch.object(switcher,"preflight",return_value=changes), \
                  patch.object(switcher,"run",side_effect=fake_run):
