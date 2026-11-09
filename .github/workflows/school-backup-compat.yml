@@ -6,6 +6,8 @@ on:
       - 'scripts/school-nightly-database-backup.py'
       - 'scripts/school-gfs-backup.py'
       - 'scripts/asa-school-gfs-cli.py'
+      - 'scripts/school-yandex-restore.py'
+      - 'tests/test_school_yandex_restore.py'
       - 'scripts/install-school-gfs-cli.py'
       - 'tests/test_school_gfs_operator.py'
       - 'scripts/install-school-gfs-backup.py'
@@ -39,4 +41,6 @@ jobs:
         run: python -m unittest discover -s tests -p test_school_gfs_backup.py -v
       - name: GFS manual CLI status errors and protected audit
         run: python -m unittest discover -s tests -p test_school_gfs_operator.py -v
+      - name: Protected GFS Yandex recovery and isolated test contracts
+        run: python -m unittest discover -s tests -p test_school_yandex_restore.py -v
       - run: git diff --check
