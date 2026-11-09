@@ -1,0 +1,30 @@
+name: School external browser load - plan-only contracts
+on:
+  pull_request:
+    paths:
+      - 'scripts/school-browser-load.mjs'
+      - 'tests/test_school_browser_load.mjs'
+      - 'docs/38-SCHOOL-HTTP-LOAD-100.md'
+      - '.github/workflows/school-browser-load.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-load-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: No network, fixture, browser or school credentials in CI
+        run: node --test tests/test_school_browser_load.mjs
+      - name: Safe plans for 15, 30, 50, 75, 100 browser contexts
+        run: |
+          for users in 15 30 50 75 100; do
+            node scripts/school-browser-load.mjs --origin https://x.asa-lab.ru --revision 3e8713476cafedda3e24a39665458e833efd7c22 --stage "$users" --seconds 45
+          done
+      - run: git diff --check
