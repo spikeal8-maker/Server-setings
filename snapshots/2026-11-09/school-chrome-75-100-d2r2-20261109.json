@@ -1,0 +1,145 @@
+{
+  "format": "asa-school-vm100-external-chrome-75-100-v1",
+  "date": "2026-11-09",
+  "measuredBy": "authorized D2-R2 Windows browser generator and asa-school-01 VM100 read-only observer",
+  "sourceGitHub": {
+    "repository": "spikeal8-maker/Server-setings",
+    "revision": "eb8a7bd4210958ecf9c6a0fe0cd84eebd30d63ab",
+    "browserRunner": "scripts/school-browser-load.mjs"
+  },
+  "target": {
+    "origin": "https://x.asa-lab.ru",
+    "host": "asa-school-01",
+    "runtimeRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "databaseSchema": 307,
+    "diagnosticQualityFixPR1033Installed": false,
+    "productionH04Touched": false
+  },
+  "generator": {
+    "host": "D2-R2",
+    "os": "Windows",
+    "ramTotalGiB": 63.69,
+    "node": "v22.23.3",
+    "puppeteer": "25.16.0",
+    "chromeVersion": "156.0.8078.47",
+    "browserContextsIndependent": true,
+    "thinkTimeMilliseconds": 12000,
+    "identity": "anonymous public-page navigation, not authenticated pupils"
+  },
+  "stages": [
+    {
+      "users": 75,
+      "result": "PASS",
+      "observedSeconds": 109,
+      "navigationSuccesses": 532,
+      "navigationErrors": 0,
+      "http429DiagnosticQuality": 0,
+      "http429Other": 0,
+      "http5xx": 0,
+      "javascriptExceptions": 0,
+      "healthFailures": 0,
+      "peakOpenBrowserPages": 75,
+      "navigationLatencyMs": {
+        "p50": 150,
+        "p95": 2547,
+        "p99": 4690
+      },
+      "generatorRamInitialAvailableGiB": 17.91,
+      "generatorRamMinAvailableGiB": 11.85,
+      "generatorRamGuardTriggered": false,
+      "serverObserver": {
+        "startedAtUtc": "2026-11-09T18:22:33.306278+00:00",
+        "endedAtUtc": "2026-11-09T18:24:34.123356+00:00",
+        "cpuAvgPct": 4.33,
+        "cpuPeakPct": 16.89,
+        "memAvailableMinGiB": 29.28,
+        "postgresConnectionsMax": 7,
+        "networkEnp0s1MiB": {
+          "rx": 25.39,
+          "tx": 533.62
+        },
+        "containersHealthyBefore": 6,
+        "containersHealthyAfter": 6,
+        "restarts": 0,
+        "oom": 0
+      },
+      "generatorReportLocalOnly": "stage75-d2r2-20261109.json"
+    },
+    {
+      "users": 100,
+      "result": "STOP_CLIENT_QUALITY_RATE_LIMIT",
+      "observedSeconds": 105.6,
+      "navigationSuccesses": 659,
+      "navigationErrors": 0,
+      "http429DiagnosticQuality": 4,
+      "http429Other": 0,
+      "http5xx": 0,
+      "javascriptExceptions": 0,
+      "healthFailures": 0,
+      "peakOpenBrowserPages": 100,
+      "navigationLatencyMs": {
+        "p50": 357,
+        "p95": 3077,
+        "p99": 5415
+      },
+      "generatorRamInitialAvailableGiB": 18.04,
+      "generatorRamMinAvailableGiB": 10.19,
+      "generatorRamGuardTriggered": false,
+      "serverObserver": {
+        "startedAtUtc": "2026-11-09T18:26:04.853517+00:00",
+        "endedAtUtc": "2026-11-09T18:28:48.802160+00:00",
+        "cpuAvgPct": 4.68,
+        "cpuPeakPct": 14.3,
+        "memAvailableMinGiB": 29.24,
+        "postgresConnectionsMax": 7,
+        "networkEnp0s1MiB": {
+          "rx": 42.8,
+          "tx": 880.96
+        },
+        "containersHealthyBefore": 6,
+        "containersHealthyAfter": 6,
+        "restarts": 0,
+        "oom": 0
+      },
+      "serverJsonLogsWindow": {
+        "from": "2026-11-09T18:26:00Z",
+        "to": "2026-11-09T18:29:15Z",
+        "webHttp429Records": 38,
+        "apiHttp429Records": 38,
+        "webUniqueRequestIds": 38,
+        "apiUniqueRequestIds": 38,
+        "routeCategory": "POST /api/diagnostics/quality",
+        "otherApi429Records": 0,
+        "deduplicationCaveat": "web and api record the same requests; server window wider than client test, so 38 is not client-observed failures and may include unrelated traffic"
+      },
+      "generatorReportLocalOnly": "stage100-d2r2-20261109.json"
+    }
+  ],
+  "monitoring": {
+    "monitoringWindowsApproximatelyAlignedToTests": true,
+    "snapshotsContainNoPersonalDataOrSecrets": true,
+    "otherObservations": "6 of 6 school containers healthy, no restarts or OOM in either stage"
+  },
+  "limits": [
+    "An independent browser context is not a logged-in student",
+    "Public landing / Electronics info / 3D info / Blocks info / project sign-in shell only",
+    "No Scratch runtime, Electronics simulation, WebGL editor or project write/readback",
+    "Tests run against old school release and do not validate PR #1033 on VM100",
+    "Memory and CPU results do not establish maximum concurrent authenticated pupils"
+  ],
+  "decision": {
+    "allow100PublicBrowserNavigationWithout429": false,
+    "approveProductionDomainCutover": false,
+    "nextRequiredSteps": [
+      "Complete ASA Lab PR #1033 CI and merge to main",
+      "Publish and safely deploy the exact new release with database migration/rollback safeguards",
+      "Repeat browser75 and browser100 with new exact release",
+      "Test real authenticated editors and save/reopen on separate QA cohort",
+      "Resolve trusted proxy client-address attribution and logs backlog"
+    ]
+  },
+  "related": {
+    "appIssue": "https://github.com/spikeal8-maker/asa-lab/issues/1032",
+    "appFix": "https://github.com/spikeal8-maker/asa-lab/pull/1033"
+  }
+}
