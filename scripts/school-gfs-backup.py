@@ -139,9 +139,12 @@ def verified_hourly_export(stage: Path, release: dict) -> Path:
         try:
             command(["docker", "cp", str(target/"database.dump"),
                      POSTGRES + ":" + verify_path], timeout=90)
-            command(["docker", "exec", POSTGRES, "pg_restore", "--list", verify_path], timeout=45)
+            # docker cp creates this temporary archive as root:0600. The
+            # default postgres container user cannot read it. Run the
+            # read-only verifier and cleanup explicitly as uid 0.
+            command(["docker", "exec", "--user", "0", POSTGRES, "pg_restore", "--list", verify_path], timeout=45)
         finally:
-            command(["docker", "exec", POSTGRES, "rm", "-f", verify_path], timeout=30)
+            command(["docker", "exec", "--user", "0", POSTGRES, "rm", "-f", verify_path], timeout=30)
         after = db_query("SELECT max(version) FROM schema_migrations")
         require(before == after, "SCHEMA_MOVED_DURING_DUMP")
     checksum = hashlib.sha256((target/"database.dump").read_bytes()).hexdigest()
