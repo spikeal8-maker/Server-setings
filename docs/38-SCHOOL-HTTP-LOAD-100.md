@@ -176,3 +176,10 @@ Node.js 22+, локальный Chrome и отдельно установлен�
 Генератор отдельно считает `diagnosticQuality429` и `other429`; оба остаются красным сигналом для приёмки.
 Это **не является** PASS настоящих авторизованных редакторов или разрешением перевести `asa-lab.ru`.
 Диагностический и cutover blocker: https://github.com/spikeal8-maker/asa-lab/issues/1032.
+
+### H03 Chrome без доступного kernel sandbox (только тестовая Linux-машина)
+
+Chrome 156 на `admins-MS-7D22` не может запустить sandbox из-за ограничений user namespace.
+Для HTTP/browser QA только на H03 скрипт `scripts/school-qa-chrome-h03.sh` допускает запуск с `--no-sandbox` **исключительно** от UID 65534 `nobody`, с явным `ASA_SCHOOL_QA_CHROME_UNSANDBOXED=I_ACCEPT_H03_QA_ONLY`, подлинным бинарником в отдельном `/tmp/asa-school-remote-chrome-*/browser-cache/`.
+Этот режим хуже стандартной браузерной изоляции: не запускать его на VM100, H-04 или с персональными данными. Использовать временный HOME, анонимные страницы, только `x.asa-lab.ru`. Для реальных QA-учеников нужен штатный sandbox в доверенном изолированном стенде.
+Запуск должен быть из `cwd` с локальными `node_modules/puppeteer@25.16.0`; браузерный генератор продолжает сам проверять SHA/health и создавать JSON-отчёт. `--browser` указывает на wrapper, без каких-либо изменений работающей школьной системы.
