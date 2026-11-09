@@ -1,0 +1,101 @@
+{
+  "format": "asa-school-vm100-external-chrome-realistic-20261109-v1",
+  "observedDate": "2026-11-09",
+  "target": {
+    "hostname": "asa-school-01",
+    "url": "https://x.asa-lab.ru",
+    "runtimeRevision": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "fixPR1033Installed": false
+  },
+  "sourceGitHub": {
+    "browserLoadSource": "4b20a9a945186193d9905d005caed59f8eedd02c",
+    "H03LauncherSource": "f62e6a79f17ee3b5229b543752a89f8b453e2cc0",
+    "runnerRepo": "spikeal8-maker/Server-setings"
+  },
+  "client": {
+    "hostname": "admins-MS-7D22",
+    "browser": "Chrome 156.0.8078.47",
+    "engine": "Puppeteer 25.16.0",
+    "uid": 65534,
+    "role": "unprivileged ephemeral H03 QA",
+    "anonymous": true,
+    "thinkTimeMs": 12000,
+    "writeOperations": false
+  },
+  "stages": [
+    {
+      "users": 30,
+      "durationSeconds": 72.6,
+      "verdict": "PASS",
+      "navigationCount": 150,
+      "navigationErrors": 0,
+      "request429": 0,
+      "diagnosticQuality429": 0,
+      "other429": 0,
+      "request5xx": 0,
+      "javascriptExceptions": 0,
+      "healthFailures": 0,
+      "maxOpenChromePages": 30,
+      "latencyMs": {
+        "p50": 98,
+        "p95": 677,
+        "p99": 1042
+      },
+      "privateRawReport": "stage30-realistic-before-fix-retry-20261109.json"
+    },
+    {
+      "users": 50,
+      "durationSeconds": 88.8,
+      "verdict": "PASS",
+      "navigationCount": 303,
+      "navigationErrors": 0,
+      "request429": 0,
+      "diagnosticQuality429": 0,
+      "other429": 0,
+      "request5xx": 0,
+      "javascriptExceptions": 0,
+      "healthFailures": 0,
+      "maxOpenChromePages": 50,
+      "latencyMs": {
+        "p50": 103,
+        "p95": 503,
+        "p99": 775
+      },
+      "H03minAvailableMemoryGiB": 1.51,
+      "privateRawReport": "stage50-realistic-before-fix-20261109.json",
+      "VM100PartialWindow": {
+        "startUtc": "2026-11-09T18:00:02.946145Z",
+        "endUtc": "2026-11-09T18:01:28.291267Z",
+        "cpuAvgPercent": 3.88,
+        "cpuPeakPercent": 12.97,
+        "minAvailableMemoryGiB": 29.25,
+        "healthyContainersBeforeAndAfter": 6,
+        "containerRestarts": 0,
+        "OOMs": 0,
+        "networkEnp0s1TxMiB": 449.61,
+        "coverage": "partial, not exactly aligned to all 88.8s; cannot infer total stage traffic"
+      }
+    }
+  ],
+  "stage75": {
+    "status": "NOT_RUN",
+    "reason": "H03 available RAM 1.51 GiB at 50 independent Chrome contexts; unsafe to escalate on same host"
+  },
+  "stage100": {
+    "status": "NOT_RUN",
+    "reason": "test generator RAM constraint; use larger independent host or multiple externally isolated QA sources"
+  },
+  "limitations": [
+    "anonymous public HTML pages only",
+    "no authenticated Scratch editing",
+    "no Electronics simulation",
+    "no 3D WebGL",
+    "no project writes/MinIO readbacks",
+    "same NAT limits not proven on real classroom",
+    "old schema307 runtime without PR1033 patch"
+  ],
+  "interpretation": "Old school app passes moderate 30/50 public-browser workloads at 12s dwell; previous burst 30 failure was telemetry quality 429 at ~1s per-page switching, not evidence of exhausted VM CPU.",
+  "domainCutoverApproved": false,
+  "sourceOfTruthIssue": "https://github.com/spikeal8-maker/asa-lab/issues/1032"
+}
