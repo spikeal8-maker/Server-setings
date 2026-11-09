@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { LEVELS, SCENARIOS, parseArgs, quantiles, gate, ensureRenderedTitle, documentNavigationOK, cacheDocumentKey } from "../scripts/school-browser-load.mjs";
+import { LEVELS, SCENARIOS, parseArgs, quantiles, gate, ensureRenderedTitle, documentNavigationOK, cacheDocumentKey, classify429Path } from "../scripts/school-browser-load.mjs";
 
 const sha = "3e8713476cafedda3e24a39665458e833efd7c22";
 const base = ["--origin", "https://x.asa-lab.ru", "--revision", sha, "--stage", "15"];
@@ -77,6 +77,24 @@ test("SPA project hash and homepage share one HTTP cache validator", () => {
   assert.notEqual(cacheDocumentKey(origin,"/#/projects"),cacheDocumentKey(origin,"/features/electronics/"));
   assert.equal(documentNavigationOK(304, true),true);
   assert.equal(documentNavigationOK(304, false),false);
+});
+
+test("12 seconds per-page thinking is the default, bounded within 4..20 seconds", () => {
+  const standard=parseArgs(base);
+  assert.equal(standard.thinkMs, 12000);
+  assert.equal(parseArgs([...base,"--think-ms","4000"]).thinkMs,4000);
+  assert.equal(parseArgs([...base,"--think-ms","20000"]).thinkMs,20000);
+  for(const value of ["0","1000","3999","20001","NaN","6.5"]) {
+    assert.throws(() => parseArgs([...base,"--think-ms",value]),/INVALID_THINK_TIME/);
+  }
+});
+
+test("separate client-quality 429 from actual application 429, without leaking URL", () => {
+  assert.equal(classify429Path("https://x.asa-lab.ru/api/diagnostics/quality?token=private"),
+    "diagnostic-quality");
+  assert.equal(classify429Path("https://x.asa-lab.ru/api/projects?q=private"),
+    "application-or-gateway");
+  assert.equal(classify429Path("invalid-uri"),"application-or-gateway");
 });
 
 test("conditional HTTP304 navigation is valid only after same-page HTTP200", () => {
