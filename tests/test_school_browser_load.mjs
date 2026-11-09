@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { LEVELS, SCENARIOS, parseArgs, quantiles, gate, ensureRenderedTitle, documentNavigationOK } from "../scripts/school-browser-load.mjs";
+import { LEVELS, SCENARIOS, parseArgs, quantiles, gate, ensureRenderedTitle, documentNavigationOK, cacheDocumentKey } from "../scripts/school-browser-load.mjs";
 
 const sha = "3e8713476cafedda3e24a39665458e833efd7c22";
 const base = ["--origin", "https://x.asa-lab.ru", "--revision", sha, "--stage", "15"];
@@ -67,6 +67,16 @@ test("failed health, 429, 5xx, slow stage stop escalation", () => {
   assert.equal(gate({...good,navigationFailed:5}),"FAIL_NAVIGATION");
   assert.equal(gate({...good,latencies:Array(50).fill(10001)}),"FAIL_LATENCY");
   assert.equal(gate({...good,abortReason:"SERVER_HEALTH_OR_REVISION"}),"STOP_SERVER_HEALTH_OR_REVISION");
+});
+
+test("SPA project hash and homepage share one HTTP cache validator", () => {
+  const origin="https://x.asa-lab.ru";
+  assert.equal(cacheDocumentKey(origin,"/"),"/");
+  assert.equal(cacheDocumentKey(origin,"/#/projects"),"/");
+  assert.equal(cacheDocumentKey(origin,"/features/electronics/"),"/features/electronics/");
+  assert.notEqual(cacheDocumentKey(origin,"/#/projects"),cacheDocumentKey(origin,"/features/electronics/"));
+  assert.equal(documentNavigationOK(304, true),true);
+  assert.equal(documentNavigationOK(304, false),false);
 });
 
 test("conditional HTTP304 navigation is valid only after same-page HTTP200", () => {
