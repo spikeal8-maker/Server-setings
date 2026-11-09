@@ -6,6 +6,7 @@ on:
       - 'scripts/school-nightly-database-backup.py'
       - 'scripts/school-gfs-backup.py'
       - 'scripts/install-school-gfs-backup.py'
+      - 'scripts/switch-school-gfs-release.py'
       - 'tests/test_school_nightly_timer.py'
       - 'tests/test_school_nightly_database.py'
       - 'tests/test_school_gfs_backup.py'
