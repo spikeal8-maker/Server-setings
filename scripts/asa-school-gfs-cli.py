@@ -103,7 +103,7 @@ def recent_events(limit: int = 4000) -> list[dict]:
     if not path.exists():
         return []
     require(not path.is_symlink() and path.is_file(), "GFS_EVENTS_UNTRUSTED")
-    require(path.stat().st_uid == 0 and stat.S_IMODE(path.stat().st_mode) == 0o600,
+    require(path.stat().st_uid == os.geteuid() and stat.S_IMODE(path.stat().st_mode) == 0o600,
             "GFS_EVENTS_PERMISSIONS")
     buffer = deque(maxlen=limit)
     try:
