@@ -1,0 +1,65 @@
+{
+  "format": "asa-school-schema308-isolated-qa-v1",
+  "date": "2026-11-09",
+  "target": {
+    "host": "asa-school-01",
+    "vm": "VM100",
+    "root": "/srv/asa-lab",
+    "profile": "production",
+    "site": "https://x.asa-lab.ru",
+    "runtime": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "liveSchema": 307,
+    "serviceHealth": "6/6 healthy"
+  },
+  "fix": {
+    "repo": "spikeal8-maker/asa-lab",
+    "pr": "https://github.com/spikeal8-maker/asa-lab/pull/1033",
+    "mergedMainSha": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+    "scope": "diagnostic quality NAT fair limits, source in main but not installed"
+  },
+  "localBackup": {
+    "path": "/srv/asa-lab/backups/20261108T214015Z-404d8510",
+    "sourceRuntime": "3e8713476cafedda3e24a39665458e833efd7c22",
+    "schema": 307,
+    "manifestFiles": 3238,
+    "verifyBackup": "PASS",
+    "restoreCheck": "PASS"
+  },
+  "isolatedMigration": {
+    "testDatabase": "asa_school_upgrade_20261109_test",
+    "initialSchema": "0307",
+    "restoredFromVerifiedLocalBackup": true,
+    "restoreCheckIncludesPrivilegesAndChecksums": true,
+    "mainCommit": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+    "migration": "migrations/0308_ai_eight_tool_registry.sql",
+    "verifiedGitBlob": "5369c32f1d1eb024a7a21361ce3ca61fbf267be5",
+    "execution": "psql ON_ERROR_STOP single transaction to explicitly targeted _test database",
+    "result": "PASS",
+    "aiToolPolicyCountBefore": 4,
+    "aiToolPolicyCountAfter": 8,
+    "liveAiToolPolicyCountAfter": 4,
+    "liveSchemaAfter": "0307",
+    "liveSiteHealth": "ready",
+    "testDatabaseRemovedAfterVerification": true,
+    "cloneLeftBehind": false,
+    "importantLimitation": "Direct SQL transaction rehearsal does not register schema_migrations 0308; application migration runner and actual new app runtime not qualified on live VM."
+  },
+  "rollout": {
+    "mainContainsSchema308": true,
+    "latestOfficialVerifiedStableAtCheck": "6e57e0ae6a6a8b4702e99249bf7b4f65fb011caa",
+    "latestStableSchema": 307,
+    "latestSchoolRunningSchema": 307,
+    "applicationRollbackPolicy": "asa-p0-98d7-d0bf-application-return-v5",
+    "applicationRollbackPolicySchema": 304,
+    "safeUpgradeApproved": false,
+    "reason": "Neither official exact 406ac609 OCI release nor qualified 307->308 full application/data return has been verified",
+    "offsiteAgePrivateKeyOnSchoolVM": false,
+    "fullOffsiteGfsSeedExists": true,
+    "fullOffsiteRestoreWithOfflineKey": "NOT_VERIFIED_THIS_RUN",
+    "recommendedNext": "Publish CI-accepted immutable release, fresh full backup GFS+local, protected-age-key recovery drill, isolated application/DB dry run and explicit reversible downtime plan before production runtime update."
+  },
+  "references": {
+    "ASAIssue": "https://github.com/spikeal8-maker/asa-lab/issues/1029",
+    "diagnosticsIssue": "https://github.com/spikeal8-maker/asa-lab/issues/1032"
+  }
+}
