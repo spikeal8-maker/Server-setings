@@ -66,6 +66,13 @@ export function parseArgs(argv) {
            output: found.output, browser: found.browser, apply: !!found.apply };
 }
 
+export function cacheDocumentKey(origin, route) {
+  // HashRouter routes /#/projects and / share one underlying HTML
+  // document and the same conditional HTTP cache validators.
+  const u = new URL(origin + route);
+  return u.pathname + u.search;
+}
+
 export function documentNavigationOK(status, loadedBefore) {
   // HTTP 304 is a normal conditional browser-cache response, but only after
   // the same context actually loaded the document with HTTP 200.
@@ -206,16 +213,17 @@ async function execute(config) {
           let step = index % SCENARIOS.length;
           while (performance.now() < end && !stats.abortReason) {
             const scenario = SCENARIOS[step % SCENARIOS.length];
+            const documentKey = cacheDocumentKey(config.origin, scenario.path);
             step++;
             const started = performance.now();
             try {
               const response = await page.goto(config.origin + scenario.path,
                 { waitUntil: "domcontentloaded", timeout: 15000 });
               const ms = performance.now() - started;
-              if (!response || !documentNavigationOK(response.status(), previouslyLoaded.has(scenario.path)))
+              if (!response || !documentNavigationOK(response.status(), previouslyLoaded.has(documentKey)))
                 throw new Error("DOCUMENT_NON_200");
               if (response.status() === 304) stats.cached304++;
-              if (response.status() === 200) previouslyLoaded.add(scenario.path);
+              if (response.status() === 200) previouslyLoaded.add(documentKey);
               await ensureRenderedTitle(page);
               // Real browser render/scroll, not authorized project editing.
               await page.evaluate(() => window.scrollTo(0, Math.min(document.body.scrollHeight, 350)));
