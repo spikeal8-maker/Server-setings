@@ -290,6 +290,13 @@ def execute(kind: str, *, manual: bool = False) -> None:
             + "-" + uuid.uuid4().hex[:8] + ".tar.age")
         try:
             saved = verified_hourly_export(stage, release) if kind == "hourly" else verified_full_export(stage)
+            if kind == "full":
+                # Bind the receipt to the archive actually exported under the ASA operation lock.
+                release = json.loads((saved / "manifest.json").read_text(encoding="utf-8"))["runtime"]
+                require(isinstance(release, dict) and isinstance(release.get("revision"), str)
+                        and re.fullmatch(r"[a-f0-9]{40}", release["revision"])
+                        and type(release.get("schema")) is int and release["schema"] > 0,
+                        "FULL_BACKUP_RUNTIME_INVALID")
             age_encrypt(stage, saved, archive)
         finally:
             # A failed full writer restart leaves a maintenance marker; keep
@@ -315,6 +322,8 @@ def execute(kind: str, *, manual: bool = False) -> None:
             "remoteFullReadbackSha256": True,
             "encrypted": "age", "recoveryKeyProvenOffServer": False,
         }
+        if kind == "full":
+            receipt["runtimeSource"] = "verified-manifest"
         atomic_receipt(kind, receipt)
         for destination in kinds:
             provider = get_provider(destination)

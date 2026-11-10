@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-10",
+  "status": "repository-candidate",
+  "canonicalUpdater": "https://github.com/spikeal8-maker/asa-lab/pull/1058",
+  "menu": "https://github.com/spikeal8-maker/Server-setings/pull/105",
+  "operatorCommands": ["asa check", "asa update"],
+  "offsitePolicy": {
+    "format": "asa-school-gfs-receipt-v1",
+    "runtimeSource": "verified-manifest",
+    "receipt": "/var/backups/asa-school-gfs/receipts/latest-full.json",
+    "maxAgeHours": 36
+  },
+  "verification": {
+    "focusedMenuUnitTests": "PASS",
+    "forwardUpdateAcceptance": "PENDING",
+    "schoolDeployment": "NOT_RUN"
+  },
+  "previousLiveMenuEvidence": "school-1panel-plain-operator-menu.json"
+}
