@@ -38,6 +38,7 @@ sudo python3 scripts/install-school-1panel-operator-shortcuts.py --apply
 Сначала проверьте план. Скрипт устанавливает команду `asa-school-operator`,
 сохраняет прежнее меню в закрытом каталоге `/var/lib/server-settings/1panel-shortcuts-history`,
 проверяет новые кнопки через дерево терминала и убирает прежние записи ASA из меню.
+[Снимок проверки VM100](../snapshots/2026-11-10/school-1panel-plain-operator-menu.json).
 
 **Актуальный краткий статус: [готовность школы и следующий шаг](34-SCHOOL-CURRENT-READINESS.md)**, срез **08.11.2026 13:53:54 МСК / 10:53:54 UTC**. Обычный UI, PG/MinIO restore, config roundtrip, HTTP-этапы 2/20/50/100 и cleanup этого run приняты. Settings timer установлен; заключительный health принят, оба расписания включены. Первый автоматический config backup и полное покрытие журналов ещё не закрыты. Production-переход остаётся **БЛОКЕР**; H04 и основной домен не переключались.
 

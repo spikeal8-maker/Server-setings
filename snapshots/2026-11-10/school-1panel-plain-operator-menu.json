@@ -1,0 +1,36 @@
+{
+  "verifiedAt": "2026-11-10T11:28:40.988704Z",
+  "host": "asa-school-01",
+  "installation": "asa-school-vm100",
+  "site": "asa-lab.ru",
+  "installerRevision": "08e8080a0d0887f5a5bfa16c62383ca9dfd50af3",
+  "installerSha256": "5a6bc80c561574894795cf62b2149ea506c9468714469f0aff644a7fe73a1b9f",
+  "operatorSha256": "53cdf0b03d4f490adf22a4c1a685bfed11bad347532525a01ddf995dc841ceb1",
+  "groups": {
+    "ASA Lab · Обновление": 3,
+    "ASA Lab · Резервные копии": 6,
+    "ASA Lab · Восстановление": 4,
+    "ASA Lab · Состояние и журналы": 5
+  },
+  "oldEntriesArchived": 31,
+  "archiveLocation": "/var/lib/server-settings/1panel-shortcuts-history",
+  "runningRelease": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+  "schema": 308,
+  "runningContainersSameIds": 6,
+  "publishedRelease": "39656d38b55bd6b3aca4c31be0da78a68f4e8699",
+  "publishedSchema": 312,
+  "verification": {
+    "panelTree": "PASS",
+    "allCommandShellSyntax": "PASS",
+    "safeInvocations": 13,
+    "repeatPlan": "NO_CHANGE",
+    "noSchoolAdmission": "STOP_BEFORE_UPDATE",
+    "fullBackupConfirmation": "CANCELLED",
+    "update": "NOT_RUN",
+    "backupCreation": "NOT_RUN",
+    "restore": "NOT_RUN",
+    "spreadsheetVerified": "17 Команды VM100, A2, A25:H26, A32:H32",
+    "ci": "https://github.com/spikeal8-maker/Server-setings/actions/runs/42807676838",
+    "review": "APPROVE_EXACT_SHA"
+  }
+}
