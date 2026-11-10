@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 import runpy
 import socket
+import stat
+import subprocess
 import tempfile
 
 from panelctl import PanelAPI, read_api_key, require_local_write, websites
@@ -17,8 +19,9 @@ HOST = "asa-school-01"
 ASA = "sudo -- /usr/local/bin/asa"
 LOGS = "sudo -- /usr/bin/python3 -E -s -B /srv/asa-lab/tools/asa_status.py logs"
 GFS = "sudo -- /usr/local/bin/asa-school-gfs"
-HELPER = Path("/usr/local/sbin/asa-school-operator")
-OPERATOR = f"sudo -- {HELPER}"
+LAUNCHER = Path("/usr/local/bin/asa")
+INSTALLATION = Path("/srv/asa-lab/.asa/installation.json")
+OFFSITE_RECEIPT = "/var/backups/asa-school-gfs/receipts/latest-full.json"
 HISTORY = Path("/var/lib/server-settings/1panel-shortcuts-history")
 SCHOOL_PREFIX = 'if [ "$(hostname -s)" = asa-school-01 ]; then '
 # SHA-256 of name + NUL + shell body from the previously shipped 7ebd711 menu.
@@ -53,22 +56,27 @@ OLD_GROUPS = {
     ),
 }
 ARCHIVE = "ASA 90 · Архив старых команд"
-PREVIOUS_LOGS = {
+PREVIOUS_COMMANDS = {
+    "Проверить обновления": "sudo -- /usr/local/sbin/asa-school-operator check-update",
+    "Установить обновление": "sudo -- /usr/local/sbin/asa-school-operator install-update",
+    "Посмотреть план возврата": "sudo -- /usr/local/sbin/asa-school-operator rollback-plan",
+    "Сделать полную копию": "sudo -- /usr/local/sbin/asa-school-operator backup-full",
     "Открыть журнал приложения": f"{ASA} logs api --tail 100",
     "Открыть журнал Scratch": f"{ASA} logs scratch --tail 100",
 }
 
 MENU = {
     "ASA Lab · Обновление": (
-        ("Проверить обновления", f"{OPERATOR} check-update"),
-        ("Установить обновление", f"{OPERATOR} install-update"),
-        ("Посмотреть план возврата", f"{OPERATOR} rollback-plan"),
+        ("Проверить обновления", f"{ASA} check"),
+        ("Установить обновление", f"{ASA} update"),
+        ("Посмотреть план возврата", f"{ASA} rollback-plan"),
     ),
     "ASA Lab · Резервные копии": (
         ("Посмотреть состояние копий", f"{GFS} status"),
         ("Проверить доступ к Яндекс Диску", f"{GFS} check"),
         ("Сделать копию базы", f"{GFS} hourly"),
-        ("Сделать полную копию", f"{OPERATOR} backup-full"),
+        ("Сделать полную копию", "printf '%s\\n' 'Полная копия временно прервёт работу ASA Lab. Введите ДА:'; "
+         f'if IFS= read -r answer && [ "$answer" = ДА ]; then {GFS} full; else echo "Операция отменена."; fi'),
         ("Посмотреть ошибки копирования", f"{GFS} errors --hours 24"),
         ("Восстановить доступ к Яндекс Диску",
          "sudo -- /usr/local/sbin/asa-school-connect yandex-reauthorize"),
@@ -130,7 +138,7 @@ def archive_old(groups, obsolete):
         raise SystemExit("Каталог резервных копий меню должен принадлежать root и иметь права 0700")
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", prefix="menu-", suffix=".json",
                                      dir=HISTORY, delete=False) as stream:
-        json.dump({"groups": [g for g in groups.values() if g["name"] in (*OLD_GROUPS, ARCHIVE)],
+        json.dump({"groups": [g for g in groups.values() if g["name"] in (*OLD_GROUPS, *MENU, ARCHIVE)],
                    "commands": list(obsolete.values())}, stream, ensure_ascii=False, indent=2)
         stream.flush()
         os.fsync(stream.fileno())
@@ -158,7 +166,7 @@ def reconcile(api, legacy, apply):
         if entry["groupID"] != groups.get(group, {}).get("id"):
             raise SystemExit(f"Команда с таким именем уже отличается: {name}")
         if entry["command"] != command:
-            if name not in PREVIOUS_LOGS or entry["command"] != school(PREVIOUS_LOGS[name]):
+            if name not in PREVIOUS_COMMANDS or entry["command"] != school(PREVIOUS_COMMANDS[name]):
                 raise SystemExit(f"Команда с таким именем уже отличается: {name}")
             replacements[name] = entry
     missing_groups = [group for group in MENU if group not in groups]
@@ -167,8 +175,8 @@ def reconcile(api, legacy, apply):
           f"commands_to_update={len(replacements)}")
     if not apply:
         return
-    if obsolete:
-        archive_old(groups, obsolete)
+    if obsolete or replacements:
+        archive_old(groups, {**obsolete, **replacements})
     for name in missing_groups:
         api.request("POST", "/core/groups", {"id": 0, "type": "command", "name": name})
     group_ids = {name: row["id"] for name, row in snapshot(api)[0].items()}
@@ -207,20 +215,23 @@ def reconcile(api, legacy, apply):
     print(f"terminal_verified={len(desired)} groups_verified={len(MENU)} old_removed={len(obsolete)}")
 
 
-def install_helper(source):
-    if HELPER.is_symlink() or (HELPER.exists() and (not HELPER.is_file() or HELPER.stat().st_uid != 0)):
-        raise SystemExit("Неожиданный файл команды школьного сервера")
-    with tempfile.NamedTemporaryFile(dir=HELPER.parent, prefix=".asa-school-operator-",
-                                     delete=False) as stream:
-        staged = Path(stream.name)
-        try:
-            stream.write(source.read_bytes())
-            stream.flush()
-            os.fsync(stream.fileno())
-            os.fchmod(stream.fileno(), 0o755)
-            os.replace(staged, HELPER)
-        finally:
-            staged.unlink(missing_ok=True)
+def require_canonical_updater():
+    message = "Сначала подключите постоянную команду ASA и школьную проверку облачной копии"
+    try:
+        for path in (LAUNCHER, INSTALLATION):
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+                raise SystemExit(message)
+        settings = json.loads(INSTALLATION.read_text(encoding="utf-8"))
+        if (settings.get("profile") != "production" or settings.get("project") != "asa-lab-school"
+                or settings.get("updatePolicy") != {"receipt": OFFSITE_RECEIPT}):
+            raise SystemExit(message)
+        check = subprocess.run([str(LAUNCHER), "--launcher-verify", INSTALLATION.parents[1].as_posix()],
+                               capture_output=True, encoding="utf-8", check=True, timeout=30)
+        if check.stdout.strip() != "ASA_LAUNCHER_OFFSITE_V1":
+            raise SystemExit(message)
+    except (OSError, ValueError, AttributeError, subprocess.SubprocessError) as exc:
+        raise SystemExit(message) from exc
 
 
 def main():
@@ -241,7 +252,7 @@ def main():
     with open("/run/lock/asa-school-1panel-shortcuts.lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.apply:
-            install_helper(Path(__file__).with_name("asa-school-operator.py"))
+            require_canonical_updater()
         reconcile(api, legacy, args.apply)
 
 

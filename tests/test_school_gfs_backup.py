@@ -1,13 +1,14 @@
 """VM100 encrypted GFS schedules, age transport and retention safety (no cloud)."""
 import datetime as dt
 import importlib.util
+import json
 import os
 import shutil
 from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 SCRIPTS=Path(__file__).resolve().parents[1]/"scripts"
 sys.path.insert(0,str(SCRIPTS))
@@ -44,6 +45,29 @@ def entry(i, prefix="asa-school-01-", suffix=".tar.age"):
 
 
 class SchoolGfsSafetyTests(unittest.TestCase):
+    def test_full_receipt_uses_the_exported_manifest_after_runtime_changes(self):
+        previous = {"revision": "a" * 40, "schema": 308}
+        exported = {"revision": "b" * 40, "schema": 314}
+
+        def export(stage):
+            result = stage / "saved"
+            result.mkdir()
+            (result / "manifest.json").write_text(json.dumps({"runtime": exported}), encoding="utf-8")
+            return result
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            provider = Mock()
+            provider.upload_and_verify.return_value = {"download_sha256_verified": True, "sha256": "c" * 64, "size": 300}
+            with patch.multiple(gfs, LOCK=root / "lock", STAGING=root, ARCHIVES=root, ASA=root,
+                                basic_preflight=Mock(return_value=previous), get_provider=Mock(return_value=provider),
+                                verified_full_export=export, age_encrypt=Mock(), atomic_receipt=Mock(),
+                                prune_remote=Mock(return_value=[]), local_retention=Mock()):
+                gfs.execute("full", manual=True)
+                receipt = gfs.atomic_receipt.call_args.args[1]
+            self.assertEqual((receipt["revision"], receipt["schema"]), (exported["revision"], exported["schema"]))
+            self.assertEqual(receipt["runtimeSource"], "verified-manifest")
+
     def test_tiers_hourly_only(self):
         for day in (1,3,8,15,30):
             date=dt.datetime(2026,11,day,12,0,tzinfo=dt.timezone.utc)

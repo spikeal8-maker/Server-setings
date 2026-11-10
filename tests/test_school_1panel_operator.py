@@ -1,26 +1,20 @@
-import importlib.util
 import hashlib
+import importlib.util
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
-SPEC = importlib.util.spec_from_file_location("school_operator", SCRIPTS / "asa-school-operator.py")
-operator = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(operator)
 sys.path.insert(0, str(SCRIPTS))
-MENU_SPEC = importlib.util.spec_from_file_location("school_menu", SCRIPTS / "install-school-1panel-operator-shortcuts.py")
-menu = importlib.util.module_from_spec(MENU_SPEC)
-MENU_SPEC.loader.exec_module(menu)
-PERMIT = dict(fromRevision="a" * 40, toRevision="b" * 40, toolsRevision="c" * 40,
-              deploymentDigest="sha256:" + "d" * 64)
+SPEC = importlib.util.spec_from_file_location("school_menu", SCRIPTS / "install-school-1panel-operator-shortcuts.py")
+menu = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(menu)
 
 
-class OperatorTests(unittest.TestCase):
+class OperatorMenuTests(unittest.TestCase):
     def test_migration_ignores_a_modified_old_shortcut(self):
-        group = "Former managed group"
-        name = "Former command"
+        group, name = "Former managed group", "Former command"
         body = menu.school("original")
         owned = {"groupID": 2, "command": body}
         groups = {"Default": {"id": 1, "isDefault": True}, group: {"id": 2, "isDefault": False}}
@@ -29,41 +23,37 @@ class OperatorTests(unittest.TestCase):
             self.assertEqual(menu.old_commands(groups, {name: owned}, {}), {name: owned})
             self.assertEqual(menu.old_commands(groups, {name: {**owned, "command": menu.school("custom")}}, {}), {})
 
-    def test_install_without_admission_never_calls_manager(self):
-        with patch.object(operator, "approval", return_value=None), patch.object(operator, "run_manager") as run:
-            with self.assertRaisesRegex(operator.Blocked, "нет допущенного"):
-                operator.install_update()
+    def test_existing_update_button_has_a_read_only_migration_plan(self):
+        group = "ASA Lab · Обновление"
+        name = "Установить обновление"
+        groups = {"Default": {"id": 1, "isDefault": True}, group: {"id": 2, "isDefault": False}}
+        commands = {name: {"groupID": 2, "command": menu.school(menu.PREVIOUS_COMMANDS[name])}}
+        api = Mock()
+        with patch.object(menu, "snapshot", return_value=(groups, commands)), patch("builtins.print") as report:
+            menu.reconcile(api, {}, apply=False)
+            self.assertIn("commands_to_update=1", report.call_args.args[0])
+            api.request.assert_not_called()
+            commands[name]["command"] = "custom command"
+            with self.assertRaisesRegex(SystemExit, "уже отличается"):
+                menu.reconcile(api, {}, apply=False)
+
+    def test_legacy_launcher_is_rejected_before_it_can_run(self):
+        with patch.object(menu.LAUNCHER.__class__, "lstat", return_value=Mock(st_mode=0o120777, st_uid=0)), \
+                patch.object(menu.subprocess, "run") as run:
+            with self.assertRaisesRegex(SystemExit, "постоянную команду"):
+                menu.require_canonical_updater()
             run.assert_not_called()
 
-    def test_check_reports_published_but_not_admitted(self):
-        with patch.object(operator, "approval", return_value=None), patch.object(operator, "probe",
-                side_effect=[dict(revision="a" * 40, schema=308), dict(revision="b" * 40, schema=312)]), \
-                patch("builtins.print") as output, patch.object(operator, "run_manager") as run:
-            self.assertEqual(operator.check_update(), 0)
-            self.assertIn("Опубликован выпуск", output.call_args_list[1].args[0])
-            self.assertIn("нет допущенного", output.call_args.args[0])
-            run.assert_not_called()
-
-    def test_confirmation_and_release_drift_block_update(self):
-        running, target = dict(revision=PERMIT["fromRevision"]), dict(revision=PERMIT["toRevision"])
-        for answer, after in [(False, PERMIT), (True, None)]:
-            with self.subTest(answer=answer), patch.object(operator, "approval", side_effect=[PERMIT, after]), \
-                    patch.object(operator, "probe", side_effect=[running, target]), \
-                    patch.object(operator, "manager", return_value=["manager"]), \
-                    patch.object(operator, "run_manager", return_value=0) as run, \
-                    patch.object(operator, "fresh_backup"), patch.object(operator, "confirm", return_value=answer):
-                if answer:
-                    with self.assertRaisesRegex(operator.Blocked, "изменились"):
-                        operator.install_update()
-                else:
-                    self.assertEqual(operator.install_update(), 0)
-                run.assert_called_once_with(["manager"], "check", "--require-application-rollback",
-                                            "--deployment-digest", PERMIT["deploymentDigest"])
-
-    def test_full_backup_requires_confirmation(self):
-        with patch.object(operator, "confirm", return_value=False), patch.object(operator.subprocess, "run") as run:
-            self.assertEqual(operator.backup_full(), 0)
-            run.assert_not_called()
+    def test_old_protected_launcher_cannot_silently_pass_the_new_contract(self):
+        path_type = menu.LAUNCHER.__class__
+        settings = '{"profile":"production","project":"asa-lab-school",' \
+                   '"updatePolicy":{"receipt":"/var/backups/asa-school-gfs/receipts/latest-full.json"}}'
+        with patch.object(path_type, "lstat", return_value=Mock(st_mode=0o100755, st_uid=0)), \
+                patch.object(path_type, "read_text", return_value=settings), \
+                patch.object(menu.subprocess, "run", return_value=Mock(stdout="")) as run:
+            with self.assertRaisesRegex(SystemExit, "постоянную команду"):
+                menu.require_canonical_updater()
+            self.assertEqual(run.call_args.args[0][-1], "/srv/asa-lab")
 
 
 if __name__ == "__main__":
