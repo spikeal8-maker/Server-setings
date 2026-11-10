@@ -56,20 +56,20 @@ OLD_GROUPS = {
     ),
 }
 ARCHIVE = "ASA 90 · Архив старых команд"
+UPDATE_GROUP = "ASA Lab · Обновление"
+RETIRED_RETURN = "Посмотреть план возврата"
 PREVIOUS_COMMANDS = {
     "Проверить обновления": "sudo -- /usr/local/sbin/asa-school-operator check-update",
     "Установить обновление": "sudo -- /usr/local/sbin/asa-school-operator install-update",
-    "Посмотреть план возврата": "sudo -- /usr/local/sbin/asa-school-operator rollback-plan",
     "Сделать полную копию": "sudo -- /usr/local/sbin/asa-school-operator backup-full",
     "Открыть журнал приложения": f"{ASA} logs api --tail 100",
     "Открыть журнал Scratch": f"{ASA} logs scratch --tail 100",
 }
 
 MENU = {
-    "ASA Lab · Обновление": (
+    UPDATE_GROUP: (
         ("Проверить обновления", f"{ASA} check"),
         ("Установить обновление", f"{ASA} update"),
-        ("Посмотреть план возврата", f"{ASA} rollback-plan"),
     ),
     "ASA Lab · Резервные копии": (
         ("Посмотреть состояние копий", f"{GFS} status"),
@@ -126,6 +126,9 @@ def old_commands(groups, commands, legacy):
         group = group_names.get(row["groupID"])
         fingerprint = hashlib.sha256((name + "\0" + row["command"]).encode()).hexdigest()
         if fingerprint in OLD_GROUPS.get(group, ()):
+            owned[name] = row
+        elif group == UPDATE_GROUP and name == RETIRED_RETURN and row["command"] in (
+                school("sudo -- /usr/local/sbin/asa-school-operator rollback-plan"), school(f"{ASA} rollback-plan")):
             owned[name] = row
         elif (group == ARCHIVE or row["groupID"] == defaults[0]) and legacy.get(name) == row["command"]:
             owned[name] = row
@@ -228,7 +231,7 @@ def require_canonical_updater():
             raise SystemExit(message)
         check = subprocess.run([str(LAUNCHER), "--launcher-verify", INSTALLATION.parents[1].as_posix()],
                                capture_output=True, encoding="utf-8", check=True, timeout=30)
-        if check.stdout.strip() != "ASA_LAUNCHER_OFFSITE_V1":
+        if check.stdout.strip() != "ASA_LAUNCHER_FORWARD_V1":
             raise SystemExit(message)
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError) as exc:
         raise SystemExit(message) from exc

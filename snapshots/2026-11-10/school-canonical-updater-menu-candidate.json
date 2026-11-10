@@ -3,7 +3,7 @@
   "status": "repository-candidate",
   "canonicalUpdater": "https://github.com/spikeal8-maker/asa-lab/pull/1058",
   "menu": "https://github.com/spikeal8-maker/Server-setings/pull/105",
-  "operatorCommands": ["asa check", "asa update", "asa rollback-plan"],
+  "operatorCommands": ["asa check", "asa update"],
   "offsitePolicy": {
     "format": "asa-school-gfs-receipt-v1",
     "runtimeSource": "verified-manifest",
@@ -12,7 +12,7 @@
   },
   "verification": {
     "focusedMenuUnitTests": "PASS",
-    "nativeReturnAcceptance": "PENDING",
+    "forwardUpdateAcceptance": "PENDING",
     "schoolDeployment": "NOT_RUN"
   },
   "previousLiveMenuEvidence": "school-1panel-plain-operator-menu.json"
