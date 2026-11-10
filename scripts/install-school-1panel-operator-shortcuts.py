@@ -15,6 +15,7 @@ from panelctl import PanelAPI, read_api_key, require_local_write, websites
 
 HOST = "asa-school-01"
 ASA = "sudo -- /usr/local/bin/asa"
+LOGS = "sudo -- /usr/bin/python3 -E -s -B /srv/asa-lab/tools/asa_status.py logs"
 GFS = "sudo -- /usr/local/bin/asa-school-gfs"
 HELPER = Path("/usr/local/sbin/asa-school-operator")
 OPERATOR = f"sudo -- {HELPER}"
@@ -52,6 +53,10 @@ OLD_GROUPS = {
     ),
 }
 ARCHIVE = "ASA 90 · Архив старых команд"
+PREVIOUS_LOGS = {
+    "Открыть журнал приложения": f"{ASA} logs api --tail 100",
+    "Открыть журнал Scratch": f"{ASA} logs scratch --tail 100",
+}
 
 MENU = {
     "ASA Lab · Обновление": (
@@ -77,8 +82,8 @@ MENU = {
     "ASA Lab · Состояние и журналы": (
         ("Проверить работу ASA Lab", f"{ASA} status"),
         ("Посмотреть отчёт о сервере", f"{ASA} report"),
-        ("Открыть журнал приложения", f"{ASA} logs api --tail 100"),
-        ("Открыть журнал Scratch", f"{ASA} logs scratch --tail 100"),
+        ("Открыть журнал приложения", f"{LOGS} api --root /srv/asa-lab --tail 100"),
+        ("Открыть журнал Scratch", f"{LOGS} scratch --root /srv/asa-lab --tail 100"),
         ("Открыть журнал сборщика",
          "sudo -- /usr/bin/journalctl -u asa-log-collector-asa-lab-school.service -n 80 --no-pager"),
     ),
@@ -145,13 +150,21 @@ def reconcile(api, legacy, apply):
     obsolete = old_commands(groups, commands, legacy)
     desired = {name: (group, school(command))
                for group, entries in MENU.items() for name, command in entries}
+    replacements = {}
     for name, (group, command) in desired.items():
-        if name in commands and (commands[name]["command"] != command
-                                 or commands[name]["groupID"] != groups.get(group, {}).get("id")):
+        if name not in commands:
+            continue
+        entry = commands[name]
+        if entry["groupID"] != groups.get(group, {}).get("id"):
             raise SystemExit(f"Команда с таким именем уже отличается: {name}")
+        if entry["command"] != command:
+            if name not in PREVIOUS_LOGS or entry["command"] != school(PREVIOUS_LOGS[name]):
+                raise SystemExit(f"Команда с таким именем уже отличается: {name}")
+            replacements[name] = entry
     missing_groups = [group for group in MENU if group not in groups]
     missing = {name: spec for name, spec in desired.items() if name not in commands}
-    print(f"groups_to_add={len(missing_groups)} commands_to_add={len(missing)} old_commands_to_remove={len(obsolete)}")
+    print(f"groups_to_add={len(missing_groups)} commands_to_add={len(missing)} old_commands_to_remove={len(obsolete)} "
+          f"commands_to_update={len(replacements)}")
     if not apply:
         return
     if obsolete:
@@ -163,6 +176,15 @@ def reconcile(api, legacy, apply):
         api.request("POST", "/core/commands", {
             "id": 0, "type": "command", "groupID": group_ids[group], "name": name, "command": command,
         })
+    if replacements:
+        current = snapshot(api)[1]
+        for name, entry in replacements.items():
+            if current.get(name) != entry:
+                raise SystemExit(f"Команда изменилась во время установки меню: {name}")
+            api.request("POST", "/core/commands/update", {
+                "id": entry["id"], "type": "command", "groupID": entry["groupID"],
+                "name": name, "command": desired[name][1],
+            })
     verify_menu(api, desired)
     if obsolete:
         current_groups, current = snapshot(api)
@@ -178,7 +200,8 @@ def reconcile(api, legacy, apply):
     _, final = snapshot(api)
     if any(name in final for name in obsolete):
         raise SystemExit("Старые записи остались в терминале")
-    if any(final.get(name) != row for name, row in commands.items() if name not in obsolete):
+    if any(final.get(name) != row for name, row in commands.items()
+           if name not in obsolete and name not in replacements):
         raise SystemExit("Одна из сторонних записей изменилась во время установки меню")
     verify_menu(api, desired)
     print(f"terminal_verified={len(desired)} groups_verified={len(MENU)} old_removed={len(obsolete)}")
