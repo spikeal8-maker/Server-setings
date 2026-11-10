@@ -1,0 +1,29 @@
+{
+  "verified_at": "2026-11-10T10:40:08+03:00",
+  "hostname": "asa-school-01",
+  "installation": "asa-school-vm100",
+  "site": "asa-lab.ru",
+  "release": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+  "schema": 308,
+  "source": "1Panel v2 command tree, VM100 terminal commands, public readiness",
+  "terminal_groups": {
+    "ASA 01 · Состояние и логи": 5,
+    "ASA 02 · Обновление и возврат": 5,
+    "ASA 03 · Резервные копии": 6,
+    "ASA 04 · Восстановление в тест": 4,
+    "ASA 90 · Архив старых команд": 11
+  },
+  "verification": {
+    "syntax": "PASS",
+    "asa_status": "PASS",
+    "gfs_status": "PASS",
+    "update_help": "PASS",
+    "invalid_digest_rejected": "PASS",
+    "full_backup_cancelled": "PASS",
+    "application_update": "NOT_RUN",
+    "full_backup": "NOT_RUN",
+    "restore": "NOT_RUN",
+    "clean_server_installation": "NOT_RUN"
+  },
+  "release_312_test": "https://github.com/spikeal8-maker/asa-lab/issues/1029#issuecomment-6759834811"
+}
