@@ -1,5 +1,7 @@
 import importlib.util
+import hashlib
 from pathlib import Path
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -7,11 +9,26 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 SPEC = importlib.util.spec_from_file_location("school_operator", SCRIPTS / "asa-school-operator.py")
 operator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(operator)
+sys.path.insert(0, str(SCRIPTS))
+MENU_SPEC = importlib.util.spec_from_file_location("school_menu", SCRIPTS / "install-school-1panel-operator-shortcuts.py")
+menu = importlib.util.module_from_spec(MENU_SPEC)
+MENU_SPEC.loader.exec_module(menu)
 PERMIT = dict(fromRevision="a" * 40, toRevision="b" * 40, toolsRevision="c" * 40,
               deploymentDigest="sha256:" + "d" * 64)
 
 
 class OperatorTests(unittest.TestCase):
+    def test_migration_ignores_a_modified_old_shortcut(self):
+        group = "Former managed group"
+        name = "Former command"
+        body = menu.school("original")
+        owned = {"groupID": 2, "command": body}
+        groups = {"Default": {"id": 1, "isDefault": True}, group: {"id": 2, "isDefault": False}}
+        fingerprint = hashlib.sha256((name + "\0" + body).encode()).hexdigest()
+        with patch.object(menu, "OLD_GROUPS", {group: (fingerprint,)}):
+            self.assertEqual(menu.old_commands(groups, {name: owned}, {}), {name: owned})
+            self.assertEqual(menu.old_commands(groups, {name: {**owned, "command": menu.school("custom")}}, {}), {})
+
     def test_install_without_admission_never_calls_manager(self):
         with patch.object(operator, "approval", return_value=None), patch.object(operator, "run_manager") as run:
             with self.assertRaisesRegex(operator.Blocked, "нет допущенного"):

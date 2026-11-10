@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import runpy
 import socket
 import tempfile
@@ -20,11 +20,36 @@ HELPER = Path("/usr/local/sbin/asa-school-operator")
 OPERATOR = f"sudo -- {HELPER}"
 HISTORY = Path("/var/lib/server-settings/1panel-shortcuts-history")
 SCHOOL_PREFIX = 'if [ "$(hostname -s)" = asa-school-01 ]; then '
+# SHA-256 of name + NUL + shell body from the previously shipped 7ebd711 menu.
 OLD_GROUPS = {
-    "ASA 01 · Состояние и логи": "01",
-    "ASA 02 · Обновление и возврат": "02",
-    "ASA 03 · Резервные копии": "03",
-    "ASA 04 · Восстановление в тест": "04",
+    "ASA 01 · Состояние и логи": (
+        "b9efa16f698c0ee17797faea14c85ade494cd0f01605ae6f9dab0939b3a84640",
+        "ff837fb35959f1362acbe0cc7a379ee4be318542e628f944de922f6e037424e4",
+        "7bd68644b1da94ad79c8af63bb8121d0b77d40f93960deb0c9870d1e0d1ef2e7",
+        "2ccb17256642bab0e05e3e153192e640e7fb0be4f601aea22b6b0ecbcd425b15",
+        "2db2a4e5d51aef4af2a22e3993aa607fca25b99a1f8fa569178c068259c41f15",
+    ),
+    "ASA 02 · Обновление и возврат": (
+        "84f62db5962c43689df89c669dd255ba3d18b7e4a8129d3799635a1c106e721c",
+        "7e28e0aa7155994fe7b1945fa151f61e9072bd08b47fd053ebce5c8f0330f315",
+        "73f73218cd2a46cbb21d3152a924242129b1552f0c4890b8a5441cde8236bce2",
+        "94b3ee1a2d301729db9373037390110b3271a936870db1f8724a9a123695d7f4",
+        "44753c90fb0a807d5670d7f561bc7c3ae92239398c444b7f6ab5ee24414e2d0f",
+    ),
+    "ASA 03 · Резервные копии": (
+        "f08b46a0651d698f81281fa32b5b3ca0e9cd304e16aa3ef4f7282b342e6ec0af",
+        "51de7adc11b0883399f1a285cd510481def0881d2561313202a738e8e633a78e",
+        "de7a2ab10316f870f83cec91ef5fc70c2ca4a8ed946ff531e3fdbad261168a8d",
+        "5a5224dbd73cd55e6adc4c1853bd8bec19d38c08e1598409e8303be7f701f870",
+        "a18d75a0135f1fe941061bb408b6a094e9afa37ec18e559fc3fa94e22bdd0656",
+        "8b04b5988df28ede03e2c60b882a75aa56dbc3146bfb231b521d85d1f61070ae",
+    ),
+    "ASA 04 · Восстановление в тест": (
+        "9369045dadc418f65c93070826a1c387619f9845f1286bab6ec8a04305b18f5a",
+        "1672e4559c9304e6a7c03ccab833d7409faf6b08caa45ac166f1560cce3fccb4",
+        "af6c060c12a90e8fbb9c4ee88791c68a7d65faffd39a14c38c4f77142a0527a9",
+        "cc55078bb3da70a2cf41ef508d20e5c6146ea5b4e256a0b1de6dda2cfad61647",
+    ),
 }
 ARCHIVE = "ASA 90 · Архив старых команд"
 
@@ -86,9 +111,8 @@ def old_commands(groups, commands, legacy):
     owned = {}
     for name, row in commands.items():
         group = group_names.get(row["groupID"])
-        if (group in OLD_GROUPS
-                and re.match(rf"^{OLD_GROUPS[group]}\.\d{{2}} · ", name)
-                and row["command"].startswith(SCHOOL_PREFIX)):
+        fingerprint = hashlib.sha256((name + "\0" + row["command"]).encode()).hexdigest()
+        if fingerprint in OLD_GROUPS.get(group, ()):
             owned[name] = row
         elif (group == ARCHIVE or row["groupID"] == defaults[0]) and legacy.get(name) == row["command"]:
             owned[name] = row

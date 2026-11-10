@@ -141,7 +141,7 @@ def confirm(message):
 
 
 def fresh_backup():
-    message = 'Нет подтверждённой полной копии за последние 36 часов. Сначала создайте полную копию.'
+    message = 'Не удалось подтвердить полную копию за последние 36 часов. Проверьте состояние копий.'
     status = json_command([GFS, 'status', '--json'], message, 45)
     try:
         at = datetime.fromisoformat(status['full']['lastVerified'])
