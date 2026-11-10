@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-10",
+  "status": "accepted",
+  "evidence": "https://github.com/spikeal8-maker/asa-lab/issues/1029#issuecomment-6775557682",
+  "source": {
+    "canonicalUpdater": "e71819246fb8166cb5212a3ec2a5bfffe64df674",
+    "publisher": "fef53a8cfef0caa28de48a1eb7253758006575a1",
+    "serverSettings": "c591d5cb19323f168f6e2c282c8c96d4fda0adf3"
+  },
+  "h03": {
+    "result": "PASS",
+    "profile": "production",
+    "syntheticOnly": true,
+    "commands": [
+      "asa check",
+      "asa update",
+      "asa check"
+    ],
+    "from": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+    "to": "31614509dcc2e0df7bb906967d194281e69bbf81",
+    "schemaFrom": 308,
+    "schemaTo": 314,
+    "deploymentDigest": "sha256:84fbb76754c3c7f83d5346f3c005866f1c7e0bdc629463c76a5003f4622268cf",
+    "publicationRun": 42867578700,
+    "migrations": [
+      309,
+      310,
+      311,
+      312,
+      313,
+      314
+    ],
+    "postgresIdentityAndVolumesPreserved": true,
+    "minioVolumePreserved": true,
+    "postgresAndMinioBeforeAndAfterReadback": "PASS",
+    "backupFilesVerified": 29
+  },
+  "vm100": {
+    "host": "asa-school-01",
+    "site": "asa-lab.ru",
+    "installed": "406ac609474bae731bd324e8e4fac6993bb9bc8b",
+    "schema": 308,
+    "httpsReady": 200,
+    "healthyContainers": 6,
+    "liveStorageIdentityPreserved": true,
+    "fullBackup": {
+      "archive": "asa-school-01-20261110T184453Z-cc930b5a.tar.age",
+      "verifiedAt": "2026-11-10T18:45:59.027458Z",
+      "bytes": 281228520,
+      "sha256": "b458f77c0ac4489d2a364baf6a6aad9e31f8334f7b307501c58db405e3c92238",
+      "provider": "Yandex Disk",
+      "tier": "daily-full",
+      "encryption": "age",
+      "runtimeSource": "verified-manifest",
+      "downloadSha256Verified": true,
+      "recoveryKeyProvenOffServer": false
+    },
+    "menu": {
+      "group": "ASA Lab · Обновление",
+      "commands": {
+        "Проверить обновления": "sudo asa check",
+        "Установить обновление": "sudo asa update"
+      },
+      "managedGroups": 4,
+      "managedCommands": 17,
+      "postApplyChanges": 0,
+      "check": "AVAILABLE 31614509 schema=314",
+      "update": "NOT_RUN"
+    }
+  }
+}
