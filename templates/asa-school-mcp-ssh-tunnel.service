@@ -1,0 +1,30 @@
+# School MCP: encrypted SSH port-forward over the existing Tailscale link.
+# Copy to /etc/systemd/system/asa-school-mcp-ssh-tunnel.service on the test Ubuntu.
+# No school-side TCP listener is required; remote MCP stays on 127.0.0.1.
+[Unit]
+Description=School MCP private SSH loopback transport
+Wants=network-online.target tailscaled.service
+After=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=admins
+Group=admins
+ExecStart=/usr/bin/ssh -F /dev/null -N -T -o BatchMode=yes -o StrictHostKeyChecking=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -L 127.0.0.1:39454:127.0.0.1:39443 root@100.72.211.28
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost 100.72.211.28/32
+MemoryMax=96M
+TasksMax=24
+
+[Install]
+WantedBy=multi-user.target

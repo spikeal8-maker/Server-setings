@@ -1,0 +1,30 @@
+# Isolated school MCP OAuth gateway. Secrets must be provided via a root-only .env.
+# Project: asa-school-mcp; do NOT reuse test ASA OAuth state or API credentials.
+# The service is accessible only via localhost, behind a 1Panel HTTPS vhost.
+services:
+  gateway:
+    image: ghcr.io/spikeal8-maker/asa-mcp-auth-proxy@sha256:24b665a8ef94f743e7160b3f59424b742821cc81406b1067a7facd53cb09ed25
+    container_name: asa-school-mcp-gateway
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    environment:
+      PROXY_BEARER_TOKEN: ${SCHOOL_MCP_BACKEND_BEARER:?}
+      EXTERNAL_URL: https://school-mcp.asa-lab.ru
+      NO_AUTO_TLS: "true"
+      LISTEN: 127.0.0.1:39453
+      DATA_PATH: /data
+      PASSWORD: ${SCHOOL_MCP_LOGIN_PASSWORD:?}
+    volumes:
+      - school_oauth_data:/data
+    command:
+      - --
+      - http://127.0.0.1:39454
+volumes:
+  school_oauth_data:
