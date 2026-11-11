@@ -1,0 +1,16 @@
+{
+  "gateway_commit": "c8868adee557e793b73c7e8a3b3d37e080854c20",
+  "panel_commit": "6cd495d74010e762e0ab6ce3ead31730f8ba572a",
+  "go_version": "go1.27.3",
+  "builder": "golang:1.27.3-bookworm@sha256:e482b31b5d30c31f9e495f4b8cbdf41429b2d74955dfbcd9c0a904483d738390",
+  "runtime": "debian:bookworm-slim@sha256:a3bba7dc7dbcc1f37c2856c51fc9a7fac96608f50cb87b1b4e4d8b8c85ae988e",
+  "debian_snapshot": "20261102T000000Z",
+  "gateway_modules": {
+    "golang.org/x/crypto": "v0.55.0",
+    "golang.org/x/net": "v0.60.0",
+    "golang.org/x/text": "v0.41.0",
+    "google.golang.org/grpc": "v1.83.2"
+  },
+  "trivy_version": "0.76.1",
+  "trivy_archive_sha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0"
+}

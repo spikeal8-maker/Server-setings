@@ -1,0 +1,14 @@
+{
+  "status": "SOURCE_CANDIDATE_CI_PENDING_NOT_DEPLOYED",
+  "baseline_main": "098505287ab0cd14a1b4cef1df6c5794b6582899",
+  "candidate_contract": "security/mcp/pins.json",
+  "live_gateway_fixable_high_critical": 53,
+  "live_mounted_panel_binary_fixable_high_critical": 4,
+  "live_findings_fixed_by_source_edit": false,
+  "existing_deployment_defaults_changed": false,
+  "oauth_owner_state_migration_verified": false,
+  "candidate_image_scan": "PENDING_CI",
+  "candidate_mounted_binary_scan": "PENDING_CI",
+  "candidate_oauth_full_tools_restart_smoke": "PENDING_CI",
+  "secrets_or_owner_configuration_included": false
+}
