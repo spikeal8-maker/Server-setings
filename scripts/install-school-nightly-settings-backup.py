@@ -2,8 +2,8 @@
 """Install only the reviewed VM100 daily settings timer, without running a backup."""
 from __future__ import annotations
 
-FILES = {'backup-settings.sh': '069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36', 'school-settings-cloud-roundtrip.py': 'bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f', 'school_settings_snapshot.py': '9a7719c5705fb6883857b0c25be1e19f9ee7f3009c8594a43ca15d04d0bffbe2', 'school_yandex_app_folder.py': '64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20', 'cloud_storage.py': 'c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08', 'school-nightly-settings-backup.py': 'fd27a26dba0850663010501ad4456a494bf0203e4974c288a59c3e0474b0352b'}
-RELEASE_HASH = 'fdd7ebb8daaebcfcebc8d46782aa362fd182cce2f6c43699144740f0b581f431'
+FILES = {'backup-settings.sh': '069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36', 'school-settings-cloud-roundtrip.py': 'bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f', 'school_settings_snapshot.py': '42795336583e5a7d97caa5615080392f7e92a39d9b63dfd4b16d46bda7878d8a', 'school_yandex_app_folder.py': '64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20', 'cloud_storage.py': 'c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08', 'school-nightly-settings-backup.py': '37559edd3bee27234efa8a227758d94f915429b8ef9034c46acae707c0de0bca'}
+RELEASE_HASH = '93e235e716f250b9ecf00cd3440c8ed327b0fa5bf92897a00e691c0d42aa6202'
 RUNNER = 'school-nightly-settings-backup.py'
 
 import argparse

@@ -44,6 +44,13 @@ def normalized_zip(kind, *, coverage=False, extra=False):
     return buffer.getvalue()
 
 
+def application_release(revision='a'*40, format='asa-deployment-v2'):
+    return {'format':format,'repository':snapshot.REPOSITORY,'platform':'linux/amd64',
+            'revision':revision,'schema':319,'publicationRunId':1234,
+            'images':{name:'ghcr.io/'+snapshot.REPOSITORY+'/'+name+'@sha256:'+'b'*64
+                      for name in snapshot.RELEASE_SERVICES[format]}}
+
+
 def fixture(root):
     database = root/'fixture.db'
     with sqlite3.connect(database) as connection:
@@ -65,9 +72,10 @@ def fixture(root):
     for kind in ('host','application'):
         zpath=root/(kind+'.zip');zpath.write_bytes(payloads['normalized/'+kind+'.zip'])
         logs[kind]=snapshot.verify_zip(zpath,kind)
+    release = application_release()
     manifest={'format':snapshot.FORMAT,'archive':ARCHIVE,'hostname':snapshot.HOST,'installationInstance':snapshot.INSTANCE,
-        'settingsBaseRevision':snapshot.BASE_REVISION,'applicationRevision':snapshot.REVISION,
-        'apiImage':snapshot.API_IMAGE,'canonicalExporterBlob':snapshot.EXPORTER_BLOB,
+        'settingsBaseRevision':snapshot.BASE_REVISION,'applicationRevision':release['revision'],
+        'apiImage':'sha256:'+'c'*64,'apiImageReference':release['images']['api'],'applicationRelease':release,
         'coverageComplete':False,'gatewayOAuthContinuity':False,'gatewayLiveDatabaseIncluded':False,
         'entries':entries,'directories':directories,'normalizedLogs':logs}
     return manifest,payloads
@@ -82,6 +90,60 @@ def make_tar(path,manifest,payloads, *, bad_mode=False, extra_link=False):
         if extra_link:
             info=tarfile.TarInfo('unsafe-link');info.type=tarfile.SYMTYPE;info.linkname='/etc/passwd'
             archive.addfile(info)
+
+
+class ApplicationRuntime(unittest.TestCase):
+    def inspect(self, release, *, container_override=None, image_override=None):
+        cid = 'd'*64
+        reference = release['images']['api']
+        image_id = 'sha256:'+'e'*64
+        container = {'id':cid,'image':image_id,'imageReference':reference,'user':'node',
+                     'state':'running','health':'healthy','startedAt':'2026-11-12T00:00:00.000000000Z',
+                     'labels':{'com.docker.compose.project':snapshot.PROJECT,
+                               'com.docker.compose.service':'api',
+                               'com.docker.compose.project.working_dir':str(snapshot.APP_ROOT),
+                               'org.opencontainers.image.revision':release['revision']},
+                     'mounts':[{'Destination':'/var/lib/asa-logs','Type':'bind','RW':False,
+                                'Source':str(snapshot.APP_ROOT / '.asa/diagnostics/store')},
+                               {'Destination':'/var/lib/asa-application-logs','Type':'volume',
+                                'Name':snapshot.PROJECT+'_application-logs'}]}
+        image = {'id':image_id,'digests':[reference],'os':'linux','architecture':'amd64','revision':release['revision']}
+        container.update(container_override or {})
+        image.update(image_override or {})
+        with mock.patch.object(snapshot, 'stable_read', return_value=(json.dumps(release).encode(), None)) as read, \
+                mock.patch.object(snapshot, 'docker_view', return_value=container), \
+                mock.patch.object(snapshot, 'run', side_effect=[cid[:12].encode(), json.dumps(image).encode()]) as run:
+            result = snapshot.attested_api_runtime()
+        read.assert_called_once_with(snapshot.APP_ROOT / '.asa' / 'installed-release.json', 65536)
+        self.assertEqual(run.call_args.args[0][-1], reference)
+        return result
+
+    def test_accepts_old_and_new_installed_release_with_matching_runtime(self):
+        for release in (application_release(snapshot.LEGACY_REVISION, 'asa-deployment-v1'),
+                        application_release()):
+            with self.subTest(revision=release['revision']):
+                self.assertEqual(self.inspect(release)['release'], release)
+
+    def test_rejects_different_runtime_image_even_when_label_matches(self):
+        with self.assertRaisesRegex(snapshot.SnapshotError, 'API_IMAGE_DRIFT'):
+            self.inspect(application_release(), image_override={'id':'sha256:'+'f'*64})
+
+    def test_rejects_digest_missing_from_local_image(self):
+        with self.assertRaisesRegex(snapshot.SnapshotError, 'API_IMAGE_DRIFT'):
+            self.inspect(application_release(), image_override={'digests':[]})
+
+    def test_rejects_mutable_container_reference(self):
+        with self.assertRaisesRegex(snapshot.SnapshotError, 'API_RUNTIME_CHANGED'):
+            self.inspect(application_release(), container_override={'imageReference':'asa-lab-api:local'})
+
+    def test_rejects_foreign_release_manifest_before_docker(self):
+        release = application_release()
+        release['repository'] = 'foreign/repository'
+        with mock.patch.object(snapshot, 'stable_read', return_value=(json.dumps(release).encode(), None)), \
+                mock.patch.object(snapshot, 'run') as run:
+            with self.assertRaisesRegex(snapshot.SnapshotError, 'API_RELEASE_MANIFEST_INVALID'):
+                snapshot.attested_api_runtime()
+        run.assert_not_called()
 
 
 class RestoreContract(unittest.TestCase):
@@ -105,6 +167,21 @@ class RestoreContract(unittest.TestCase):
         for file in self.output.rglob('*'):
             self.assertFalse(file.is_symlink())
             if file.is_file(): self.assertEqual(file.stat().st_mode&0o777,0o600)
+
+    def test_legacy_archive_still_verifies(self):
+        self.manifest.pop('applicationRelease')
+        self.manifest.pop('apiImageReference')
+        self.manifest.update(format=snapshot.LEGACY_FORMAT, applicationRevision=snapshot.LEGACY_REVISION,
+                             apiImage=snapshot.LEGACY_API_IMAGE, canonicalExporterBlob=snapshot.LEGACY_EXPORTER_BLOB)
+        make_tar(self.tar,self.manifest,self.payloads)
+        self.assertTrue(snapshot.verify_tar(self.tar,self.output,ARCHIVE)['manifestVerified'])
+
+    def test_inconsistent_archive_release_rejected_before_extraction(self):
+        self.manifest['apiImageReference'] = 'ghcr.io/'+snapshot.REPOSITORY+'/api@sha256:'+'d'*64
+        make_tar(self.tar,self.manifest,self.payloads)
+        with self.assertRaisesRegex(snapshot.SnapshotError, 'MANIFEST_IDENTITY'):
+            snapshot.verify_tar(self.tar,self.output,ARCHIVE)
+        self.assertEqual(list(self.output.iterdir()), [])
 
     def test_missing_required_configuration_rejected(self):
         self.manifest['entries'].pop(0)
