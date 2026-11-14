@@ -46,7 +46,7 @@ RUNNER = 'school-nightly-settings-backup.py'
 PINS = {
     'backup-settings.sh': '069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36',
     'school-settings-cloud-roundtrip.py': 'bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f',
-    'school_settings_snapshot.py': '42795336583e5a7d97caa5615080392f7e92a39d9b63dfd4b16d46bda7878d8a',
+    'school_settings_snapshot.py': 'c1c196ce320229306d33d6b88e47632fef42ca2617128ab59710666fc306f5b4',
     'school_yandex_app_folder.py': '64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20',
     'cloud_storage.py': 'c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08',
 }
@@ -230,6 +230,7 @@ def execute():
             need(created.get('status') == 'CONFIG_ARCHIVE_CREATED_NOT_CLOUD_VERIFIED'
                  and created.get('archive') == name and created.get('coverageComplete') is False
                  and created.get('sqliteDatabases') == 3, 'CREATED_RECEIPT_INVALID')
+            window = snapshot.validate_window(created.get('normalizedLogWindow'))
             cloud.school_configuration_transfer(name)
             transferred = json.loads(read(TARGET / (name + '.cloud.json')))
             need(transferred.get('status') == 'CONFIG_UPLOAD_FULL_DOWNLOAD_PASS_DECRYPT_PENDING'
@@ -243,7 +244,7 @@ def execute():
             result.update(status='CONFIG_NIGHTLY_FULL_DOWNLOAD_SHA256_PASS', bytes=size,
                           ciphertextSha256=checksum, fullDownloadVerified=True,
                           configurationFiles=created['configurationFiles'], sqliteDatabases=3,
-                          normalizedLogs=created['normalizedLogs'], finishedAt=stamp(),
+                          normalizedLogs=created['normalizedLogs'], normalizedLogWindow=window, finishedAt=stamp(),
                           elapsedSeconds=round(time.monotonic() - started, 3),
                           freeBytes=shutil.disk_usage(TARGET).free)
             atomic_receipt('latest-success.json', result)
@@ -289,7 +290,8 @@ def main():
         readiness = snapshot.log_preflight(snapshot.api_runtime())
         need(readiness.get('ready') is True, 'CATALOGS_NOT_READABLE')
         print(json.dumps({'status': 'CONFIG_SCHEDULE_READONLY_CHECK_PASS', 'releaseSha256': release_hash,
-                          'catalogsReady': True, 'changes': False, 'baselineIsolatedRestore': BASELINE}, sort_keys=True))
+                          'catalogsReady': True, 'normalizedLogWindow': readiness['window'],
+                          'changes': False, 'baselineIsolatedRestore': BASELINE}, sort_keys=True))
         return 0
     print(json.dumps({'status': 'PLAN_ONLY', 'schedule': '04:00 Europe/Moscow',
                       'sharedDatabaseLock': str(DB_LOCK), 'lockWaitSeconds': LOCK_WAIT_SECONDS,
