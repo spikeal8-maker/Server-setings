@@ -134,13 +134,13 @@ def verify_agent_startup(cron, epoch, jobs):
         if status != 'Enable':
             continue
         registrations = len(spec.split('&&'))
-        pattern = r'add \S+ job ' + re.escape(name) + r' successful\r?$'
+        pattern = r'add \S+ job ' + re.escape(name) + r' successful[ \t]*\r?$'
         need(len(re.findall(pattern, markers[0], re.MULTILINE)) == registrations,
              'PANEL_CRON_JOB_STARTUP_NOT_OBSERVED')
         expected_entries += registrations
-    entry_ids = re.findall(r'start cronjob entryID: ([1-9][0-9]*)\r?$', markers[0], re.MULTILINE)
+    entry_ids = re.findall(r'start cronjob entryID: ([1-9][0-9]*)[ \t]*\r?$', markers[0], re.MULTILINE)
     need(len(entry_ids) == len(set(entry_ids)) == expected_entries, 'PANEL_CRON_STARTUP_COUNT_CHANGED')
-    need(not re.search(r'start my cronjob failed|start .+ job failed|update cronjob .+ failed', markers[0]),
+    need(not re.search(r'start my cronjob failed|start \S+ job .+ failed|update cronjob .+ failed', markers[0]),
          'PANEL_CRON_STARTUP_FAILED')
 
 
@@ -446,7 +446,7 @@ class Transition:
         epoch = agent_epoch(self.new)
         objects = self.observe()
         jobs = self.idle_panel_jobs()
-        need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_RECONCILIATION')
+        need(self.observe() == objects and agent_epoch(self.new) == epoch, 'PANEL_CHANGED_DURING_RECOVERY_ARM')
         self.new.atomic(self.history / 'recovery-arm.json', {'format': FORMAT,
             'uncertainty': progress, 'agentEpoch': epoch, 'objects': objects, 'jobs': jobs,
             'observedAt': self.new.stamp()})
@@ -479,6 +479,12 @@ class Transition:
             need(self.idle_panel_jobs() == armed.get('jobs'), 'PANEL_JOBS_CHANGED_SINCE_RECOVERY_ARM')
             verify_agent_startup(self.new, epoch, armed['jobs'])
             need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_RECONCILIATION')
+            proof = self.history / ('recovery-proof-' + str(epoch['startTicks']) + '.json')
+            recovery_proof = armed | {'recoveredAgentEpoch': epoch, 'cronStartupAttested': True}
+            if proof.exists():
+                need(self.new.file_json(proof) == recovery_proof, 'RECOVERY_PROOF_ALREADY_DIFFERS')
+            else:
+                self.new.atomic(proof, recovery_proof)
         else:
             need(not runtime_unknown, 'CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION')
         environment = self.environment()

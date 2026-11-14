@@ -197,11 +197,29 @@ def test_native():
             sha=plan['oldStateSha256']
             once=[True]
             def lose_response(endpoint,payload=None,**kw):
-                result=request(endpoint,payload,**kw)
                 if once[0] and endpoint=='/cronjobs/status' and payload=={'id':1,'status':status}:
                     once[0]=False
+                    if status=='Enable':
+                        # In this private SQLite DB only, force persistence to fail
+                        # after 1Panel has added its in-memory entry.
+                        with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
+                            db.execute("""CREATE TRIGGER reject_fixture_enable BEFORE UPDATE ON cronjobs
+                                WHEN NEW.id = 1 AND NEW.status = 'Enable'
+                                BEGIN SELECT RAISE(ABORT, 'fixture rejects enable'); END;""")
+                        try:
+                            request(endpoint,payload,**kw)
+                        except new.ScheduleError:
+                            with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
+                                assert db.execute('SELECT status FROM cronjobs WHERE id=1').fetchone()==('Disable',)
+                            assert 'fixture rejects enable' in p('/work/1panel-agent.log').read_text(errors='replace')
+                            raise
+                        finally:
+                            with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
+                                db.execute('DROP TRIGGER reject_fixture_enable')
+                        raise AssertionError('native status unexpectedly persisted')
+                    request(endpoint,payload,**kw)
                     raise new.ScheduleError('PANEL_REQUEST_OUTCOME_UNKNOWN')
-                return result
+                return request(endpoint,payload,**kw)
             panel.request=lose_response
             try:
                 with harness.shared.existing_idle_locks(old):
