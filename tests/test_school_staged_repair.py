@@ -50,7 +50,9 @@ def accepted_stdout_fix():
                         '9a7719c5705fb6883857b0c25be1e19f9ee7f3009c8594a43ca15d04d0bffbe2', 1)
     text = text.replace(current.SETTINGS_FILES['school-nightly-settings-backup.py'],
                         'fd27a26dba0850663010501ad4456a494bf0203e4974c288a59c3e0474b0352b', 1)
-    text = text.replace("',\n                    '" + current_unit + "')", "')", 1)
+    previous_unit = '516fc8c3f25525095ecae320c2e215a24f6725bb1b9df9ad2350c5ae15126d37'
+    for unit in (current_unit, previous_unit):
+        text = text.replace("',\n                    '" + unit + "')", "')", 1)
     return text.encode()
 
 
