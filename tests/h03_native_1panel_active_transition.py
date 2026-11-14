@@ -91,6 +91,12 @@ def test_native():
         new=load('candidate','/work/source/school-1panel-backup-schedules.py')
         harness=load('transition','/work/source/school-1panel-active-settings-transition.py')
         harness.SUPERVISOR_CTL=p('/usr/local/bin/supervisorctl')
+        # The isolated agent is supervised by this harness, so supply the
+        # stdout of that exact peer instead of a host systemd invocation.
+        def startup_log(_,epoch):
+            assert epoch['pid']==agent.pid
+            return p('/work/1panel-agent.log').read_text(errors='replace')
+        harness.agent_startup_log=startup_log
         new.PANEL_BINARY_ALIAS=p('/usr/bin/1panel')
         oldsha='4b391bbd4b4589212acffc25a4239b79d15e5830176300610dfd1f7fc3ef596b'
         oldpath=new.BASE/'releases'/oldsha[:16]/harness.NAME
@@ -180,56 +186,59 @@ def test_native():
         assert old.load_state()==state
         assert ctl('pid',collector+':'+collector+'_00')==collector_pid
         assert all(panel.records(n,state['createdAt'])==prior_records[kind] for kind,n in harness.JOB_IDS.items())
-        # Replay once with the HTTP response deliberately discarded *after* real
-        # 1Panel applies Disable. Use a separate transition attempt in the same fixture.
-        next2='37e35e39aef946db9581bd853ea4686e'
-        # Keep native historical task records and use the existing original generation
-        # in a separate history store solely to inject this fault in the same fixture.
-        completed=trans.history
-        completed.rename(completed.with_name('completed-roundtrip'))
-        candidate=harness.Transition(old,new,panel,oldsha,new.source_release()[1],prior_id,next2)
-        plan=candidate.plan()
         request=panel.request
-        once=[True]
-        def lose_response(endpoint,payload=None,**kw):
-            result=request(endpoint,payload,**kw)
-            if once[0] and endpoint=='/cronjobs/status' and payload=={'id':1,'status':'Disable'}:
-                once[0]=False
-                raise new.ScheduleError('PANEL_REQUEST_OUTCOME_UNKNOWN')
-            return result
-        panel.request=lose_response
-        try:
+        for status,next_id in (
+            ('Disable','37e35e39aef946db9581bd853ea4686e'),
+            ('Enable','eea4a3c4716d4e38b1ffd1499cbd91a7'),
+        ):
+            candidate=harness.Transition(old,new,panel,oldsha,new.source_release()[1],prior_id,next_id)
             with harness.shared.existing_idle_locks(old):
-                try:candidate.apply(plan['oldStateSha256'])
-                except harness.shared.RepairStop as e:assert str(e)=='CRON_RUNTIME_STATUS_UNKNOWN',e
-                else:raise AssertionError('lost response was accepted')
-        finally:panel.request=request
-        observed=candidate.reconcile(plan['oldStateSha256'])
-        assert observed['nativeCronRuntimeStatusUnknown'] and observed['phase']=='ACTIVE_SETTINGS_TRANSITION'
-        try:candidate.reconcile(plan['oldStateSha256'],apply=True)
-        except harness.shared.RepairStop as e:assert str(e)=='CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION'
-        else:raise AssertionError('unknown runtime allowed rollback')
-        assert {row['id']:row['status'] for row in panel.jobs()}=={1:'Disable',2:'Enable'}
-        assert ctl('pid',collector+':'+collector+'_00')==collector_pid
-        # Test the native restart semantics in this namespace only. It rebuilds
-        # Cron entries from acknowledged persistent job status and does not restart
-        # Supervisor or reopen the application gate.
-        stop(agent)
-        p('/etc/1panel/agent.sock').unlink(missing_ok=True)
-        agent=start('1panel-agent')
-        assert wait(lambda:p('/etc/1panel/agent.sock').is_socket())
-        assert wait(lambda:any('start cronjob entryID:' in l for l in p('/work/1panel-agent.log').read_text(errors='replace').splitlines()))
-        assert {row['id']:row['status'] for row in panel.jobs()}=={1:'Disable',2:'Enable'}
-        assert p('/work/1panel-agent.log').read_text(errors='replace').count('start cronjob entryID:')==1
-        assert candidate.reconcile(plan['oldStateSha256'])['nativeCronRuntimeStatusUnknown']
-        assert ctl('pid',collector+':'+collector+'_00')==collector_pid
+                plan=candidate.plan()
+            sha=plan['oldStateSha256']
+            once=[True]
+            def lose_response(endpoint,payload=None,**kw):
+                result=request(endpoint,payload,**kw)
+                if once[0] and endpoint=='/cronjobs/status' and payload=={'id':1,'status':status}:
+                    once[0]=False
+                    raise new.ScheduleError('PANEL_REQUEST_OUTCOME_UNKNOWN')
+                return result
+            panel.request=lose_response
+            try:
+                with harness.shared.existing_idle_locks(old):
+                    try:candidate.apply(sha)
+                    except harness.shared.RepairStop as e:assert str(e)=='CRON_RUNTIME_STATUS_UNKNOWN',e
+                    else:raise AssertionError('lost response was accepted')
+            finally:panel.request=request
+            with harness.shared.existing_idle_locks(old):
+                observed=candidate.reconcile(sha)
+                assert observed['nativeCronRuntimeStatusUnknown'] and observed['phase']=='ACTIVE_SETTINGS_TRANSITION'
+                try:candidate.reconcile(sha,apply=True)
+                except harness.shared.RepairStop as e:assert str(e)=='CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION'
+                else:raise AssertionError('unknown runtime allowed rollback')
+                assert candidate.arm_recovery(sha)['gateClosed']
+                try:candidate.reconcile(sha,apply=True,recover=True)
+                except harness.shared.RepairStop as e:assert str(e)=='PANEL_AGENT_RESTART_NOT_ATTESTED'
+                else:raise AssertionError('recovery accepted the original agent')
+            assert ctl('pid',collector+':'+collector+'_00')==collector_pid
+            stop(agent)
+            p('/etc/1panel/agent.sock').unlink(missing_ok=True)
+            agent=start('1panel-agent')
+            assert wait(lambda:p('/etc/1panel/agent.sock').is_socket())
+            with harness.shared.existing_idle_locks(old):
+                assert candidate.reconcile(sha,apply=True,recover=True)['generation']==prior_id
+            assert old.load_state()==state
+            assert {row['id']:row['status'] for row in panel.jobs()}=={1:'Enable',2:'Enable'}
+            assert ctl('pid',collector+':'+collector+'_00')==collector_pid
+            assert all(panel.records(n,state['createdAt'])==prior_records[kind] for kind,n in harness.JOB_IDS.items())
+            assert trans.history.is_dir() and candidate.history.is_dir()
+            print('REAL_NATIVE_' + status.upper() + '_LOST_RESPONSE_RECOVERED',flush=True)
         # Run a quick native schedule with a separate no-cloud synthetic shell job.
         synthetic=old.cron_payload(state,'settings') | {'name':'ASA-H03-clock-proof','spec':'@every 2s','user':'',
            'script':'#!/bin/bash\nprintf "clock-triggered\\n" >> /work/cron-clock-proof.log\n'}
         panel_err(http('/cronjobs',synthetic))
         assert wait(lambda:p('/work/cron-clock-proof.log').is_file(),timeout=11),panel.records(3,state['createdAt'])
         assert 'clock-triggered' in p('/work/cron-clock-proof.log').read_text()
-        assert candidate.reconcile(plan['oldStateSha256'])['phase']=='ACTIVE_SETTINGS_TRANSITION'
+        assert candidate.reconcile(sha)['phase']=='ACTIVE'
         print('REAL_NATIVE_CRON_LOST_RESPONSE_DURABLE_GATE_PASS',flush=True)
         print('REAL_NATIVE_CRON_RESTART_RESTORES_PERSISTED_CLOCKS_AND_EXECUTES_SYNTHETIC_SCHEDULE_PASS',flush=True)
     finally:stop(sv)

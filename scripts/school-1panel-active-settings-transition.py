@@ -4,6 +4,7 @@
 import argparse
 import copy
 from datetime import datetime, timedelta, timezone
+import hashlib
 import importlib.util
 import json
 import os
@@ -11,6 +12,7 @@ from pathlib import Path
 import re
 import socket
 import stat
+import struct
 import sys
 import tempfile
 
@@ -24,6 +26,10 @@ FORMAT = 'asa-active-settings-transition-v1'
 SUPERVISOR_CONFIG = Path('/etc/supervisor/supervisord.conf')
 SUPERVISOR_CTL = Path('/usr/bin/supervisorctl')
 SUPERVISOR_SOCKET = Path('/run/supervisor.sock')
+AGENT_SOCKET = Path('/etc/1panel/agent.sock')
+AGENT_EXE = Path('/usr/local/bin/1panel-agent')
+AGENT_SHA256 = 'e12321d3a0d796310066aa77ff9dc916b2b69c4f3efa34716b51c2f02595a97d'
+UNCERTAIN_CRON = ('NATIVE_CRON_STATUS_REQUEST', 'NATIVE_CRON_STATUS_UNKNOWN')
 
 spec = importlib.util.spec_from_file_location('staged_repair_contract', HERE / 'school-1panel-staged-repair.py')
 shared = importlib.util.module_from_spec(spec)
@@ -75,6 +81,69 @@ def loaded_supervisor_config(cron):
     return output.strip() == 'No config updates to processes'
 
 
+def agent_epoch(cron):
+    """Read the identity of the agent actually listening on the local socket."""
+    try:
+        cron.trusted(AGENT_SOCKET.parent, directory=True, private=True)
+        executable = cron.trusted(AGENT_EXE)
+        sock_stat = AGENT_SOCKET.lstat()
+        need(stat.S_ISSOCK(sock_stat.st_mode) and sock_stat.st_uid == 0
+             and not sock_stat.st_mode & 0o077, 'PANEL_AGENT_SOCKET_UNTRUSTED')
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as conn:
+            conn.settimeout(3)
+            conn.connect(str(AGENT_SOCKET))
+            pid, uid, _ = struct.unpack('3i', conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+            need(pid > 0 and uid == 0, 'PANEL_AGENT_PEER_UNTRUSTED')
+            proc = Path('/proc') / str(pid)
+            live_exe = (proc / 'exe').stat()
+            need((live_exe.st_dev, live_exe.st_ino) == (executable.st_dev, executable.st_ino),
+                 'PANEL_AGENT_EXECUTABLE_CHANGED')
+            start_ticks = (proc / 'stat').read_text().rsplit(') ', 1)[1].split()[19]
+            boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+            need(start_ticks.isdecimal() and re.fullmatch('[a-f0-9-]{36}', boot), 'PANEL_AGENT_EPOCH_INVALID')
+            return {'boot': boot, 'pid': pid, 'startTicks': int(start_ticks)}
+    except (OSError, IndexError, ValueError):
+        raise shared.RepairStop('PANEL_AGENT_IDENTITY_UNAVAILABLE') from None
+
+
+def agent_startup_log(cron, epoch):
+    fields = ('MainPID', 'InvocationID', 'ActiveState', 'SubState')
+    observed = dict(line.split('=', 1) for line in cron.command(['/usr/bin/systemctl', 'show',
+        '1panel-agent.service', '--property=' + ','.join(fields)], 8).splitlines())
+    invocation = observed.get('InvocationID', '')
+    need(observed.get('ActiveState') == 'active' and observed.get('SubState') == 'running'
+         and observed.get('MainPID') == str(epoch['pid']) and re.fullmatch('[a-f0-9]{32}', invocation),
+         'PANEL_AGENT_SYSTEMD_IDENTITY_CHANGED')
+    return cron.command(['/usr/bin/journalctl', '-u', '1panel-agent.service', '--output=cat',
+        '--no-pager', '--lines=500', '_SYSTEMD_INVOCATION_ID=' + invocation, '_PID=' + str(epoch['pid'])], 15)
+
+
+def verify_agent_build():
+    with AGENT_EXE.open('rb') as executable:
+        need(hashlib.file_digest(executable, 'sha256').hexdigest() == AGENT_SHA256, 'PANEL_AGENT_BUILD_CHANGED')
+
+
+def verify_agent_startup(cron, epoch, jobs):
+    verify_agent_build()
+    output = agent_startup_log(cron, epoch)
+    markers = output.split('agent startup: cron initialized', 1)
+    need(len(markers) == 2 and 'agent startup: cron initialized' not in markers[1],
+         'PANEL_CRON_STARTUP_NOT_OBSERVED')
+    expected_entries = 0
+    for _, name, status, spec in jobs:
+        if status != 'Enable':
+            continue
+        registrations = len(spec.split('&&'))
+        pattern = r'add \S+ job ' + re.escape(name) + r' successful\r?$'
+        need(len(re.findall(pattern, markers[0], re.MULTILINE)) == registrations,
+             'PANEL_CRON_JOB_STARTUP_NOT_OBSERVED')
+        expected_entries += registrations
+    entry_ids = re.findall(r'start cronjob entryID: ([1-9][0-9]*)\r?$', markers[0], re.MULTILINE)
+    need(len(entry_ids) == len(set(entry_ids)) == expected_entries, 'PANEL_CRON_STARTUP_COUNT_CHANGED')
+    need(not re.search(r'start my cronjob failed|start .+ job failed|update cronjob .+ failed', markers[0]),
+         'PANEL_CRON_STARTUP_FAILED')
+
+
 class Transition:
     def __init__(self, old, new, panel, old_sha, new_sha, generation, target_generation):
         self.old, self.new, self.panel = old, new, panel
@@ -82,7 +151,7 @@ class Transition:
         self.generation, self.target_generation = generation, target_generation
         self.updater = shared.UpdateAdapter(new, panel)
         self.path = STATE / 'state.json'
-        self.history = STATE / 'history' / generation
+        self.history = STATE / 'history' / (generation + '-' + target_generation)
         self.previous = self.target = self.intent = None
 
     def safety(self):
@@ -103,6 +172,19 @@ class Transition:
     def records(self):
         return {kind: self.panel.records(job_id, self.intent['recordsSince'])
                 for kind, job_id in JOB_IDS.items()}
+
+    def idle_panel_jobs(self):
+        jobs = sorted((row['id'], row['name'], row['status'], row['spec']) for row in self.panel.jobs())
+        need(len({job[0] for job in jobs}) == len(jobs), 'NATIVE_JOB_IDS_CHANGED')
+        end = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()
+        for job_id, _, _, _ in jobs:
+            for status in ('Running', 'Waiting'):
+                records = self.panel.request('/cronjobs/search/records', {'page': 1, 'pageSize': 1,
+                    'cronjobID': job_id, 'startTime': '1970-01-01T00:00:00+00:00',
+                    'endTime': end, 'status': status})
+                need(isinstance(records, dict) and records.get('total') == 0
+                     and not records.get('items'), 'PANEL_CRON_NOT_IDLE')
+        return [list(job) for job in jobs]
 
     def check_records(self, *, allow_blocked=False):
         records = self.records()
@@ -148,7 +230,6 @@ class Transition:
     def verify_loaded(self):
         need(loaded_supervisor_config(self.new), 'SUPERVISOR_CONFIGURATION_NOT_LOADED')
 
-
     def before(self):
         self.safety()
         self.old.verify_runners()
@@ -159,6 +240,8 @@ class Transition:
              'ACTIVE_TRANSITION_ALREADY_EXISTS_OR_DRIFTED')
         self.old.Controller(self.panel, self.old.Legacy()).objects(self.previous, status='Enable', idle=True)
         self.verify_loaded()
+        agent_epoch(self.new)
+        verify_agent_build()
         validate_terminal_receipts(self.old, self.previous)
         self.target = copy.deepcopy(self.previous)
         self.target.update(generation=self.target_generation, previousGeneration=self.generation,
@@ -211,16 +294,19 @@ class Transition:
         if row['status'] == target:
             return
         need(row['cron'] == bound, 'CRON_GENERATION_CHANGED_BEFORE_STATUS_UPDATE')
-        self.marker('NATIVE_CRON_STATUS_REQUEST', operation={'kind': kind, 'target': target})
+        epoch = agent_epoch(self.new)
+        operation = {'kind': kind, 'target': target, 'agentEpoch': epoch}
+        self.marker('NATIVE_CRON_STATUS_REQUEST', operation=operation)
         try:
             self.panel.request('/cronjobs/status', {'id': JOB_IDS[kind], 'status': target})
         except self.new.ScheduleError:
             # 1Panel adjusts the in-memory entry before persisting job status.
             # A DTO alone cannot confirm whether an unsuccessful call changed it.
-            self.marker('NATIVE_CRON_STATUS_UNKNOWN', operation={'kind': kind, 'target': target})
+            self.marker('NATIVE_CRON_STATUS_UNKNOWN', operation=operation)
             raise shared.RepairStop('CRON_RUNTIME_STATUS_UNKNOWN') from None
         need(self.classification(kind)['status'] == target, 'CRON_STATUS_READBACK')
-        self.marker('NATIVE_CRON_STATUS_ACKNOWLEDGED', operation={'kind': kind, 'target': target})
+        need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_CRON_REQUEST')
+        self.marker('NATIVE_CRON_STATUS_ACKNOWLEDGED', operation=operation)
 
     def switch_native(self, kind, destination, foreign, *, verify_loaded=True):
         target = self.target if destination == 'new' else self.previous
@@ -277,7 +363,7 @@ class Transition:
                 shared.fsync_directory(STATE)
         need(set(self.receipt_locations().values()) == {'current'}, 'RECEIPT_ROLLBACK_READBACK')
 
-    def verify_end(self, state, selected, environment):
+    def verify_end(self, state, selected, environment, *, epoch=None):
         need(json.loads(self.new.read(self.path, private=True)) == self.closed(), 'DURABLE_GATE_CHANGED')
         need(self.observe() == dict.fromkeys(JOB_IDS, {'cron': selected, 'process': selected, 'status': 'Enable'}),
              'NATIVE_COMMIT_READBACK')
@@ -285,6 +371,8 @@ class Transition:
         self.check_records(allow_blocked=True)
         need(self.environment() == environment, 'NATIVE_HISTORY_OR_APPLICATION_CHANGED')
         self.safety()
+        if epoch is not None:
+            need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_RECONCILIATION')
         self.new.atomic(self.path, state)
 
     def persist_intent(self, raw):
@@ -348,21 +436,51 @@ class Transition:
         need(current in (self.previous, self.target, self.closed()), 'TRANSITION_STATE_DRIFT')
         return current
 
-    def reconcile(self, expected, *, apply=False):
+    def arm_recovery(self, expected):
+        current = self.read_intent(expected)
+        progress = self.new.file_json(self.history / 'progress.json')
+        need(current == self.closed() and progress is not None and progress['status'] in UNCERTAIN_CRON,
+             'UNCERTAIN_CLOSED_TRANSITION_REQUIRED')
+        self.receipt_locations()
+        self.check_records(allow_blocked=True)
+        epoch = agent_epoch(self.new)
+        objects = self.observe()
+        jobs = self.idle_panel_jobs()
+        need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_RECONCILIATION')
+        self.new.atomic(self.history / 'recovery-arm.json', {'format': FORMAT,
+            'uncertainty': progress, 'agentEpoch': epoch, 'objects': objects, 'jobs': jobs,
+            'observedAt': self.new.stamp()})
+        return {'status': 'ACTIVE_TRANSITION_RECOVERY_ARMED', 'gateClosed': True, 'nativeJobsIdle': True,
+                'panelRestarted': False}
+
+    def reconcile(self, expected, *, apply=False, recover=False):
         current = self.read_intent(expected)
         locations = self.receipt_locations(allow_current_new=not apply)
         objects = self.observe()
         loaded = loaded_supervisor_config(self.new)
         added = self.check_records(allow_blocked=apply)
         progress = self.new.file_json(self.history / 'progress.json')
-        runtime_unknown = progress is not None and progress['status'] in (
-            'NATIVE_CRON_STATUS_REQUEST', 'NATIVE_CRON_STATUS_UNKNOWN')
+        runtime_unknown = progress is not None and progress['status'] in UNCERTAIN_CRON
         if not apply:
             return {'status': 'ACTIVE_TRANSITION_READ_ONLY', 'changes': False, 'objects': objects,
                     'generation': current['generation'], 'phase': current['phase'], 'receipts': locations,
                     'supervisorMatchesDisk': loaded, 'nativeCronRuntimeStatusUnknown': runtime_unknown,
                     'postTransitionCronRecords': added}
-        need(not runtime_unknown, 'CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION')
+        epoch = None
+        if recover:
+            need(runtime_unknown and current == self.closed(), 'UNCERTAIN_CLOSED_TRANSITION_REQUIRED')
+            armed = self.new.file_json(self.history / 'recovery-arm.json')
+            need(armed is not None and armed.get('format') == FORMAT and armed.get('uncertainty') == progress
+                 and armed.get('objects') == objects, 'EXACT_RECOVERY_ARM_REQUIRED')
+            prior_epoch = armed['agentEpoch']
+            epoch = agent_epoch(self.new)
+            need(epoch['boot'] == prior_epoch['boot'] and epoch['startTicks'] > prior_epoch['startTicks'],
+                 'PANEL_AGENT_RESTART_NOT_ATTESTED')
+            need(self.idle_panel_jobs() == armed.get('jobs'), 'PANEL_JOBS_CHANGED_SINCE_RECOVERY_ARM')
+            verify_agent_startup(self.new, epoch, armed['jobs'])
+            need(agent_epoch(self.new) == epoch, 'PANEL_AGENT_CHANGED_DURING_RECONCILIATION')
+        else:
+            need(not runtime_unknown, 'CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION')
         environment = self.environment()
         self.old.verify_runners()
         self.new.atomic(self.path, self.closed())
@@ -377,7 +495,7 @@ class Transition:
         self.restore_receipts()
         for kind in JOB_IDS:
             self.set_status(kind, 'Enable', bound='old')
-        self.verify_end(self.previous, 'old', environment)
+        self.verify_end(self.previous, 'old', environment, epoch=epoch)
         self.marker('ROLLED_BACK')
         return {'status': 'ACTIVE_SETTINGS_GENERATION_ROLLED_BACK', 'generation': self.generation,
                 'nativeJobIds': JOB_IDS, 'backupExecuted': False, 'historyPreserved': True}
@@ -385,7 +503,7 @@ class Transition:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('plan', 'switch', 'reconcile', 'rollback'))
+    parser.add_argument('action', choices=('plan', 'switch', 'reconcile', 'rollback', 'arm-recovery', 'recover'))
     parser.add_argument('--old-program-sha256', required=True)
     parser.add_argument('--new-program-sha256', required=True)
     parser.add_argument('--old-generation', required=True)
@@ -394,7 +512,7 @@ def main():
     parser.add_argument('--apply', action='store_true')
     a = parser.parse_args()
     os.umask(0o077)
-    need((a.action in ('switch', 'rollback')) == a.apply, 'ONLY_SWITCH_OR_ROLLBACK_REQUIRE_APPLY')
+    need((a.action in ('switch', 'rollback', 'arm-recovery', 'recover')) == a.apply, 'UNEXPECTED_APPLY_FLAG')
     need(all(re.fullmatch('[a-f0-9]{64}', v) for v in (a.old_program_sha256, a.new_program_sha256))
          and a.old_program_sha256 != a.new_program_sha256
          and all(re.fullmatch('[a-f0-9]{32}', v) for v in (a.old_generation, a.new_generation))
@@ -417,8 +535,10 @@ def main():
             result = transition.plan()
         elif a.action == 'switch':
             result = transition.apply(a.old_state_sha256)
+        elif a.action == 'arm-recovery':
+            result = transition.arm_recovery(a.old_state_sha256)
         else:
-            result = transition.reconcile(a.old_state_sha256, apply=a.apply)
+            result = transition.reconcile(a.old_state_sha256, apply=a.apply, recover=a.action == 'recover')
     print(json.dumps(result, sort_keys=True))
 
 

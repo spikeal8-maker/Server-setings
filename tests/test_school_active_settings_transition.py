@@ -29,6 +29,10 @@ class ActiveFixture(Fixture):
         records = self.panel.records
         self.panel.records = lambda id, since: records(id, since) + [r for r in self.extra_records if r['cronjobID'] == id]
         self.panel.request = self.request
+        self.epoch = {'boot': 'fixture-boot', 'pid': 10, 'startTicks': 50}
+        self.stack.enter_context(patch.object(m, 'agent_epoch', side_effect=lambda _: self.epoch.copy()))
+        self.stack.enter_context(patch.object(m, 'verify_agent_build'))
+        self.stack.enter_context(patch.object(m, 'verify_agent_startup'))
         self.updater.post = self.post
         self.new.SETTINGS_BASE = self.root / 'settings'
         self.new.command = self.command
@@ -54,6 +58,8 @@ class ActiveFixture(Fixture):
         kind = next((k for k in self.old.KINDS if self.old.program(k) == (payload or {}).get('name')), None)
         if endpoint == '/hosts/tool/supervisor/process/file/get':
             return self.panel.configs[kind]
+        if endpoint == '/cronjobs/search/records':
+            return {'total': 0, 'items': []}
         state = json.loads((self.state_dir / 'state.json').read_text())
         if state['phase'] != 'ACTIVE_SETTINGS_TRANSITION':
             raise AssertionError('mutation without durable gate')
@@ -151,6 +157,23 @@ class ActiveTransitionTests(unittest.TestCase):
             with self.assertRaisesRegex(m.shared.RepairStop, 'CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION'):
                 f.transition.reconcile(sha, apply=True)
             self.assertEqual(f.mutations, before)
+
+    def test_recovery_requires_an_armed_later_agent_and_preserves_history(self):
+        with ActiveFixture() as f:
+            sha = f.transition.plan()['oldStateSha256']
+            f.fail = ('status-committed-response-lost', 'database')
+            with self.assertRaisesRegex(m.shared.RepairStop, 'CRON_RUNTIME_STATUS_UNKNOWN'):
+                f.transition.apply(sha)
+            f.fail = None
+            with self.assertRaisesRegex(m.shared.RepairStop, 'EXACT_RECOVERY_ARM_REQUIRED'):
+                f.transition.reconcile(sha, apply=True, recover=True)
+            self.assertTrue(f.transition.arm_recovery(sha)['gateClosed'])
+            with self.assertRaisesRegex(m.shared.RepairStop, 'PANEL_AGENT_RESTART_NOT_ATTESTED'):
+                f.transition.reconcile(sha, apply=True, recover=True)
+            f.epoch.update(pid=11, startTicks=51)
+            self.assertEqual(f.transition.reconcile(sha, apply=True, recover=True)['generation'], OLD_GEN)
+            self.assertTrue((f.transition.history / 'recovery-arm.json').is_file())
+            self.assertTrue(all(row['status'] == 'Enable' for row in f.panel.rows.values()))
 
     def test_disk_change_without_loaded_group_leaves_gate_closed_and_rolls_back(self):
         with ActiveFixture() as f:
