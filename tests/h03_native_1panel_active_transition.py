@@ -203,9 +203,9 @@ def test_native():
                         # In this private SQLite DB only, force persistence to fail
                         # after 1Panel has added its in-memory entry.
                         with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
-                            db.execute("""CREATE TRIGGER reject_fixture_enable BEFORE UPDATE ON cronjobs
-                                WHEN NEW.id = 1 AND NEW.status = 'Enable'
-                                BEGIN SELECT RAISE(ABORT, 'fixture rejects enable'); END;""")
+                            db.execute("CREATE TRIGGER reject_fixture_enable BEFORE UPDATE ON cronjobs "
+                                "WHEN NEW.id = 1 AND NEW.status = 'Enable' "
+                                "BEGIN SELECT RAISE(ABORT, 'fixture rejects enable'); END;")
                         try:
                             request(endpoint,payload,**kw)
                         except new.ScheduleError:
