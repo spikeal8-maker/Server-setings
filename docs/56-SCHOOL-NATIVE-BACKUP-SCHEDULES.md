@@ -157,11 +157,34 @@ sudo python3 -B scripts/school-1panel-active-settings-transition.py reconcile "$
 sudo python3 -B scripts/school-1panel-active-settings-transition.py rollback "${args[@]}" --old-state-sha256 "$state_sha" --apply
 ```
 
-На H03 фактический Supervisor 4.2.5 проверил обновление и возврат групп с
-сохранением байтов и inode журналов и PID отдельного сборщика. Тесты транзакции
-используют имитацию API Cron и настоящие Linux-файлы. Полная проверка на живой
-1Panel с Cron и Supervisor ещё требуется. Состояние школьных задач на этом
-этапе не изменялось.
+На H03 проверка использовала отдельные экземпляры 1Panel v2.3.2 и
+Supervisor 4.2.5, новые SQLite и ключ API. Переход и возврат прошли по
+настоящим Cron и Supervisor API, с сохранением ID, времени, истории,
+журналов и PID сборщика. Mount, PID и network namespaces отделяли стенд
+от работающих 1Panel, ASA Lab и Docker. В этом прогоне инвентарь приложения,
+legacy systemd и готовность runner моделировались. Отдельный архив настроек
+был испытан в предыдущем изолированном тесте с настоящим ASA API.
+
+После подтверждённого запроса Disable стенд отбросил его ответ. Скрипт
+сохранил закрытый gate и отказал в автоматическом возврате. Перезапуск
+только тестового агента загрузил одну включённую запись из тестовой
+SQLite. Отдельный синтетический Cron действительно запустился по
+расписанию. Рабочий скрипт не перезапускает 1Panel и не возобновляет
+переход при неизвестном исходе.
+
+Воспроизведение на H03 из принятого checkout. Временный каталог стенда
+закрывается после проверки. Пакет Supervisor извлекается в изолированное
+окружение, установка на хост не выполняется.
+
+```bash
+mkdir -p "$HOME/asa-h03-test-artifacts"
+cd "$HOME/asa-h03-test-artifacts"
+apt-get download supervisor=4.2.5-1ubuntu0.1
+cd '<принятый checkout Server-setings>'
+sudo python3 -B tests/h03_native_1panel_active_transition.py \
+  --supervisor-deb "$HOME/asa-h03-test-artifacts/supervisor_4.2.5-1ubuntu0.1_all.deb"
+```
+
 [Доказательства H03](../snapshots/2026-11-14/h03-active-settings-transition.json).
 
 ## Порядок воспроизведения
