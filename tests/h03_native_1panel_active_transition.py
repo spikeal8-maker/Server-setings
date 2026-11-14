@@ -202,6 +202,8 @@ def test_native():
                     if status=='Enable':
                         # In this private SQLite DB only, force persistence to fail
                         # after 1Panel has added its in-memory entry.
+                        agent_log=p('/work/1panel-agent.log')
+                        registrations=agent_log.read_text(errors='replace').count('start cronjob entryID:')
                         with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
                             db.execute("CREATE TRIGGER reject_fixture_enable BEFORE UPDATE ON cronjobs "
                                 "WHEN NEW.id = 1 AND NEW.status = 'Enable' "
@@ -211,7 +213,7 @@ def test_native():
                         except new.ScheduleError:
                             with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
                                 assert db.execute('SELECT status FROM cronjobs WHERE id=1').fetchone()==('Disable',)
-                            assert 'fixture rejects enable' in p('/work/1panel-agent.log').read_text(errors='replace')
+                            assert agent_log.read_text(errors='replace').count('start cronjob entryID:')==registrations+1
                             raise
                         finally:
                             with sqlite3.connect('/opt/1panel/db/agent.db',timeout=5) as db:
