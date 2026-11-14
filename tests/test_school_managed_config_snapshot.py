@@ -222,6 +222,45 @@ class RestoreContract(unittest.TestCase):
                 (normalized/(kind+'.zip')).write_bytes(self.payloads[f'normalized/{kind}.zip'])
             with self.assertRaisesRegex(snapshot.SnapshotError,'NORMALIZED_ZIP_TOTAL_BOUND'):
                 snapshot.verify_normalized_logs(self.root,WINDOW)
+        application = normalized/'application.zip'
+        application.write_bytes(normalized_zip('application',window=WINDOW))
+        host_bytes = snapshot.verify_zip(normalized/'host.zip','host',WINDOW)['recordBytes']
+        application_bytes = snapshot.verify_zip(application,'application',WINDOW)['recordBytes']
+        with mock.patch.object(snapshot,'MAX_WINDOW_RAW',max(host_bytes,application_bytes)):
+            with self.assertRaisesRegex(snapshot.SnapshotError,'ZIP_RAW_BYTES_BOUND'):
+                snapshot.verify_normalized_logs(self.root,WINDOW)
+
+    def test_output_budget_overflow_retries_only_narrower_window_with_clean_stage(self):
+        shorter = {'from':'2026-11-07T21:00:00.000Z','to':WINDOW['to']}
+        first = {'window':WINDOW,'catalogs':{}}
+        next_window = {'ready':True,'window':shorter,'catalogs':{}}
+        normalized = self.root / 'normalized'
+        normalized.mkdir()
+        (normalized / 'host.zip').write_bytes(b'partial export')
+        (normalized / 'application.zip').write_bytes(b'partial export')
+
+        def attempt(cid, name, stage, access):
+            if access == first:
+                raise snapshot.SnapshotError('NORMALIZED_OUTPUT_LIMIT')
+            self.assertEqual(access,next_window)
+            self.assertEqual(list(normalized.iterdir()),[])
+            return {'host':{},'application':{}}, {'proof':'shorter'}
+
+        with mock.patch.object(snapshot,'export_log_window',side_effect=attempt) as run, \
+                mock.patch.object(snapshot,'log_preflight',return_value=next_window) as preflight:
+            _, window, sources = snapshot.export_logs('api',ARCHIVE,self.root,first)
+        self.assertEqual(window,shorter)
+        self.assertEqual(sources,{'proof':'shorter'})
+        self.assertEqual(run.call_count,2)
+        preflight.assert_called_once_with('api',WINDOW,shorter=True)
+
+    def test_corruption_does_not_retry_as_budget_overflow(self):
+        with mock.patch.object(snapshot,'export_log_window',
+                               side_effect=snapshot.SnapshotError('ZIP_SEGMENT_INTEGRITY')), \
+                mock.patch.object(snapshot,'log_preflight') as preflight:
+            with self.assertRaisesRegex(snapshot.SnapshotError,'ZIP_SEGMENT_INTEGRITY'):
+                snapshot.export_logs('api',ARCHIVE,self.root,{'window':WINDOW})
+        preflight.assert_not_called()
 
     def test_legacy_archive_still_verifies(self):
         self.manifest.pop('applicationRelease')
@@ -343,6 +382,8 @@ const plan = boundedPlan(input,end);
 assert.deepEqual(plan.window,{from:begin,to:end});
 assert.equal(plan.catalogs.host.segments,2);
 assert.equal(plan.catalogs.application.segments,16000);
+assert.deepEqual(boundedPlan(input,end,24).window,{from:'2026-11-07T21:00:00.000Z',to:end});
+assert.throws(()=>boundedPlan(input,end,1),/WINDOW_LIMIT/);
 const future = '2026-11-08T09:00:00.001Z';
 application.catalog.segments.push(segment(25001,future,future));
 assert.deepEqual(logPlan(input,plan.window).catalogs,plan.catalogs);

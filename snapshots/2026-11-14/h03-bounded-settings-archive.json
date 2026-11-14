@@ -4,11 +4,11 @@
   "scope": "isolated no-network H03 container with shipped ASA API image, read-only synthetic log mounts, synthetic configurations and SQLite databases",
   "asaRelease": "a2e6b0688301463e6ac93d19822db4aca932efcc",
   "asaSchema": 316,
-  "candidateSettingsSnapshotSha256": "c1c196ce320229306d33d6b88e47632fef42ca2617128ab59710666fc306f5b4",
+  "candidateSettingsSnapshotSha256": "9665ef22b3d7a7c810480b47f363754362e636cf4fa4ba7676ae8d5daa9fcee2",
   "archiveFormat": "asa-school-managed-config-v3",
   "logWindow": {
-    "from": "2026-11-13T17:07:05.295Z",
-    "to": "2026-11-14T17:07:05.295Z"
+    "from": "2026-11-13T17:13:41.788Z",
+    "to": "2026-11-14T17:13:41.788Z"
   },
   "windowMatchedOuterManifestAndBothZipFilters": true,
   "retainedSegmentCounts": {
@@ -34,11 +34,48 @@
     "xpack.db": "ok"
   },
   "cipherBytes": 1085896,
-  "createSeconds": 10.78,
+  "createSeconds": 10.9,
   "fixtureSourcesUnchanged": true,
   "preExistingH03ContainerIdsStatesAndStartTimesUnchanged": 75,
-  "focusedLinuxTestsPassed": 54,
+  "focusedLinuxTestsPassed": 56,
+  "linuxRepositoryUnitTests": {
+    "total": 790,
+    "passed": 739,
+    "skipped": 51
+  },
+  "actualCanonicalOutputLimitFallback": {
+    "projectedInputBytes": 1627,
+    "budgetBytes": 2048,
+    "initialHours": 24,
+    "finalHours": 12,
+    "finalZipBytes": 2006,
+    "sameEnd": true,
+    "bothQuietCanonicalZipVerified": true
+  },
   "schoolTouched": false,
   "cloudUpload": "NOT_RUN",
-  "school1PanelScheduleSwitch": "NOT_RUN"
+  "school1PanelScheduleSwitch": "NOT_RUN",
+  "separateReadOnlySchoolPreflight": {
+    "candidateSettingsSnapshotSha256": "c1c196ce320229306d33d6b88e47632fef42ca2617128ab59710666fc306f5b4",
+    "asaSchema": 319,
+    "observedWindow": {
+      "from": "2026-11-14T05:09:20.667Z",
+      "to": "2026-11-14T17:09:20.667Z"
+    },
+    "host": {
+      "segments": 248,
+      "rawBytes": 87513333,
+      "storedBytes": 9880641
+    },
+    "application": {
+      "segments": 11144,
+      "rawBytes": 48544640,
+      "storedBytes": 48544640
+    },
+    "configurationPaths": 65,
+    "configurationDirectories": 50,
+    "nginxDependencies": 10,
+    "archiveCreated": false,
+    "schoolMutated": false
+  }
 }

@@ -719,8 +719,8 @@ function logPlan(input, window) {
     withinBounds:totals.segments <= SOURCE_LIMIT && totals.storedBytes <= ZIP_LIMIT &&
       totals.rawBytes <= RAW_LIMIT};
 }
-function boundedPlan(input, end) {
-  for (const hours of [24,12,6,3,1]) {
+function boundedPlan(input, end, shorterThan = Infinity) {
+  for (const hours of [24,12,6,3,1].filter(hours => hours < shorterThan)) {
     const window = {from:new Date(Date.parse(end)-hours*HOUR).toISOString(),to:end};
     const plan = logPlan(input,window);
     if (plan.withinBounds) return {window,...plan};
@@ -782,8 +782,12 @@ try {
   process.stdout.write(JSON.stringify({ok:true,results}));
 } catch (error) {
   if (created) await rm(work,{recursive:true,force:true});
-  const code = ['WINDOW_CHANGED','SEGMENT_CHANGED','LOG_SNAPSHOT_CHANGED'].includes(error.message) ||
-    error.code === 'ENOENT' ? 'WINDOW_CHANGED' : 'CANONICAL_NORMALIZED_EXPORT_FAILED';
+  let code = 'CANONICAL_NORMALIZED_EXPORT_FAILED';
+  if (['WINDOW_CHANGED','SEGMENT_CHANGED','LOG_SNAPSHOT_CHANGED'].includes(error.message) ||
+      error.code === 'ENOENT') code = 'WINDOW_CHANGED';
+  if (['ZIP_LIMIT','LOG_EXPORT_TOO_LARGE'].includes(error.message) || error.code === 'EFBIG') {
+    code = 'OUTPUT_LIMIT';
+  }
   process.stdout.write(JSON.stringify({ok:false,code}));
 }
 """
@@ -793,10 +797,13 @@ try {
   if (out.uid!==1000 || out.gid!==1000 || out.groups.length>64) throw Error('RUNTIME_GROUPS');
   const {readLogCatalog}=await import('/app/dist/admin-logs.worker.js');
   const input = await readStores(readLogCatalog);
-  const frozen = process.argv[1] ? JSON.parse(process.argv[1]) : null;
-  if (frozen && !validWindow(frozen)) throw Error('WINDOW_INVALID');
-  const {window,catalogs,withinBounds} = frozen
-    ? {window:frozen,...logPlan(input,frozen)} : boundedPlan(input,new Date(Date.now()-SETTLE_MS).toISOString());
+  const request = process.argv[1] ? JSON.parse(process.argv[1]) : null;
+  const frozen = request?.window;
+  if (request && !validWindow(frozen)) throw Error('WINDOW_INVALID');
+  const {window,catalogs,withinBounds} = request?.shorter
+    ? boundedPlan(input,frozen.to,(Date.parse(frozen.to)-Date.parse(frozen.from))/HOUR)
+    : frozen ? {window:frozen,...logPlan(input,frozen)}
+    : boundedPlan(input,new Date(Date.now()-SETTLE_MS).toISOString());
   Object.assign(out,{window,catalogs,ready:withinBounds});
 } catch (error) {
   out.code = ['WINDOW_LIMIT','SEGMENT_TIME','SEGMENT_METADATA','SEGMENT_RAW_BYTES','CATALOG_LIMIT',
@@ -834,9 +841,9 @@ def validate_source_proofs(proofs):
          'NORMALIZED_LOG_SOURCES_BOUND')
 
 
-def log_preflight(cid, window=None):
+def log_preflight(cid, window=None, *, shorter=False):
     # Keep the container's configured user and groups; do not override --user.
-    arguments = [json.dumps(validate_window(window))] if window is not None else []
+    arguments = [json.dumps({'window':validate_window(window), 'shorter':shorter})] if window is not None else []
     raw = run(['/usr/bin/docker', 'exec', cid, 'node', '--max-old-space-size=256',
                '--input-type=module', '-e', log_worker(PREFLIGHT_JS), *arguments], timeout=45)
     need(len(raw) <= 4096, 'LOG_PREFLIGHT_BOUND')
@@ -845,7 +852,10 @@ def log_preflight(cid, window=None):
          'LOG_PREFLIGHT_RECEIPT')
     if result.get('ready') is True:
         selected = validate_window(result.get('window'))
-        need(window is None or window == selected, 'LOG_PREFLIGHT_RECEIPT')
+        if shorter:
+            need(selected['to'] == window['to'] and selected['from'] > window['from'], 'LOG_PREFLIGHT_RECEIPT')
+        elif window is not None:
+            need(window == selected, 'LOG_PREFLIGHT_RECEIPT')
         validate_source_proofs(result.get('catalogs'))
     return result
 
@@ -866,9 +876,10 @@ try {
 """
 
 
-def verify_zip(path, kind, window=None):
+def verify_zip(path, kind, window=None, *, raw_limit=None):
     maximum = MAX_ZIP if window is None else MAX_WINDOW_ZIP
-    raw_maximum = MAX_RECORD_BYTES if window is None else MAX_WINDOW_RAW
+    if raw_limit is None:
+        raw_limit = MAX_RECORD_BYTES if window is None else MAX_WINDOW_RAW
     need(Path(path).stat().st_size <= maximum, 'ZIP_SIZE_BOUND')
     with zipfile.ZipFile(path) as archive:
         items = archive.infolist()
@@ -921,7 +932,7 @@ def verify_zip(path, kind, window=None):
                             raise SnapshotError('ZIP_RECORD_OUTSIDE_WINDOW') from None
                     nlines += 1
                     nbytes += len(line)
-                    need(total + nbytes <= raw_maximum, 'ZIP_RAW_BYTES_BOUND')
+                    need(total + nbytes <= raw_limit, 'ZIP_RAW_BYTES_BOUND')
                     h.update(line)
             need(nbytes == segment.get('bytes') == segment.get('rawBytes')
                  and nlines == segment.get('count') and h.hexdigest() == segment['sha256'], 'ZIP_SEGMENT_INTEGRITY')
@@ -937,13 +948,19 @@ def verify_normalized_logs(stage, window):
     paths = {kind: stage / 'normalized' / (kind + '.zip') for kind in ('host', 'application')}
     if window is not None:
         need(sum(path.stat().st_size for path in paths.values()) <= MAX_WINDOW_ZIP, 'NORMALIZED_ZIP_TOTAL_BOUND')
-    result = {kind: verify_zip(path, kind, window) for kind, path in paths.items()}
-    if window is not None:
-        need(sum(stats['recordBytes'] for stats in result.values()) <= MAX_WINDOW_RAW, 'NORMALIZED_RAW_TOTAL_BOUND')
+    result = {}
+    remaining = None if window is None else MAX_WINDOW_RAW
+    for kind, path in paths.items():
+        result[kind] = verify_zip(path, kind, window, raw_limit=remaining)
+        if remaining is not None:
+            remaining -= result[kind]['recordBytes']
     return result
 
 
-def export_logs(cid, name, stage, access):
+OUTPUT_LIMITS = {'NORMALIZED_OUTPUT_LIMIT','NORMALIZED_ZIP_TOTAL_BOUND','ZIP_RAW_BYTES_BOUND'}
+
+
+def export_log_window(cid, name, stage, access):
     work = '/tmp/asa-config-export-' + name.removesuffix('.tar.age')
     window = access['window']
     for attempt in range(2):
@@ -951,7 +968,8 @@ def export_logs(cid, name, stage, access):
         expected = {'window':window, 'catalogs':access['catalogs']}
         try:
             # Limit actual writes in the container as well as transferred and verified data.
-            raw = run(['/usr/bin/docker', 'exec', cid, '/bin/sh', '-c', 'ulimit -f "$1" && shift && exec "$@"',
+            raw = run(['/usr/bin/docker', 'exec', cid, '/bin/sh', '-c',
+                'ulimit -f "$1" && trap "" XFSZ && shift && exec "$@"',
                 'asa-config-export', str(MAX_WINDOW_ZIP // 512), 'node', '--max-old-space-size=256',
                 '--input-type=module', '-e', log_worker(EXPORT_JS), work, owner, json.dumps(expected)], timeout=240)
             need(len(raw) <= 4096, 'EXPORT_RECEIPT_BOUND')
@@ -960,6 +978,7 @@ def export_logs(cid, name, stage, access):
                 access = log_preflight(cid, window)
                 need(access.get('ready') is True, 'NORMALIZED_WINDOW_CHANGED_OR_OVER_LIMIT')
                 continue
+            need(receipt.get('code') != 'OUTPUT_LIMIT', 'NORMALIZED_OUTPUT_LIMIT')
             need(receipt.get('ok') is True, 'NORMALIZED_WINDOW_CHANGED' if receipt.get('code') == 'WINDOW_CHANGED'
                  else 'NORMALIZED_EXPORT_FAILED')
             for kind in ('host', 'application'):
@@ -978,6 +997,22 @@ def export_logs(cid, name, stage, access):
         finally:
             run(['/usr/bin/docker', 'exec', cid, 'node',
                  '--input-type=module', '-e', CLEAN_JS, work, owner], timeout=30)
+
+
+def export_logs(cid, name, stage, access):
+    while True:
+        window = access['window']
+        try:
+            logs, catalogs = export_log_window(cid, name, stage, access)
+        except SnapshotError as failure:
+            if str(failure) not in OUTPUT_LIMITS:
+                raise
+            for kind in ('host','application'):
+                (stage / 'normalized' / (kind + '.zip')).unlink(missing_ok=True)
+            access = log_preflight(cid, window, shorter=True)
+            need(access.get('ready') is True, 'NORMALIZED_OUTPUT_LIMIT_NO_SHORTER_WINDOW')
+        else:
+            return logs, window, catalogs
 
 
 def entry(path, member, info, kind):
@@ -1166,7 +1201,7 @@ def create(name):
             target = stage / 'sqlite' / db
             info = sqlite_snapshot(Path('/opt/1panel/db') / db, target)
             rows.append(entry(target, 'sqlite/' + db, info, 'sqlite'))
-        logs, sources = export_logs(cid, name, stage, access)
+        logs, window, sources = export_logs(cid, name, stage, access)
         for kind in ('host','application'):
             member = 'normalized/' + kind + '.zip'
             rows.append(entry(stage / member, member, None, 'normalized'))
@@ -1183,7 +1218,7 @@ def create(name):
             'entries': rows, 'directories': [{'path': p, 'metadata': metadata(Path(p).lstat()) if sig else None}
                 for p, sig in sorted(directories.items())], 'nginxDependencies': dependencies,
             'normalizedLogs': logs, 'coverageComplete': False,
-            'normalizedLogWindow': access['window'], 'normalizedLogSources': sources,
+            'normalizedLogWindow': window, 'normalizedLogSources': sources,
             'coverageStatement': 'Retained normalized evidence within the stated UTC window; late arrivals and prior gaps are possible.',
             'sqliteConsistency': 'Online SQLite backup API; each database individually consistent, not one cross-database transaction.',
             'gatewayOAuthContinuity': False, 'gatewayLiveDatabaseIncluded': False,
@@ -1219,7 +1254,7 @@ def create(name):
     private_write(TARGET / (name + '.sha256'), (checksum + '  ' + str(output) + '\n').encode('ascii'))
     receipt = {'status': 'CONFIG_ARCHIVE_CREATED_NOT_CLOUD_VERIFIED', 'archive': name, 'bytes': size,
         'ciphertextSha256': checksum, 'configurationFiles': len(files), 'sqliteDatabases': 3,
-        'normalizedLogs': logs, 'normalizedLogWindow': access['window'],
+        'normalizedLogs': logs, 'normalizedLogWindow': window,
         'coverageComplete': False, 'gatewayOAuthContinuity': False,
         'schedulesChanged': False, 'servicesChanged': False, 'restoreValidated': False}
     write_json(TARGET / (name + '.created.json'), receipt)
