@@ -110,6 +110,53 @@ runner и внешний предел 1900 секунд с 45 секундами
 [`CommandHelper`](https://github.com/1Panel-dev/1Panel/blob/65243c68c463cc055ab044093f641ea5d2e9e28b/agent/utils/cmd/cmdx.go),
 [`Supervisor`](https://github.com/1Panel-dev/1Panel/blob/65243c68c463cc055ab044093f641ea5d2e9e28b/agent/app/service/host_tool.go).
 
+## Замена поколения уже активного расписания
+
+Для подготовленной замены пакета настроек используйте
+`scripts/school-1panel-active-settings-transition.py` из принятого Git checkout.
+Переход требует действующий статус `ACTIVE/1panel`, точные старый и новый
+SHA-256 wrapper и UUID поколений, совпадение ID 1/2, свободные блокировки,
+отключённые legacy-таймеры и полное совпадение действующего Cron DTO и
+конфигураций Supervisor. Файлы базы, MinIO и планировщик Docker не участвуют.
+
+`plan` ничего не меняет. Он выводит `oldStateSha256` для передачи в `switch`.
+`switch --apply` устанавливает неизменяемый пакет, выполняет read-only
+проверку его runner, сохраняет исходное состояние, закрывает запуск worker,
+меняет путь к коду и поколение у тех же Cron ID и групп Supervisor. Расписания
+03:20 и 04:00 по Москве остаются прежними. В конце сверяются старые записи Cron,
+журналы Supervisor, контейнеры приложения и сборщик. Копирование в ходе
+переключения не запускается.
+
+`reconcile` классифицирует состояние двух задач и групп. `rollback --apply`
+возвращает точное исходное поколение после ошибки или для проверки перехода.
+Он требует исходный хеш и разрешён только до первой новой записи Cron или
+запуска нового worker. После неоднозначного результата запускается
+`reconcile`. Повторный `switch` не возобновляет незавершённую операцию.
+Старые конфигурации, квитанции, исходный вывод и история Cron не удаляются.
+
+```bash
+old_sha='<SHA256 действующего wrapper>'
+new_sha="$(sha256sum scripts/school-1panel-backup-schedules.py | cut -d' ' -f1)"
+old_generation='<generation из рабочего состояния>'
+new_generation="$(python3 -I -c 'import uuid; print(uuid.uuid4().hex)')"
+args=(--old-program-sha256 "$old_sha" --new-program-sha256 "$new_sha"
+      --old-generation "$old_generation" --new-generation "$new_generation")
+sudo python3 -B scripts/school-1panel-active-settings-transition.py plan "${args[@]}"
+# Вставить oldStateSha256 из принятого плана.
+state_sha='<oldStateSha256>'
+sudo python3 -B scripts/school-1panel-active-settings-transition.py switch "${args[@]}" --old-state-sha256 "$state_sha" --apply
+sudo python3 -B scripts/school-1panel-active-settings-transition.py reconcile "${args[@]}" --old-state-sha256 "$state_sha"
+# Только если нужен возврат до первого нового запуска:
+sudo python3 -B scripts/school-1panel-active-settings-transition.py rollback "${args[@]}" --old-state-sha256 "$state_sha" --apply
+```
+
+На H03 фактический Supervisor 4.2.5 проверил обновление и возврат групп с
+сохранением байтов и inode журналов и PID отдельного сборщика. Тесты транзакции
+используют имитацию API Cron и настоящие Linux-файлы. Полная проверка на живой
+1Panel с Cron и Supervisor ещё требуется. Состояние школьных задач на этом
+этапе не изменялось.
+[Доказательства H03](../snapshots/2026-11-14/h03-active-settings-transition.json).
+
 ## Порядок воспроизведения
 
 Этот порядок начинается с подготовленной или восстановленной школьной ASA

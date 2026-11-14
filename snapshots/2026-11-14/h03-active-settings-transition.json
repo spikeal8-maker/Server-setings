@@ -1,0 +1,16 @@
+{
+  "fullNativePanelTransition": "NOT_RUN",
+  "host": "admins-MS-7D22",
+  "isolatedBackupWorkersStayedIdle": true,
+  "linuxFilesystemTransitionScenarios": 6,
+  "observedOnMoscowDate": "2026-11-14",
+  "oldLogBytesAndInodesPreserved": true,
+  "onePanelCronApi": "test-double",
+  "phase": "test-fixture",
+  "realSupervisor": "4.2.5-1ubuntu0.1",
+  "schoolChanged": false,
+  "separateCollectorPidPreserved": true,
+  "standingH03ServicesChanged": false,
+  "supervisorGroupSwitchAndRollback": "PASS",
+  "verifiedDistroPackageSha256": "d6d9c70d73da4e5ad2e3a2355e96827545a4edf054de548164b0689c3b5f1f01"
+}
