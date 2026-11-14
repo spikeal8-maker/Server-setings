@@ -1,8 +1,9 @@
 {
+  "cronUncertainRuntimeStatusBlocksFurtherMutation": true,
   "fullNativePanelTransition": "NOT_RUN",
   "host": "admins-MS-7D22",
   "isolatedBackupWorkersStayedIdle": true,
-  "linuxFilesystemTransitionScenarios": 6,
+  "linuxFilesystemTransitionScenarios": 10,
   "observedOnMoscowDate": "2026-11-14",
   "oldLogBytesAndInodesPreserved": true,
   "onePanelCronApi": "test-double",
@@ -12,5 +13,6 @@
   "separateCollectorPidPreserved": true,
   "standingH03ServicesChanged": false,
   "supervisorGroupSwitchAndRollback": "PASS",
+  "supervisorReadbackChecksLoadedConfig": true,
   "verifiedDistroPackageSha256": "d6d9c70d73da4e5ad2e3a2355e96827545a4edf054de548164b0689c3b5f1f01"
 }

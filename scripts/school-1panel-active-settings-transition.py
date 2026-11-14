@@ -3,13 +3,16 @@
 
 import argparse
 import copy
+from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
 import os
 from pathlib import Path
 import re
 import socket
+import stat
 import sys
+import tempfile
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).absolute().parent
@@ -18,6 +21,9 @@ STATE = Path('/var/lib/server-settings/1panel-backup-schedules')
 HOST = 'asa-school-01'
 NAME = 'school-1panel-backup-schedules.py'
 FORMAT = 'asa-active-settings-transition-v1'
+SUPERVISOR_CONFIG = Path('/etc/supervisor/supervisord.conf')
+SUPERVISOR_CTL = Path('/usr/bin/supervisorctl')
+SUPERVISOR_SOCKET = Path('/run/supervisor.sock')
 
 spec = importlib.util.spec_from_file_location('staged_repair_contract', HERE / 'school-1panel-staged-repair.py')
 shared = importlib.util.module_from_spec(spec)
@@ -56,6 +62,19 @@ def validate_terminal_receipts(cron, state):
              and run.get('dispatchId') == dispatch['dispatchId'], 'OLD_DISPATCH_NOT_TERMINAL')
 
 
+def loaded_supervisor_config(cron):
+    """Use the same privileged local control socket as the reviewed daemon."""
+    cron.trusted(SUPERVISOR_CTL)
+    cron.trusted(SUPERVISOR_CONFIG)
+    cron.trusted(SUPERVISOR_SOCKET.parent, directory=True)
+    socket_stat = SUPERVISOR_SOCKET.lstat()
+    need(stat.S_ISSOCK(socket_stat.st_mode) and socket_stat.st_uid == 0
+         and not socket_stat.st_mode & 0o022, 'SUPERVISOR_SOCKET_UNTRUSTED')
+    output = cron.command([str(SUPERVISOR_CTL), '-c', str(SUPERVISOR_CONFIG),
+                           '-s', 'unix://' + str(SUPERVISOR_SOCKET), 'reread'], 25)
+    return output.strip() == 'No config updates to processes'
+
+
 class Transition:
     def __init__(self, old, new, panel, old_sha, new_sha, generation, target_generation):
         self.old, self.new, self.panel = old, new, panel
@@ -82,8 +101,21 @@ class Transition:
         return self.old.foreign_snapshot(self.panel.programs())
 
     def records(self):
-        return {kind: self.panel.records(job_id, self.previous['createdAt'])
+        return {kind: self.panel.records(job_id, self.intent['recordsSince'])
                 for kind, job_id in JOB_IDS.items()}
+
+    def check_records(self, *, allow_blocked=False):
+        records = self.records()
+        previous = {kind: {r['id']: r for r in self.intent['records'][kind]} for kind in JOB_IDS}
+        current = {kind: {r['id']: r for r in records[kind]} for kind in JOB_IDS}
+        need(all(len(current[k]) == len(records[k]) and
+                 all(current[k].get(id) == row for id, row in previous[k].items()) for k in JOB_IDS),
+             'NATIVE_HISTORY_CHANGED_SINCE_TRANSITION')
+        added = {kind: [row for id, row in current[kind].items() if id not in previous[kind]] for kind in JOB_IDS}
+        if allow_blocked:
+            need(all(row['status'] in ('Failed', 'Canceled') for rows in added.values() for row in rows),
+                 'UNEXPECTED_NATIVE_CRON_RUN_DURING_TRANSITION')
+        return {kind: len(rows) for kind, rows in added.items()}
 
     def classification(self, kind):
         row = self.new.unique(self.panel.jobs(), self.new.cron_name(kind))
@@ -113,6 +145,10 @@ class Transition:
     def observe(self):
         return {kind: self.classification(kind) for kind in JOB_IDS}
 
+    def verify_loaded(self):
+        need(loaded_supervisor_config(self.new), 'SUPERVISOR_CONFIGURATION_NOT_LOADED')
+
+
     def before(self):
         self.safety()
         self.old.verify_runners()
@@ -122,6 +158,7 @@ class Transition:
         need(json.loads(raw) == self.previous and not self.history.exists() and not self.history.is_symlink(),
              'ACTIVE_TRANSITION_ALREADY_EXISTS_OR_DRIFTED')
         self.old.Controller(self.panel, self.old.Legacy()).objects(self.previous, status='Enable', idle=True)
+        self.verify_loaded()
         validate_terminal_receipts(self.old, self.previous)
         self.target = copy.deepcopy(self.previous)
         self.target.update(generation=self.target_generation, previousGeneration=self.generation,
@@ -131,10 +168,14 @@ class Transition:
             job.pop('probe', None)
             job.pop('probeIntent', None)
         active(self.target, self.new, self.new_sha, self.target_generation)
+        # The native list endpoint is bounded at 100 rows. Verify a fixed recent
+        # interval across the switch without rewriting the full native history.
+        since = max(self.previous['createdAt'], (datetime.now(timezone.utc) - timedelta(days=7)).isoformat())
         self.intent = {'format': FORMAT, 'oldStateSha256': shared.checksum(raw), 'targetState': self.target,
                        'cronInfo': {k: self.updater.info(self.previous, k) for k in JOB_IDS},
-                       'records': self.records(),
+                       'recordsSince': since,
                        'receipts': {n: shared.captured_directory(self.old, STATE / n) for n in ('dispatch', 'runs')}}
+        self.intent['records'] = self.records()
         need(self.observe() == dict.fromkeys(JOB_IDS, {'cron': 'old', 'process': 'old', 'status': 'Enable'})
              and self.old.read(self.path, private=True) == raw, 'NATIVE_BASELINE_CHANGED')
         return raw
@@ -151,9 +192,9 @@ class Transition:
         return self.previous | {'phase': 'ACTIVE_SETTINGS_TRANSITION', 'owner': 'none',
                                 'transitionHistory': str(self.history)}
 
-    def marker(self, status):
+    def marker(self, status, *, operation=None):
         self.new.atomic(self.history / 'progress.json', {'format': FORMAT, 'status': status,
-                        'observedAt': self.new.stamp()})
+                        'operation': operation, 'observedAt': self.new.stamp()})
 
     def request_once(self, change, verify):
         # Reconcile one possibly committed request before declaring an error.
@@ -170,10 +211,18 @@ class Transition:
         if row['status'] == target:
             return
         need(row['cron'] == bound, 'CRON_GENERATION_CHANGED_BEFORE_STATUS_UPDATE')
-        self.request_once(lambda: self.panel.request('/cronjobs/status', {'id': JOB_IDS[kind], 'status': target}),
-                          lambda: need(self.classification(kind)['status'] == target, 'CRON_STATUS_READBACK'))
+        self.marker('NATIVE_CRON_STATUS_REQUEST', operation={'kind': kind, 'target': target})
+        try:
+            self.panel.request('/cronjobs/status', {'id': JOB_IDS[kind], 'status': target})
+        except self.new.ScheduleError:
+            # 1Panel adjusts the in-memory entry before persisting job status.
+            # A DTO alone cannot confirm whether an unsuccessful call changed it.
+            self.marker('NATIVE_CRON_STATUS_UNKNOWN', operation={'kind': kind, 'target': target})
+            raise shared.RepairStop('CRON_RUNTIME_STATUS_UNKNOWN') from None
+        need(self.classification(kind)['status'] == target, 'CRON_STATUS_READBACK')
+        self.marker('NATIVE_CRON_STATUS_ACKNOWLEDGED', operation={'kind': kind, 'target': target})
 
-    def switch_native(self, kind, destination, foreign):
+    def switch_native(self, kind, destination, foreign, *, verify_loaded=True):
         target = self.target if destination == 'new' else self.previous
         observed = self.classification(kind)
         need(observed['status'] == 'Disable', 'CRON_MUST_BE_DISABLED')
@@ -183,6 +232,8 @@ class Transition:
                  'content': self.new.process_config(target, kind)}),
                  lambda: need(self.classification(kind)['process'] == destination, 'PROCESS_UPDATE_READBACK'))
             need(self.foreign() == foreign, 'COLLECTOR_CHANGED_DURING_SWITCH')
+        if verify_loaded:
+            self.verify_loaded()
         if observed['cron'] != destination:
             payload = self.intent['cronInfo'][kind] | self.new.cron_payload(target, kind)
             self.request_once(lambda: self.updater.post('/cronjobs/update', payload),
@@ -230,10 +281,24 @@ class Transition:
         need(json.loads(self.new.read(self.path, private=True)) == self.closed(), 'DURABLE_GATE_CHANGED')
         need(self.observe() == dict.fromkeys(JOB_IDS, {'cron': selected, 'process': selected, 'status': 'Enable'}),
              'NATIVE_COMMIT_READBACK')
-        need(self.records() == self.intent['records'] and self.environment() == environment,
-             'NATIVE_HISTORY_OR_APPLICATION_CHANGED')
+        self.verify_loaded()
+        self.check_records(allow_blocked=True)
+        need(self.environment() == environment, 'NATIVE_HISTORY_OR_APPLICATION_CHANGED')
         self.safety()
         self.new.atomic(self.path, state)
+
+    def persist_intent(self, raw):
+        self.new.directory(self.history.parent)
+        shared.fsync_directory(STATE)
+        # A process crash can leave a private staging directory but cannot
+        # publish a half-written intent under the actual generation name.
+        stage = Path(tempfile.mkdtemp(prefix='.active-transition-', dir=self.history.parent))
+        self.new.immutable(stage / 'old-state.json', raw)
+        self.new.immutable(stage / 'intent.json', self.new.canonical(self.intent) + b'\n')
+        shared.fsync_directory(stage)
+        need(not self.history.exists() and not self.history.is_symlink(), 'TRANSITION_INTENT_ALREADY_PUBLISHED')
+        os.rename(stage, self.history)
+        shared.fsync_directory(self.history.parent)
 
     def apply(self, expected):
         raw = self.before()
@@ -246,13 +311,7 @@ class Transition:
         need(checked.get('status') == 'CONFIG_SCHEDULE_READONLY_CHECK_PASS'
              and checked.get('releaseSha256') == self.new.digest(self.new.canonical(self.new.SETTINGS_FILES))
              and checked.get('catalogsReady') is True and checked.get('changes') is False, 'NEW_SETTINGS_RUNNER_NOT_READY')
-        self.new.directory(self.history.parent)
-        shared.fsync_directory(STATE)
-        self.new.directory(self.history)
-        shared.fsync_directory(self.history.parent)
-        self.new.immutable(self.history / 'old-state.json', raw)
-        self.new.immutable(self.history / 'intent.json', self.new.canonical(self.intent) + b'\n')
-        shared.fsync_directory(self.history)
+        self.persist_intent(raw)
         shared.fsync_directory(Path(path).parent)
         shared.fsync_directory(Path(path).parent.parent)
         shared.fsync_directory(self.new.settings_release())
@@ -293,25 +352,28 @@ class Transition:
         current = self.read_intent(expected)
         locations = self.receipt_locations(allow_current_new=not apply)
         objects = self.observe()
-        records = self.records()
-        previous_ids = {kind: {row['id']: row for row in self.intent['records'][kind]} for kind in JOB_IDS}
-        current_ids = {kind: {row['id']: row for row in records[kind]} for kind in JOB_IDS}
-        need(all(all(current_ids[kind].get(id) == row for id, row in previous_ids[kind].items())
-                 for kind in JOB_IDS), 'NATIVE_HISTORY_CHANGED_SINCE_TRANSITION')
+        loaded = loaded_supervisor_config(self.new)
+        added = self.check_records(allow_blocked=apply)
+        progress = self.new.file_json(self.history / 'progress.json')
+        runtime_unknown = progress is not None and progress['status'] in (
+            'NATIVE_CRON_STATUS_REQUEST', 'NATIVE_CRON_STATUS_UNKNOWN')
         if not apply:
             return {'status': 'ACTIVE_TRANSITION_READ_ONLY', 'changes': False, 'objects': objects,
                     'generation': current['generation'], 'phase': current['phase'], 'receipts': locations,
-                    'postTransitionCronRecords': {kind: len(current_ids[kind].keys() - previous_ids[kind].keys())
-                                                  for kind in JOB_IDS}}
-        need(records == self.intent['records'], 'NEW_GENERATION_ALREADY_DISPATCHED_OR_RECEIPTS_CHANGED')
+                    'supervisorMatchesDisk': loaded, 'nativeCronRuntimeStatusUnknown': runtime_unknown,
+                    'postTransitionCronRecords': added}
+        need(not runtime_unknown, 'CRON_RUNTIME_REQUIRES_MANUAL_RECONCILIATION')
         environment = self.environment()
         self.old.verify_runners()
         self.new.atomic(self.path, self.closed())
         self.marker('ROLLING_BACK')
         for kind in JOB_IDS:
             self.set_status(kind, 'Disable', bound=objects[kind]['cron'])
+        # Repair an observed partial INI write by restoring the reviewed source
+        # via the same scoped native group update. No uncertain update is retried.
         for kind in JOB_IDS:
-            self.switch_native(kind, 'old', environment['collector'])
+            self.switch_native(kind, 'old', environment['collector'], verify_loaded=False)
+        self.verify_loaded()
         self.restore_receipts()
         for kind in JOB_IDS:
             self.set_status(kind, 'Enable', bound='old')
