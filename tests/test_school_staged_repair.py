@@ -38,6 +38,22 @@ FIXED_TAIL = ("    # The worker owns its streaming output, including the termina
 OLD_TAIL = "    print(json.dumps(value, sort_keys=True), flush=True)\n"
 
 
+def accepted_stdout_fix():
+    # This case tests a historical, two-line repair against its immutable source.
+    # Reverse only the later settings package pins, then verify the historical SHA.
+    wrapper = CODE / repair.NAME
+    current = load('current_native_schedule_pins', wrapper)
+    installer = load('current_legacy_settings_package_pins', CODE / 'install-school-nightly-settings-backup.py')
+    current_unit = hashlib.sha256(installer.SERVICE_BODY.encode()).hexdigest()
+    text = wrapper.read_text()
+    text = text.replace(current.SETTINGS_FILES['school_settings_snapshot.py'],
+                        '9a7719c5705fb6883857b0c25be1e19f9ee7f3009c8594a43ca15d04d0bffbe2', 1)
+    text = text.replace(current.SETTINGS_FILES['school-nightly-settings-backup.py'],
+                        'fd27a26dba0850663010501ad4456a494bf0203e4974c288a59c3e0474b0352b', 1)
+    text = text.replace("',\n                    '" + current_unit + "')", "')", 1)
+    return text.encode()
+
+
 class Fixture:
     def __enter__(self):
         self.stack = ExitStack()
@@ -48,7 +64,7 @@ class Fixture:
         self.calls, self.mutations = [], []
         self.fail = None
         self.collector_pid = '2770698'
-        fixed = (CODE / repair.NAME).read_bytes()
+        fixed = accepted_stdout_fix()
         if hashlib.sha256(fixed).hexdigest() != repair.NEW_SHA:
             raise AssertionError('fixed wrapper fixture pin changed')
         text = fixed.decode()

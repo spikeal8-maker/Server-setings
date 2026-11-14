@@ -35,9 +35,17 @@ import zipfile
 HOST = 'asa-school-01'
 INSTANCE = 'fc0ba60fe1d946bba1694d73557cc11f'
 PROJECT = 'asa-lab-school'
-REVISION = '3e8713476cafedda3e24a39665458e833efd7c22'
-API_IMAGE = 'sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f'
-EXPORTER_BLOB = '47e562c63f0246648736461aabc31c70bac670ce'
+APP_ROOT = Path('/srv/asa-lab')
+REPOSITORY = 'spikeal8-maker/asa-lab'
+SHA1 = re.compile(r'[a-f0-9]{40}')
+IMAGE_ID = re.compile(r'sha256:[a-f0-9]{64}')
+RELEASE_SERVICES = {
+    'asa-deployment-v1': {'api', 'web', 'scratch', 'minio'},
+    'asa-deployment-v2': {'api', 'web', 'scratch', 'minio', 'search'},
+}
+LEGACY_REVISION = '3e8713476cafedda3e24a39665458e833efd7c22'
+LEGACY_API_IMAGE = 'sha256:8c75744e9ffa805b9f10fd08755b55de2148bf4b420fa008e78ffc28aec4e36f'
+LEGACY_EXPORTER_BLOB = '47e562c63f0246648736461aabc31c70bac670ce'
 BASE_REVISION = '68b20c23dfb07ebb533b2ca62dd04c4a6ce758fe'
 PUBLIC_RECIPIENT_SHA256 = '32c01d34f5d6e30bdeb5d2e96c9d948251d2a33fdd88a3509cd3e79c8f590fcc'
 TARGET = Path('/var/backups/server-settings')
@@ -52,7 +60,8 @@ MAX_ZIP = 256 * 1024**2
 MAX_RECORD_BYTES = 2 * 1024**3
 MAX_FILES = 160
 DB_NAMES = ('core.db', 'agent.db', 'xpack.db')
-FORMAT = 'asa-school-managed-config-v1'
+LEGACY_FORMAT = 'asa-school-managed-config-v1'
+FORMAT = 'asa-school-managed-config-v2'
 
 UNITS = (
     '1panel-core.service', '1panel-agent.service', 'asa-frpc.service',
@@ -400,7 +409,7 @@ def run(args, *, timeout=30, output=None, pass_fds=(), limit=None):
 
 def check_host():
     need(os.geteuid() == 0 and socket.gethostname() == HOST, 'VM100_ROOT_REQUIRED')
-    raw, _ = stable_read('/srv/asa-lab/.asa/installation.json')
+    raw, _ = stable_read(APP_ROOT / '.asa' / 'installation.json')
     identity = json.loads(raw)
     need(identity.get('instanceId') == INSTANCE and identity.get('project') == PROJECT,
          'SCHOOL_INSTANCE_CHANGED')
@@ -433,29 +442,78 @@ def docker_view(container, expression):
     return json.loads(raw)
 
 
-def api_runtime():
+def validate_application_release(release, code):
+    # Mirror the supported deployment manifests from the ASA updater. The
+    # archived declaration contains only these public release identity fields.
+    need(isinstance(release, dict), code)
+    release_format = release.get('format')
+    need(isinstance(release_format, str) and release_format in RELEASE_SERVICES
+         and release.get('repository') == REPOSITORY and release.get('platform') == 'linux/amd64'
+         and isinstance(release.get('revision'), str) and SHA1.fullmatch(release['revision'])
+         and type(release.get('schema')) is int and release['schema'] > 0
+         and type(release.get('publicationRunId')) is int and release['publicationRunId'] > 0, code)
+    images = release.get('images')
+    need(isinstance(images, dict) and images.keys() == RELEASE_SERVICES[release_format], code)
+    for service, reference in images.items():
+        prefix = 'ghcr.io/' + REPOSITORY + '/' + service + '@'
+        need(isinstance(reference, str) and reference.startswith(prefix)
+             and IMAGE_ID.fullmatch(reference.removeprefix(prefix)), code)
+    fields = ('format', 'repository', 'revision', 'schema', 'platform', 'publicationRunId', 'images')
+    return {key: release[key] for key in fields}
+
+
+def attested_api_runtime():
+    raw, _ = stable_read(APP_ROOT / '.asa' / 'installed-release.json', 65536)
+    try:
+        installed = json.loads(raw)
+    except ValueError:
+        raise SnapshotError('API_RELEASE_MANIFEST_INVALID') from None
+    release = validate_application_release(installed, 'API_RELEASE_MANIFEST_INVALID')
+    reference = release['images']['api']
     raw = run(['/usr/bin/docker', 'ps', '--all', '--filter',
         'label=com.docker.compose.project=' + PROJECT, '--filter',
         'label=com.docker.compose.service=api', '--format', '{{.ID}}'])
+    need(len(raw) <= 256, 'CONTAINER_SELECTION_BOUND')
     ids = raw.decode('ascii').split()
     need(len(ids) == 1 and re.fullmatch(r'[a-f0-9]{12,64}', ids[0]), 'EXACT_API_REQUIRED')
     cid = ids[0]
     value = docker_view(cid,
-        '{"image":{{json .Image}},"labels":{{json .Config.Labels}},"user":{{json .Config.User}},'
+        '{"id":{{json .Id}},"image":{{json .Image}},"imageReference":{{json .Config.Image}},'
+        '"labels":{{json .Config.Labels}},"user":{{json .Config.User}},'
         '"state":{{json .State.Status}},"health":{{json .State.Health.Status}},'
-        '"mounts":{{json .Mounts}}}')
-    labels = value['labels']
-    need(value['image'] == API_IMAGE and value['user'] == 'node' and value['state'] == 'running'
-         and value['health'] == 'healthy' and labels.get('com.docker.compose.project') == PROJECT
-         and labels.get('com.docker.compose.project.working_dir') == '/srv/asa-lab'
-         and labels.get('org.opencontainers.image.revision') == REVISION, 'API_RUNTIME_CHANGED')
+        '"startedAt":{{json .State.StartedAt}},"mounts":{{json .Mounts}}}')
+    labels = value['labels'] or {}
+    need(isinstance(value['id'], str) and re.fullmatch(r'[a-f0-9]{64}', value['id'])
+         and value['id'].startswith(cid) and value['imageReference'] == reference
+         and value['user'] == 'node' and value['state'] == 'running' and value['health'] == 'healthy'
+         and labels.get('com.docker.compose.project') == PROJECT
+         and labels.get('com.docker.compose.service') == 'api'
+         and labels.get('com.docker.compose.project.working_dir') == str(APP_ROOT)
+         and labels.get('org.opencontainers.image.revision') == release['revision'],
+         'API_RUNTIME_CHANGED')
+    raw = run(['/usr/bin/docker', 'image', 'inspect', '--format',
+        '{"id":{{json .Id}},"digests":{{json .RepoDigests}},"os":{{json .Os}},'
+        '"architecture":{{json .Architecture}},"revision":{{json (index .Config.Labels "org.opencontainers.image.revision")}}}',
+        reference])
+    need(len(raw) <= 32768, 'DOCKER_METADATA_BOUND')
+    image = json.loads(raw)
+    need(isinstance(image.get('id'), str) and IMAGE_ID.fullmatch(image['id'])
+         and image['id'] == value['image'] and isinstance(image.get('digests'), list)
+         and reference in image['digests'] and image.get('revision') == release['revision']
+         and image.get('os') == 'linux' and image.get('architecture') == 'amd64', 'API_IMAGE_DRIFT')
     mounts = {m['Destination']: m for m in value['mounts']}
     host = mounts.get('/var/lib/asa-logs', {})
     app = mounts.get('/var/lib/asa-application-logs', {})
-    need(host.get('Type') == 'bind' and host.get('Source') == '/srv/asa-lab/.asa/diagnostics/store'
+    need(len(mounts) == len(value['mounts'])
+         and not any(path == '/' or path == '/app' or path.startswith('/app/') for path in mounts)
+         and host.get('Type') == 'bind' and host.get('Source') == str(APP_ROOT / '.asa/diagnostics/store')
          and host.get('RW') is False and app.get('Type') == 'volume'
          and app.get('Name') == PROJECT + '_application-logs', 'LOG_MOUNTS_CHANGED')
-    return cid
+    return {'container': value['id'], 'startedAt': value['startedAt'], 'release': release, 'image': image['id']}
+
+
+def api_runtime():
+    return attested_api_runtime()['container']
 
 
 def allowed_config(path):
@@ -770,12 +828,21 @@ def entry(path, member, info, kind):
 
 
 def validate_manifest(manifest, name):
-    need(manifest.get('format') == FORMAT and manifest.get('archive') == name
-         and manifest.get('hostname') == HOST and manifest.get('installationInstance') == INSTANCE
-         and manifest.get('settingsBaseRevision') == BASE_REVISION
-         and manifest.get('applicationRevision') == REVISION and manifest.get('apiImage') == API_IMAGE
-         and manifest.get('canonicalExporterBlob') == EXPORTER_BLOB,
-         'MANIFEST_IDENTITY')
+    need(manifest.get('archive') == name and manifest.get('hostname') == HOST
+         and manifest.get('installationInstance') == INSTANCE
+         and manifest.get('settingsBaseRevision') == BASE_REVISION, 'MANIFEST_IDENTITY')
+    if manifest.get('format') == LEGACY_FORMAT:
+        need(manifest.get('applicationRevision') == LEGACY_REVISION
+             and manifest.get('apiImage') == LEGACY_API_IMAGE
+             and manifest.get('canonicalExporterBlob') == LEGACY_EXPORTER_BLOB, 'MANIFEST_IDENTITY')
+    else:
+        need(manifest.get('format') == FORMAT, 'MANIFEST_IDENTITY')
+        release = validate_application_release(manifest.get('applicationRelease'), 'MANIFEST_IDENTITY')
+        need(release == manifest['applicationRelease']
+             and manifest.get('applicationRevision') == release['revision']
+             and manifest.get('apiImageReference') == release['images']['api']
+             and isinstance(manifest.get('apiImage'), str) and IMAGE_ID.fullmatch(manifest['apiImage']),
+             'MANIFEST_IDENTITY')
     need(manifest.get('coverageComplete') is False
          and manifest.get('gatewayOAuthContinuity') is False
          and manifest.get('gatewayLiveDatabaseIncluded') is False, 'MANIFEST_SCOPE')
@@ -883,8 +950,10 @@ def verify_tar(tar_path, destination, name):
         need(names == set(expected) | {'manifest.json'}, 'TAR_MISSING_MEMBER')
     with Path(tar_path).open('rb') as stream:
         stream.seek(expected_offset)
-        tail = stream.read(10241)
-        need(1024 <= len(tail) <= 10240 and not any(tail), 'TAR_END_MARKER')
+        # tarfile writes two end blocks, then pads to the next record boundary.
+        max_end_padding = tarfile.RECORDSIZE + tarfile.BLOCKSIZE
+        tail = stream.read(max_end_padding + 1)
+        need(2 * tarfile.BLOCKSIZE <= len(tail) <= max_end_padding and not any(tail), 'TAR_END_MARKER')
     configurations = {Path('/' + member[6:]) for member, row in expected.items() if row['kind'] == 'config'}
     native_ownership_for_omissions(configurations,
         lambda path: (destination / 'files' / str(path).lstrip('/')).read_bytes())
@@ -901,7 +970,8 @@ def verify_tar(tar_path, destination, name):
 def create(name):
     check_host()
     name = archive_name(name)
-    cid = api_runtime()
+    runtime = attested_api_runtime()
+    cid = runtime['container']
     access = log_preflight(cid)
     print(json.dumps({'stage': 'NORMALIZED_EXPORT_READABILITY', **access}, separators=(',', ':')), flush=True)
     need(access.get('ready') is True, 'NORMALIZED_CATALOGS_NOT_READABLE_WITH_RUNTIME_GROUPS')
@@ -939,10 +1009,12 @@ def create(name):
         _, final_snapshots, _, final_dependencies = config_inputs()
         need(final_snapshots == snapshots and final_dependencies == dependencies,
              'CONFIG_DEPENDENCY_SET_CHANGED_DURING_SNAPSHOT')
-        need(api_runtime() == cid, 'API_REPLACED_DURING_SNAPSHOT')
+        need(attested_api_runtime() == runtime, 'API_REPLACED_DURING_SNAPSHOT')
+        release = runtime['release']
         manifest = {'format': FORMAT, 'archive': name, 'createdAt': stamp(), 'hostname': HOST,
             'installationInstance': INSTANCE, 'settingsBaseRevision': BASE_REVISION,
-            'applicationRevision': REVISION, 'apiImage': API_IMAGE, 'canonicalExporterBlob': EXPORTER_BLOB,
+            'applicationRelease': release, 'applicationRevision': release['revision'],
+            'apiImage': runtime['image'], 'apiImageReference': release['images']['api'],
             'entries': rows, 'directories': [{'path': p, 'metadata': metadata(Path(p).lstat()) if sig else None}
                 for p, sig in sorted(directories.items())], 'nginxDependencies': dependencies,
             'normalizedLogs': logs, 'coverageComplete': False,

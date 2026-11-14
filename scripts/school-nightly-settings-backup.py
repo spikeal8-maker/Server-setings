@@ -46,7 +46,7 @@ RUNNER = 'school-nightly-settings-backup.py'
 PINS = {
     'backup-settings.sh': '069a0955933bed86d0d12b8e3ea3ed657f83c90e23ce89df6477cc4831eedd36',
     'school-settings-cloud-roundtrip.py': 'bb55a78d088861fcc599ea011f5ab2310921c0c6d31f1d28e7e1664662b8541f',
-    'school_settings_snapshot.py': '9a7719c5705fb6883857b0c25be1e19f9ee7f3009c8594a43ca15d04d0bffbe2',
+    'school_settings_snapshot.py': '42795336583e5a7d97caa5615080392f7e92a39d9b63dfd4b16d46bda7878d8a',
     'school_yandex_app_folder.py': '64ad5d3c9add88d7f754280e94f2f66b484892a97a4da53e3eba3d65ae46dc20',
     'cloud_storage.py': 'c6e30c3d1fa8aaa57e14c89b22c5677af5f5c5e132881925f2197949d7797d08',
 }

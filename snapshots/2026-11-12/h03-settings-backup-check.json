@@ -1,0 +1,30 @@
+{
+  "observedOnMoscowDate": "2026-11-12",
+  "host": "admins-MS-7D22",
+  "scope": "existing isolated H03 production-profile fixture with synthetic configuration and test logs",
+  "fixtureProject": "asa-lab-h03-316-a2e6b068",
+  "asaRelease": "a2e6b0688301463e6ac93d19822db4aca932efcc",
+  "asaSchema": 316,
+  "candidateSettingsSnapshotSha256": "42795336583e5a7d97caa5615080392f7e92a39d9b63dfd4b16d46bda7878d8a",
+  "archiveFormat": "asa-school-managed-config-v2",
+  "installedReleaseAndRuntimeAttestedBeforeAndAfter": true,
+  "ageDecryptVerifiedWithOneTimeTestIdentity": true,
+  "sqliteReadbacks": {
+    "agent.db": "ok",
+    "core.db": "ok",
+    "xpack.db": "ok"
+  },
+  "verifiedNormalizedLogRecords": {
+    "host": 1,
+    "application": 217
+  },
+  "protectedH03ContainerIdsAndStartTimesUnchanged": true,
+  "schoolTouched": false,
+  "cloudUpload": "NOT_RUN",
+  "school1PanelScheduleSwitch": "NOT_RUN",
+  "linuxSchoolUnitTests": {
+    "total": 309,
+    "passed": 288,
+    "skipped": 21
+  }
+}
