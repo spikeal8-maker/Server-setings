@@ -1,0 +1,42 @@
+{
+  "actualBackupAtRetainedOvernightTimes": "NOT_RUN",
+  "cronUncertainRuntimeStatusBlocksFurtherMutation": true,
+  "fixtureOnlyAgentRestartRehydratedPersistedEnabledCronEntries": 1,
+  "fullNativePanelTransition": "PASS",
+  "host": "admins-MS-7D22",
+  "isolatedBackupWorkersStayedIdle": true,
+  "isolation": {
+    "freshPanelApiKey": true,
+    "freshPanelSqlite": true,
+    "hostDockerSocketMapped": false,
+    "localSocketOnly": true,
+    "separateMountPidNetworkNamespaces": true
+  },
+  "linuxFilesystemTransitionScenarios": 11,
+  "lostResponseAfterNativeDisable": "PASS",
+  "nativeEnableLostPersistenceAfterInMemoryRegistration": "PASS",
+  "nativeRecoveryPreservedOriginalSchedulesAndHistory": true,
+  "recoveryRequiresLaterAttestedAgent": true,
+  "retryPreservesPriorTransitionHistory": true,
+  "nativeEnabledCronEntriesRegisteredBeforeTransition": 2,
+  "nativeFixtureBoundaries": [
+    "legacy systemd",
+    "ASA application inventory",
+    "settings runner readiness"
+  ],
+  "nativePanelCandidate": "dc537e8828ebdf053c17c462c399e923700831cb",
+  "nativeRollback": "PASS",
+  "observedOnMoscowDate": "2026-11-14",
+  "oldLogBytesAndInodesPreserved": true,
+  "onePanelCronApi": "native-1panel-v2.3.2",
+  "phase": "test-fixture",
+  "realNativeCronHistoryPreserved": true,
+  "realSupervisor": "4.2.5-1ubuntu0.1",
+  "schoolChanged": false,
+  "separateCollectorPidPreserved": true,
+  "standingH03ServicesChanged": false,
+  "supervisorGroupSwitchAndRollback": "PASS",
+  "supervisorReadbackChecksLoadedConfig": true,
+  "syntheticScheduledCronCallbackAfterRestart": "PASS",
+  "verifiedDistroPackageSha256": "d6d9c70d73da4e5ad2e3a2355e96827545a4edf054de548164b0689c3b5f1f01"
+}

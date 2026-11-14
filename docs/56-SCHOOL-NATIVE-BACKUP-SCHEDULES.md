@@ -110,6 +110,94 @@ runner и внешний предел 1900 секунд с 45 секундами
 [`CommandHelper`](https://github.com/1Panel-dev/1Panel/blob/65243c68c463cc055ab044093f641ea5d2e9e28b/agent/utils/cmd/cmdx.go),
 [`Supervisor`](https://github.com/1Panel-dev/1Panel/blob/65243c68c463cc055ab044093f641ea5d2e9e28b/agent/app/service/host_tool.go).
 
+## Замена поколения уже активного расписания
+
+Для подготовленной замены пакета настроек используйте
+`scripts/school-1panel-active-settings-transition.py` из принятого Git checkout.
+Переход требует действующий статус `ACTIVE/1panel`, точные старый и новый
+SHA-256 wrapper и UUID поколений, совпадение ID 1/2, свободные блокировки,
+отключённые legacy-таймеры и полное совпадение действующего Cron DTO и
+конфигураций Supervisor. Файлы базы, MinIO и планировщик Docker не участвуют.
+
+`plan` ничего не меняет. Он выводит `oldStateSha256` для передачи в `switch`.
+`switch --apply` устанавливает неизменяемый пакет, выполняет read-only
+проверку его runner, сохраняет исходное состояние, закрывает запуск worker,
+меняет путь к коду и поколение у тех же Cron ID и групп Supervisor. Расписания
+03:20 и 04:00 по Москве остаются прежними. В конце сверяются старые записи Cron,
+журналы Supervisor, контейнеры приложения и сборщик. Загрузка конфигурации
+проверяется отдельно командой supervisorctl reread через локальный Unix-сокет.
+История Cron сверяется за последние семь дней, до 100 записей на задачу.
+Старые записи за пределами этого интервала не изменяются. Копирование в
+ходе переключения не запускается.
+
+`reconcile` классифицирует состояние двух задач и групп. `rollback --apply`
+возвращает точное исходное поколение после ошибки или для проверки перехода.
+Он требует исходный хеш и отсутствие нового запуска worker. Новая запись
+Cron со статусом Failed/Canceled допускается только при отсутствии новой
+квитанции запуска. При неоднозначном ответе на включение или выключение
+задачи gate остаётся закрытым. Состояние Cron в базе 1Panel не доказывает
+состояние таймера в памяти, поэтому `reconcile` сообщает об этом и запрещает
+автоматический повтор или возврат. Повторный `switch` не возобновляет
+незавершённую операцию. После успешного возврата новый переход использует
+новый `new_generation`. История хранится по паре поколений.
+Старые конфигурации, квитанции, исходный вывод и история Cron не удаляются.
+
+```bash
+old_sha='<SHA256 действующего wrapper>'
+new_sha="$(sha256sum scripts/school-1panel-backup-schedules.py | cut -d' ' -f1)"
+old_generation='<generation из рабочего состояния>'
+new_generation="$(python3 -I -c 'import uuid; print(uuid.uuid4().hex)')"
+args=(--old-program-sha256 "$old_sha" --new-program-sha256 "$new_sha"
+      --old-generation "$old_generation" --new-generation "$new_generation")
+sudo python3 -B scripts/school-1panel-active-settings-transition.py plan "${args[@]}"
+# Вставить oldStateSha256 из принятого плана.
+state_sha='<oldStateSha256>'
+sudo python3 -B scripts/school-1panel-active-settings-transition.py switch "${args[@]}" --old-state-sha256 "$state_sha" --apply
+sudo python3 -B scripts/school-1panel-active-settings-transition.py reconcile "${args[@]}" --old-state-sha256 "$state_sha"
+# Только если нужен возврат до первого нового запуска:
+sudo python3 -B scripts/school-1panel-active-settings-transition.py rollback "${args[@]}" --old-state-sha256 "$state_sha" --apply
+```
+
+На H03 проверка использовала отдельные экземпляры 1Panel v2.3.2 и
+Supervisor 4.2.5, новые SQLite и ключ API. Переход и возврат прошли по
+настоящим Cron и Supervisor API, с сохранением ID, времени, истории,
+журналов и PID сборщика. Mount, PID и network namespaces отделяли стенд
+от работающих 1Panel, ASA Lab и Docker. В этом прогоне инвентарь приложения,
+legacy systemd и готовность runner моделировались. Отдельный архив настроек
+был испытан в предыдущем изолированном тесте с настоящим ASA API.
+
+При неизвестном исходе изменения статуса сначала сверяют `reconcile`.
+С отдельным разрешением на перезапуск агента оператор прекращает другие
+изменения в панели и выполняет `arm-recovery --apply` с теми же аргументами
+и исходным хешем. Команда сохраняет исходное состояние задач и проверяет
+отсутствие записей Running и Waiting по всем задачам 1Panel. Проверку
+повторяют непосредственно перед согласованным перезапуском только
+`1panel-agent.service`. Обычное переключение и команды этой процедуры сами
+не перезапускают службы.
+
+После запуска агента `recover --apply` с теми же аргументами проверяет
+новую эпоху процесса, регистрацию включённых задач в журнале и сохранённое
+состояние задач. Затем возвращает прежнее поколение и открывает расписание.
+При расхождении состояния остановитесь и повторите сверку. Если на этапе
+восстановления журнал уже подтверждён, но процесс прервался в
+`ROLLING_BACK` без нового неизвестного запроса, возврат продолжают штатным
+`rollback --apply`.
+
+Воспроизведение на H03 из принятого checkout. Временный каталог стенда
+закрывается после проверки. Пакет Supervisor извлекается в изолированное
+окружение, установка на хост не выполняется.
+
+```bash
+mkdir -p "$HOME/asa-h03-test-artifacts"
+cd "$HOME/asa-h03-test-artifacts"
+apt-get download supervisor=4.2.5-1ubuntu0.1
+cd '<принятый checkout Server-setings>'
+sudo python3 -B tests/h03_native_1panel_active_transition.py \
+  --supervisor-deb "$HOME/asa-h03-test-artifacts/supervisor_4.2.5-1ubuntu0.1_all.deb"
+```
+
+[Доказательства H03](../snapshots/2026-11-14/h03-active-settings-transition.json).
+
 ## Порядок воспроизведения
 
 Этот порядок начинается с подготовленной или восстановленной школьной ASA
