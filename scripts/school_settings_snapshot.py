@@ -58,10 +58,17 @@ MAX_CONFIG = 2 * 1024**2
 MAX_SQLITE = 128 * 1024**2
 MAX_ZIP = 256 * 1024**2
 MAX_RECORD_BYTES = 2 * 1024**3
+MAX_WINDOW_ZIP = 64 * 1024**2
+MAX_WINDOW_RAW = 512 * 1024**2
+MAX_WINDOW_SEGMENTS = 20000
+LOG_SETTLE_SECONDS = 120
 MAX_FILES = 160
 DB_NAMES = ('core.db', 'agent.db', 'xpack.db')
 LEGACY_FORMAT = 'asa-school-managed-config-v1'
-FORMAT = 'asa-school-managed-config-v2'
+RELEASE_FORMAT = 'asa-school-managed-config-v2'
+FORMAT = 'asa-school-managed-config-v3'
+LOG_TIME = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z')
+FULL_LOG_WINDOW = {'from': '1970-01-01T00:00:00.000Z', 'to': '9999-12-31T23:59:59.999Z'}
 
 UNITS = (
     '1panel-core.service', '1panel-agent.service', 'asa-frpc.service',
@@ -649,8 +656,96 @@ def sqlite_snapshot(source, target):
     return info
 
 
-EXPORT_JS = r"""
-import {mkdir, stat, rm, writeFile} from 'node:fs/promises';
+LOG_SCOPE_JS = r"""
+import {createHash} from 'node:crypto';
+import {lstat, mkdir, rm, stat, symlink, writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+const stores = [['host','/var/lib/asa-logs'],['application','/var/lib/asa-application-logs']];
+const HOUR = 60*60*1000;
+const MAX_CATALOG = 64*1024*1024;
+const MAX_SEGMENT = 4*1024*1024;
+const LOG_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+function timestamp(value) {
+  return typeof value === 'string' && LOG_TIME.test(value) &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
+}
+function validWindow(window) {
+  const hours = (Date.parse(window?.to) - Date.parse(window?.from)) / HOUR;
+  return timestamp(window?.from) && timestamp(window?.to) && [1,3,6,12,24].includes(hours);
+}
+async function readStores(readLogCatalog) {
+  const output = [];
+  for (const [kind, root] of stores) {
+    const size = (await stat(join(root,'catalog.json'))).size;
+    if (size > MAX_CATALOG) throw Error('CATALOG_LIMIT');
+    const catalog = await readLogCatalog(root);
+    if (!catalog || (catalog.applicationOwned === true) !== (kind === 'application')) {
+      throw Error('CATALOG_SCOPE');
+    }
+    output.push({kind,root,catalog});
+  }
+  return output;
+}
+function selectScope(catalog, window) {
+  const selected = [];
+  const files = new Set();
+  let storedBytes = 0, rawBytes = 0;
+  for (const s of catalog.segments) {
+    if (!timestamp(s?.first) || !timestamp(s?.last) || s.first > s.last) throw Error('SEGMENT_TIME');
+    if (s.last < window.from || s.first > window.to) continue;
+    const range = /^seg-(\d{16})-(\d{16})\.jsonl(?:\.gz)?$/.exec(s.file);
+    if (!range || range[1] > range[2] || files.has(s.file) ||
+        !Number.isSafeInteger(s.bytes) || s.bytes < 1 || s.bytes > MAX_SEGMENT ||
+        (s.schema === 2 && !/^[a-f0-9]{64}$/.test(s.sha256))) throw Error('SEGMENT_METADATA');
+    const raw = s.rawBytes ?? (s.file.endsWith('.gz') ? MAX_SEGMENT : s.bytes);
+    if (!Number.isSafeInteger(raw) || raw < 1 || raw > MAX_SEGMENT) throw Error('SEGMENT_RAW_BYTES');
+    files.add(s.file);
+    storedBytes += s.bytes;
+    rawBytes += raw;
+    selected.push(s);
+  }
+  selected.sort((a,b) => a.file.localeCompare(b.file));
+  const digest = createHash('sha256');
+  for (const s of selected) digest.update(JSON.stringify(s) + '\n');
+  return {selected, proof:{segments:selected.length,storedBytes,rawBytes,sha256:digest.digest('hex')}};
+}
+function logPlan(input, window) {
+  const selected = input.map(store => ({...store,...selectScope(store.catalog,window)}));
+  const totals = {segments:0,storedBytes:0,rawBytes:0};
+  for (const {proof} of selected) {
+    for (const field of Object.keys(totals)) totals[field] += proof[field];
+  }
+  return {selected, catalogs:Object.fromEntries(selected.map(store => [store.kind,store.proof])),
+    withinBounds:totals.segments <= SOURCE_LIMIT && totals.storedBytes <= ZIP_LIMIT &&
+      totals.rawBytes <= RAW_LIMIT};
+}
+function boundedPlan(input, end) {
+  for (const hours of [24,12,6,3,1]) {
+    const window = {from:new Date(Date.parse(end)-hours*HOUR).toISOString(),to:end};
+    const plan = logPlan(input,window);
+    if (plan.withinBounds) return {window,...plan};
+  }
+  throw Error('WINDOW_LIMIT');
+}
+async function scopedCatalog(store, dir) {
+  await mkdir(dir,{mode:0o700});
+  for (let i=0; i<store.selected.length; i+=32) {
+    await Promise.all(store.selected.slice(i,i+32).map(async segment => {
+      const source = join(store.root,segment.file);
+      const info = await lstat(source);
+      if (!info.isFile() || info.size !== segment.bytes) throw Error('SEGMENT_CHANGED');
+      await symlink(source,join(dir,segment.file));
+    }));
+  }
+  const {version,applicationOwned,retentionDays,maxBytes,trimmed} = store.catalog;
+  await writeFile(join(dir,'catalog.json'),
+    JSON.stringify({version,applicationOwned,retentionDays,maxBytes,trimmed,sources:[],segments:store.selected}),
+    {flag:'wx',mode:0o600});
+}
+"""
+
+
+EXPORT_JS = LOG_SCOPE_JS + r"""
 const work = process.argv[1];
 const owner = process.argv[2];
 let created = false;
@@ -660,65 +755,98 @@ try {
   if (process.getuid() !== 1000 || process.getgid() !== 1000 ||
       !/^\/tmp\/asa-config-export-asa-school-config-01-\d{8}T\d{6}Z-[a-f0-9]{8}$/.test(work) ||
       !/^[a-f0-9]{32}$/.test(owner)) throw Error();
+  const {window,catalogs} = JSON.parse(process.argv[3]);
+  if (!validWindow(window)) throw Error('WINDOW_INVALID');
   const {readLogCatalog, exportLogs} = await import('/app/dist/admin-logs.worker.js');
-  const stores = [['host','/var/lib/asa-logs'],['application','/var/lib/asa-application-logs']];
-  const filter = {scope:'all',from:'1970-01-01T00:00:00.000Z',to:'9999-12-31T23:59:59.999Z',
-    source:'',module:'',level:'',search:'',before:null};
-  for (const [kind,root] of stores) {
-    if ((await stat(root + '/catalog.json')).size > 8*1024*1024) throw Error();
-    const catalog = await readLogCatalog(root);
-    if (!catalog || catalog.segments.length < 1 || catalog.segments.length > 20000 ||
-        (catalog.applicationOwned === true) !== (kind === 'application') ||
-        catalog.segments.reduce((n,s)=>n+s.bytes,0) > 256*1024*1024 ||
-        catalog.segments.some(s=>s.first < filter.from || s.last > filter.to)) throw Error();
-  }
+  const filter = {scope:'all',...window,source:'',module:'',level:'',search:'',before:null};
+  const plan = logPlan(await readStores(readLogCatalog),window);
+  if (!plan.withinBounds) throw Error('WINDOW_LIMIT');
+  if (JSON.stringify(plan.catalogs) !== JSON.stringify(catalogs)) throw Error('WINDOW_CHANGED');
   await mkdir(work,{mode:0o700}); created = true;
   await writeFile(work+'/.owner',owner,{flag:'wx',mode:0o600});
   const results = {};
-  for (const [kind,root] of stores) {
-    const output = work + '/' + kind + '.zip';
-    const result = await exportLogs(root,filter,output);
-    if (result.count < 1 || result.bytes > 256*1024*1024 || (await stat(output)).size !== result.bytes) throw Error();
-    results[kind] = result;
+  let outputBytes = 0;
+  for (const store of plan.selected) {
+    const dir = join(work, store.kind);
+    const output = join(work, store.kind + '.zip');
+    await scopedCatalog(store,dir);
+    const result = await exportLogs(dir,filter,output);
+    await rm(dir,{recursive:true});
+    outputBytes += result.bytes;
+    if (!Number.isSafeInteger(result.count) || result.count < 0 || outputBytes > ZIP_LIMIT ||
+        (await stat(output)).size !== result.bytes) throw Error('ZIP_LIMIT');
+    results[store.kind] = result;
   }
+  const after = logPlan(await readStores(readLogCatalog),window);
+  if (JSON.stringify(after.catalogs) !== JSON.stringify(catalogs)) throw Error('WINDOW_CHANGED');
   process.stdout.write(JSON.stringify({ok:true,results}));
-} catch {
+} catch (error) {
   if (created) await rm(work,{recursive:true,force:true});
-  process.stdout.write(JSON.stringify({ok:false,code:'CANONICAL_NORMALIZED_EXPORT_FAILED'}));
-  process.exitCode = 2;
+  const code = ['WINDOW_CHANGED','SEGMENT_CHANGED','LOG_SNAPSHOT_CHANGED'].includes(error.message) ||
+    error.code === 'ENOENT' ? 'WINDOW_CHANGED' : 'CANONICAL_NORMALIZED_EXPORT_FAILED';
+  process.stdout.write(JSON.stringify({ok:false,code}));
 }
 """
-PREFLIGHT_JS = r"""
-import {stat} from 'node:fs/promises';
-const out={uid:process.getuid(),gid:process.getgid(),groups:process.getgroups().sort((a,b)=>a-b),catalogs:{},ready:false};
+PREFLIGHT_JS = LOG_SCOPE_JS + r"""
+const out={uid:process.getuid(),gid:process.getgid(),groups:process.getgroups().sort((a,b)=>a-b),ready:false};
 try {
+  if (out.uid!==1000 || out.gid!==1000 || out.groups.length>64) throw Error('RUNTIME_GROUPS');
   const {readLogCatalog}=await import('/app/dist/admin-logs.worker.js');
-  for(const [kind,root] of [['host','/var/lib/asa-logs'],['application','/var/lib/asa-application-logs']]) {
-    try {
-      const bytes=(await stat(root+'/catalog.json')).size;
-      if(bytes>8*1024*1024)throw Error();
-      const c=await readLogCatalog(root);
-      const count=c?.segments?.length??0;
-      const storedBytes=c?.segments?.reduce((n,s)=>n+s.bytes,0)??0;
-      out.catalogs[kind]={readable:true,bytes,segments:count,storedBytes,
-        withinBounds:count>=1&&count<=20000&&storedBytes<=256*1024*1024&&
-          ((c.applicationOwned===true)===(kind==='application'))};
-    }catch { out.catalogs[kind]={readable:false,withinBounds:false}; }
-  }
-  out.ready=out.uid===1000&&out.gid===1000&&out.groups.length<=64&&
-    Object.values(out.catalogs).every(c=>c.readable&&c.withinBounds);
-}catch {out.code='CANONICAL_EXPORTER_IMPORT_FAILED';}
+  const input = await readStores(readLogCatalog);
+  const frozen = process.argv[1] ? JSON.parse(process.argv[1]) : null;
+  if (frozen && !validWindow(frozen)) throw Error('WINDOW_INVALID');
+  const {window,catalogs,withinBounds} = frozen
+    ? {window:frozen,...logPlan(input,frozen)} : boundedPlan(input,new Date(Date.now()-SETTLE_MS).toISOString());
+  Object.assign(out,{window,catalogs,ready:withinBounds});
+} catch (error) {
+  out.code = ['WINDOW_LIMIT','SEGMENT_TIME','SEGMENT_METADATA','SEGMENT_RAW_BYTES','CATALOG_LIMIT',
+    'CATALOG_SCOPE','RUNTIME_GROUPS'].includes(error.message) ? error.message : 'NORMALIZED_PREFLIGHT_FAILED';
+}
 process.stdout.write(JSON.stringify(out));
 """
 
 
-def log_preflight(cid):
+def log_worker(source):
+    return (f'const ZIP_LIMIT={MAX_WINDOW_ZIP}, RAW_LIMIT={MAX_WINDOW_RAW}, '
+            f'SOURCE_LIMIT={MAX_WINDOW_SEGMENTS}, SETTLE_MS={LOG_SETTLE_SECONDS*1000};\n' + source)
+
+
+def validate_window(window):
+    need(isinstance(window, dict) and set(window) == {'from','to'}
+         and all(isinstance(value, str) and LOG_TIME.fullmatch(value) for value in window.values()),
+         'NORMALIZED_LOG_WINDOW')
+    try:
+        span = dt.datetime.fromisoformat(window['to']) - dt.datetime.fromisoformat(window['from'])
+    except ValueError:
+        raise SnapshotError('NORMALIZED_LOG_WINDOW') from None
+    need(span in (dt.timedelta(hours=hours) for hours in (1,3,6,12,24)), 'NORMALIZED_LOG_WINDOW')
+    return window
+
+
+def validate_source_proofs(proofs):
+    need(isinstance(proofs, dict) and set(proofs) == {'host','application'}, 'NORMALIZED_LOG_SOURCES')
+    limits = {'segments':MAX_WINDOW_SEGMENTS, 'storedBytes':MAX_WINDOW_ZIP, 'rawBytes':MAX_WINDOW_RAW}
+    for proof in proofs.values():
+        need(isinstance(proof, dict) and set(proof) == set(limits) | {'sha256'}
+             and isinstance(proof['sha256'], str) and re.fullmatch(r'[a-f0-9]{64}', proof['sha256'])
+             and all(type(proof[key]) is int and proof[key] >= 0 for key in limits), 'NORMALIZED_LOG_SOURCES')
+    need(all(sum(value[key] for value in proofs.values()) <= maximum for key, maximum in limits.items()),
+         'NORMALIZED_LOG_SOURCES_BOUND')
+
+
+def log_preflight(cid, window=None):
     # Keep the container's configured user and groups; do not override --user.
-    raw = run(['/usr/bin/docker', 'exec', cid, 'node', '--input-type=module', '-e', PREFLIGHT_JS], timeout=30)
+    arguments = [json.dumps(validate_window(window))] if window is not None else []
+    raw = run(['/usr/bin/docker', 'exec', cid, 'node', '--max-old-space-size=256',
+               '--input-type=module', '-e', log_worker(PREFLIGHT_JS), *arguments], timeout=45)
     need(len(raw) <= 4096, 'LOG_PREFLIGHT_BOUND')
     result = json.loads(raw)
-    need(isinstance(result, dict) and set(result) <= {'uid','gid','groups','catalogs','ready','code'},
+    need(isinstance(result, dict) and set(result) <= {'uid','gid','groups','catalogs','window','ready','code'},
          'LOG_PREFLIGHT_RECEIPT')
+    if result.get('ready') is True:
+        selected = validate_window(result.get('window'))
+        need(window is None or window == selected, 'LOG_PREFLIGHT_RECEIPT')
+        validate_source_proofs(result.get('catalogs'))
     return result
 
 
@@ -738,8 +866,10 @@ try {
 """
 
 
-def verify_zip(path, kind):
-    need(Path(path).stat().st_size <= MAX_ZIP, 'ZIP_SIZE_BOUND')
+def verify_zip(path, kind, window=None):
+    maximum = MAX_ZIP if window is None else MAX_WINDOW_ZIP
+    raw_maximum = MAX_RECORD_BYTES if window is None else MAX_WINDOW_RAW
+    need(Path(path).stat().st_size <= maximum, 'ZIP_SIZE_BOUND')
     with zipfile.ZipFile(path) as archive:
         items = archive.infolist()
         names = [item.filename for item in items]
@@ -756,8 +886,8 @@ def verify_zip(path, kind):
              and manifest.get('searchApplied') is False, 'ZIP_NORMALIZATION_CONTRACT')
         need(manifest['coverage'].get('application') == ('embedded' if kind == 'application' else 'host-collector'),
              'ZIP_SOURCE_SCOPE')
-        need(manifest.get('filter') == {'scope':'all','from':'1970-01-01T00:00:00.000Z',
-             'to':'9999-12-31T23:59:59.999Z','source':'','module':'','level':'','before':None},
+        need(manifest.get('filter') == {'scope':'all',**(window or FULL_LOG_WINDOW),
+             'source':'','module':'','level':'','before':None},
              'ZIP_FILTER_CHANGED')
         catalog = manifest.get('catalog', {})
         segments = catalog.get('segments', [])
@@ -782,44 +912,72 @@ def verify_zip(path, kind):
                     need(isinstance(row, dict) and re.fullmatch(r'[a-f0-9]{64}', str(row.get('id')))
                          and all(isinstance(row.get(k), str) for k in ('time','source','module','level','message')),
                          'ZIP_RECORD_CONTRACT')
+                    if window is not None:
+                        need(LOG_TIME.fullmatch(row['time']) and window['from'] <= row['time'] <= window['to'],
+                             'ZIP_RECORD_OUTSIDE_WINDOW')
+                        try:
+                            dt.datetime.fromisoformat(row['time'])
+                        except ValueError:
+                            raise SnapshotError('ZIP_RECORD_OUTSIDE_WINDOW') from None
                     nlines += 1
                     nbytes += len(line)
+                    need(total + nbytes <= raw_maximum, 'ZIP_RAW_BYTES_BOUND')
                     h.update(line)
             need(nbytes == segment.get('bytes') == segment.get('rawBytes')
                  and nlines == segment.get('count') and h.hexdigest() == segment['sha256'], 'ZIP_SEGMENT_INTEGRITY')
             count += nlines
             total += nbytes
-            need(total <= MAX_RECORD_BYTES, 'ZIP_RAW_BYTES_BOUND')
-        need(count > 0 and count == manifest.get('count') and total == catalog.get('bytes'), 'ZIP_COUNT_OR_BYTES')
+        need((count > 0 or window is not None and not segments)
+             and count == manifest.get('count') and total == catalog.get('bytes'), 'ZIP_COUNT_OR_BYTES')
         return {'records': count, 'parts': len(segments), 'recordBytes': total,
                 'coverageComplete': False, 'normalized': True, 'crcAndPartSha256Verified': True}
 
 
-def export_logs(cid, name, stage):
-    work = '/tmp/asa-config-export-' + name.removesuffix('.tar.age')
-    owner = os.urandom(16).hex()
-    result = {}
-    try:
-        raw = run(['/usr/bin/docker', 'exec', cid, 'node',
-            '--max-old-space-size=256', '--input-type=module', '-e', EXPORT_JS, work, owner], timeout=240)
-        need(len(raw) <= 4096, 'EXPORT_RECEIPT_BOUND')
-        receipt = json.loads(raw)
-        need(receipt.get('ok') is True, 'NORMALIZED_EXPORT_FAILED')
-        for kind in ('host', 'application'):
-            target = stage / 'normalized' / (kind + '.zip')
-            with target.open('xb') as output:
-                os.chmod(target, 0o600)
-                run(['/usr/bin/docker', 'exec', cid, '/bin/cat',
-                    work + '/' + kind + '.zip'], timeout=120, output=output, limit=MAX_ZIP)
-                output.flush()
-                os.fsync(output.fileno())
-            need(target.stat().st_size == receipt['results'][kind]['bytes'], 'EXPORTED_ZIP_COPY_SIZE')
-            result[kind] = verify_zip(target, kind)
-            need(result[kind]['records'] == receipt['results'][kind]['count'], 'EXPORT_RECORD_COUNT')
-    finally:
-        run(['/usr/bin/docker', 'exec', cid, 'node',
-             '--input-type=module', '-e', CLEAN_JS, work, owner], timeout=30)
+def verify_normalized_logs(stage, window):
+    paths = {kind: stage / 'normalized' / (kind + '.zip') for kind in ('host', 'application')}
+    if window is not None:
+        need(sum(path.stat().st_size for path in paths.values()) <= MAX_WINDOW_ZIP, 'NORMALIZED_ZIP_TOTAL_BOUND')
+    result = {kind: verify_zip(path, kind, window) for kind, path in paths.items()}
+    if window is not None:
+        need(sum(stats['recordBytes'] for stats in result.values()) <= MAX_WINDOW_RAW, 'NORMALIZED_RAW_TOTAL_BOUND')
     return result
+
+
+def export_logs(cid, name, stage, access):
+    work = '/tmp/asa-config-export-' + name.removesuffix('.tar.age')
+    window = access['window']
+    for attempt in range(2):
+        owner = os.urandom(16).hex()
+        expected = {'window':window, 'catalogs':access['catalogs']}
+        try:
+            # Limit actual writes in the container as well as transferred and verified data.
+            raw = run(['/usr/bin/docker', 'exec', cid, '/bin/sh', '-c', 'ulimit -f "$1" && shift && exec "$@"',
+                'asa-config-export', str(MAX_WINDOW_ZIP // 512), 'node', '--max-old-space-size=256',
+                '--input-type=module', '-e', log_worker(EXPORT_JS), work, owner, json.dumps(expected)], timeout=240)
+            need(len(raw) <= 4096, 'EXPORT_RECEIPT_BOUND')
+            receipt = json.loads(raw)
+            if receipt.get('code') == 'WINDOW_CHANGED' and attempt == 0:
+                access = log_preflight(cid, window)
+                need(access.get('ready') is True, 'NORMALIZED_WINDOW_CHANGED_OR_OVER_LIMIT')
+                continue
+            need(receipt.get('ok') is True, 'NORMALIZED_WINDOW_CHANGED' if receipt.get('code') == 'WINDOW_CHANGED'
+                 else 'NORMALIZED_EXPORT_FAILED')
+            for kind in ('host', 'application'):
+                target = stage / 'normalized' / (kind + '.zip')
+                with target.open('xb') as output:
+                    os.chmod(target, 0o600)
+                    run(['/usr/bin/docker', 'exec', cid, '/bin/cat',
+                        work + '/' + kind + '.zip'], timeout=120, output=output, limit=MAX_WINDOW_ZIP)
+                    output.flush()
+                    os.fsync(output.fileno())
+                need(target.stat().st_size == receipt['results'][kind]['bytes'], 'EXPORTED_ZIP_COPY_SIZE')
+            result = verify_normalized_logs(stage, window)
+            need(all(stats['records'] == receipt['results'][kind]['count']
+                     for kind, stats in result.items()), 'EXPORT_RECORD_COUNT')
+            return result, access['catalogs']
+        finally:
+            run(['/usr/bin/docker', 'exec', cid, 'node',
+                 '--input-type=module', '-e', CLEAN_JS, work, owner], timeout=30)
 
 
 def entry(path, member, info, kind):
@@ -836,13 +994,19 @@ def validate_manifest(manifest, name):
              and manifest.get('apiImage') == LEGACY_API_IMAGE
              and manifest.get('canonicalExporterBlob') == LEGACY_EXPORTER_BLOB, 'MANIFEST_IDENTITY')
     else:
-        need(manifest.get('format') == FORMAT, 'MANIFEST_IDENTITY')
+        need(manifest.get('format') in (RELEASE_FORMAT, FORMAT), 'MANIFEST_IDENTITY')
         release = validate_application_release(manifest.get('applicationRelease'), 'MANIFEST_IDENTITY')
         need(release == manifest['applicationRelease']
              and manifest.get('applicationRevision') == release['revision']
              and manifest.get('apiImageReference') == release['images']['api']
              and isinstance(manifest.get('apiImage'), str) and IMAGE_ID.fullmatch(manifest['apiImage']),
              'MANIFEST_IDENTITY')
+    if manifest.get('format') == FORMAT:
+        validate_window(manifest.get('normalizedLogWindow'))
+        validate_source_proofs(manifest.get('normalizedLogSources'))
+    else:
+        need('normalizedLogWindow' not in manifest and 'normalizedLogSources' not in manifest,
+             'NORMALIZED_LOG_WINDOW')
     need(manifest.get('coverageComplete') is False
          and manifest.get('gatewayOAuthContinuity') is False
          and manifest.get('gatewayLiveDatabaseIncluded') is False, 'MANIFEST_SCOPE')
@@ -864,7 +1028,7 @@ def validate_manifest(manifest, name):
         else:
             need(row.get('kind') == 'normalized' and name in
                  ('normalized/host.zip','normalized/application.zip'), 'MANIFEST_LOG_SCOPE')
-            limit = MAX_ZIP
+            limit = MAX_WINDOW_ZIP if manifest.get('format') == FORMAT else MAX_ZIP
         need(type(row.get('bytes')) is int and 0 <= row['bytes'] <= limit
              and re.fullmatch(r'[a-f0-9]{64}', str(row.get('sha256'))), 'MANIFEST_INTEGRITY_FIELDS')
         if row['kind'] != 'normalized':
@@ -959,12 +1123,13 @@ def verify_tar(tar_path, destination, name):
         lambda path: (destination / 'files' / str(path).lstrip('/')).read_bytes())
     for db in DB_NAMES:
         sqlite_integrity(destination / 'sqlite' / db)
-    logs = {kind: verify_zip(destination / 'normalized' / (kind + '.zip'), kind)
-            for kind in ('host', 'application')}
+    window = manifest.get('normalizedLogWindow')
+    logs = verify_normalized_logs(destination, window)
     need(logs == manifest.get('normalizedLogs'), 'RESTORED_LOG_SUMMARY_CHANGED')
     return {'manifestVerified': True, 'fileCount': len(expected), 'sqliteIntegrity': dict.fromkeys(DB_NAMES, 'ok'),
             'normalizedLogs': logs, 'coverageComplete': False, 'permissionsManifestValidated': True,
-            'livePathsWritten': False, 'gatewayOAuthContinuity': False}
+            'livePathsWritten': False, 'gatewayOAuthContinuity': False,
+            **({'normalizedLogWindow': window} if window is not None else {})}
 
 
 def create(name):
@@ -1001,7 +1166,7 @@ def create(name):
             target = stage / 'sqlite' / db
             info = sqlite_snapshot(Path('/opt/1panel/db') / db, target)
             rows.append(entry(target, 'sqlite/' + db, info, 'sqlite'))
-        logs = export_logs(cid, name, stage)
+        logs, sources = export_logs(cid, name, stage, access)
         for kind in ('host','application'):
             member = 'normalized/' + kind + '.zip'
             rows.append(entry(stage / member, member, None, 'normalized'))
@@ -1018,7 +1183,8 @@ def create(name):
             'entries': rows, 'directories': [{'path': p, 'metadata': metadata(Path(p).lstat()) if sig else None}
                 for p, sig in sorted(directories.items())], 'nginxDependencies': dependencies,
             'normalizedLogs': logs, 'coverageComplete': False,
-            'coverageStatement': 'Retained normalized evidence only; existing historical coverage gaps remain.',
+            'normalizedLogWindow': access['window'], 'normalizedLogSources': sources,
+            'coverageStatement': 'Retained normalized evidence within the stated UTC window; late arrivals and prior gaps are possible.',
             'sqliteConsistency': 'Online SQLite backup API; each database individually consistent, not one cross-database transaction.',
             'gatewayOAuthContinuity': False, 'gatewayLiveDatabaseIncluded': False,
             'restoreRequirement': 'Reinstall pinned services and resolve service accounts; restore settings only in maintenance. Register ChatGPT again. No live restore is performed by this script.',
@@ -1053,7 +1219,8 @@ def create(name):
     private_write(TARGET / (name + '.sha256'), (checksum + '  ' + str(output) + '\n').encode('ascii'))
     receipt = {'status': 'CONFIG_ARCHIVE_CREATED_NOT_CLOUD_VERIFIED', 'archive': name, 'bytes': size,
         'ciphertextSha256': checksum, 'configurationFiles': len(files), 'sqliteDatabases': 3,
-        'normalizedLogs': logs, 'coverageComplete': False, 'gatewayOAuthContinuity': False,
+        'normalizedLogs': logs, 'normalizedLogWindow': access['window'],
+        'coverageComplete': False, 'gatewayOAuthContinuity': False,
         'schedulesChanged': False, 'servicesChanged': False, 'restoreValidated': False}
     write_json(TARGET / (name + '.created.json'), receipt)
     return receipt

@@ -112,10 +112,12 @@ class ScheduleTests(unittest.TestCase):
 
     def test_new_transfer_success_cannot_be_reported_as_new_decrypt(self):
         cipher_sha = 'b' * 64
+        window = {'from':'2026-11-13T00:00:00.000Z', 'to':'2026-11-14T00:00:00.000Z'}
 
         def create(name):
             return {'status': 'CONFIG_ARCHIVE_CREATED_NOT_CLOUD_VERIFIED', 'archive': name,
                     'coverageComplete': False, 'sqliteDatabases': 3, 'configurationFiles': 54,
+                    'normalizedLogWindow': window,
                     'normalizedLogs': {'host': {'coverageComplete': False}, 'application': {'coverageComplete': False}},
                     'bytes': 4096, 'ciphertextSha256': cipher_sha}
 
@@ -131,7 +133,7 @@ class ScheduleTests(unittest.TestCase):
         def no_lock(path, wait):
             yield
 
-        snapshot = types.SimpleNamespace(create=create, RECOVERY=self.root,
+        snapshot = types.SimpleNamespace(create=create, RECOVERY=self.root, validate_window=lambda value: value,
                                          verify_cipher=lambda path: (4096, cipher_sha))
         cloud = types.SimpleNamespace(school_configuration_transfer=transfer)
         with patch.object(runner, 'STATE', self.root), patch.object(runner, 'TARGET', self.root), \
@@ -146,6 +148,7 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(success['baselineIsolatedRestore'], runner.BASELINE)
         self.assertNotEqual(success['archive'], runner.BASELINE['archive'])
         self.assertFalse(success['coverageComplete'])
+        self.assertEqual(success['normalizedLogWindow'],window)
         self.assertEqual(success, json.loads((self.root / 'latest-attempt.json').read_text()))
 
 

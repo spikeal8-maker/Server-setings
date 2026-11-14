@@ -1,0 +1,44 @@
+{
+  "observedOnMoscowDate": "2026-11-14",
+  "host": "admins-MS-7D22",
+  "scope": "isolated no-network H03 container with shipped ASA API image, read-only synthetic log mounts, synthetic configurations and SQLite databases",
+  "asaRelease": "a2e6b0688301463e6ac93d19822db4aca932efcc",
+  "asaSchema": 316,
+  "candidateSettingsSnapshotSha256": "c1c196ce320229306d33d6b88e47632fef42ca2617128ab59710666fc306f5b4",
+  "archiveFormat": "asa-school-managed-config-v3",
+  "logWindow": {
+    "from": "2026-11-13T17:07:05.295Z",
+    "to": "2026-11-14T17:07:05.295Z"
+  },
+  "windowMatchedOuterManifestAndBothZipFilters": true,
+  "retainedSegmentCounts": {
+    "host": 685,
+    "application": 23529
+  },
+  "selectedSegmentCounts": {
+    "host": 384,
+    "application": 16278
+  },
+  "verifiedNormalizedLogRecords": {
+    "host": 155520,
+    "application": 16278
+  },
+  "verifiedNormalizedRecordBytes": {
+    "host": 131414400,
+    "application": 7113486
+  },
+  "ageDecryptVerifiedWithOneTimeTestIdentity": true,
+  "sqliteReadbacks": {
+    "agent.db": "ok",
+    "core.db": "ok",
+    "xpack.db": "ok"
+  },
+  "cipherBytes": 1085896,
+  "createSeconds": 10.78,
+  "fixtureSourcesUnchanged": true,
+  "preExistingH03ContainerIdsStatesAndStartTimesUnchanged": 75,
+  "focusedLinuxTestsPassed": 54,
+  "schoolTouched": false,
+  "cloudUpload": "NOT_RUN",
+  "school1PanelScheduleSwitch": "NOT_RUN"
+}

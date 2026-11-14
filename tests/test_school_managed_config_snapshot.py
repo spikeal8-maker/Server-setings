@@ -5,7 +5,9 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import shutil
 import sqlite3
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -22,21 +24,23 @@ spec = importlib.util.spec_from_file_location('config_roundtrip', CODE / 'school
 roundtrip = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(roundtrip)
 ARCHIVE = 'asa-school-config-01-20261108T091500Z-3f6a47b2.tar.age'
+WINDOW = {'from':'2026-11-07T09:00:00.000Z', 'to':'2026-11-08T09:00:00.000Z'}
 
 
-def normalized_zip(kind, *, coverage=False, extra=False):
-    raw = (json.dumps({'id':'a'*64,'time':'2026-11-08T08:00:00.000Z','source':'api' if kind=='application' else 'systemd',
+def normalized_zip(kind, *, coverage=False, extra=False, window=None, empty=False, record_at='2026-11-08T08:00:00.000Z'):
+    raw = (json.dumps({'id':'a'*64,'time':record_at,'source':'api' if kind=='application' else 'systemd',
         'module':'host','level':'info','message':'Synthetic non-secret fixture'}, separators=(',',':'))+'\n').encode()
     segment = {'file':'records/part-00001.jsonl','schema':2,'bytes':len(raw),'rawBytes':len(raw),
         'count':1,'sha256':hashlib.sha256(raw).hexdigest()}
-    manifest = {'normalized':True,'sourceStatusIncluded':False,'searchApplied':False,'count':1,
-        'filter':{'scope':'all','from':'1970-01-01T00:00:00.000Z','to':'9999-12-31T23:59:59.999Z',
+    manifest = {'normalized':True,'sourceStatusIncluded':False,'searchApplied':False,'count':0 if empty else 1,
+        'filter':{'scope':'all',**(window or snapshot.FULL_LOG_WINDOW),
                   'source':'','module':'','level':'','before':None},
         'coverage':{'complete':coverage,'application':'embedded' if kind=='application' else 'host-collector'},
-        'catalog':{'version':1,'sources':[],'segments':[segment],'bytes':len(raw)}}
+        'catalog':{'version':1,'sources':[],'segments':[] if empty else [segment],'bytes':0 if empty else len(raw)}}
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer,'w',compression=zipfile.ZIP_DEFLATED) as z:
-        z.writestr(segment['file'],raw)
+        if not empty:
+            z.writestr(segment['file'],raw)
         z.writestr('manifest.json',json.dumps(manifest))
         z.writestr('README.txt','Synthetic fixture only')
         if extra:
@@ -73,7 +77,7 @@ def fixture(root):
         zpath=root/(kind+'.zip');zpath.write_bytes(payloads['normalized/'+kind+'.zip'])
         logs[kind]=snapshot.verify_zip(zpath,kind)
     release = application_release()
-    manifest={'format':snapshot.FORMAT,'archive':ARCHIVE,'hostname':snapshot.HOST,'installationInstance':snapshot.INSTANCE,
+    manifest={'format':snapshot.RELEASE_FORMAT,'archive':ARCHIVE,'hostname':snapshot.HOST,'installationInstance':snapshot.INSTANCE,
         'settingsBaseRevision':snapshot.BASE_REVISION,'applicationRevision':release['revision'],
         'apiImage':'sha256:'+'c'*64,'apiImageReference':release['images']['api'],'applicationRelease':release,
         'coverageComplete':False,'gatewayOAuthContinuity':False,'gatewayLiveDatabaseIncluded':False,
@@ -167,6 +171,57 @@ class RestoreContract(unittest.TestCase):
         for file in self.output.rglob('*'):
             self.assertFalse(file.is_symlink())
             if file.is_file(): self.assertEqual(file.stat().st_mode&0o777,0o600)
+
+    def bounded_archive(self, application=None):
+        self.manifest.update(format=snapshot.FORMAT, normalizedLogWindow=WINDOW, normalizedLogSources={
+            kind: {'segments':1 if kind == 'host' else 0, 'storedBytes':500 if kind == 'host' else 0,
+                   'rawBytes':1000 if kind == 'host' else 0, 'sha256':'a'*64}
+            for kind in ('host','application')})
+        for kind in ('host','application'):
+            data = (normalized_zip('host',window=WINDOW,record_at=WINDOW['from']) if kind == 'host' else
+                    application or normalized_zip('application',window=WINDOW,empty=True))
+            member = f'normalized/{kind}.zip'
+            self.payloads[member] = data
+            entry = next(row for row in self.manifest['entries'] if row['member'] == member)
+            entry.update(bytes=len(data),sha256=hashlib.sha256(data).hexdigest())
+            if kind == 'application' and application is not None:
+                continue
+            path = self.root / (kind+'.zip')
+            path.write_bytes(data)
+            self.manifest['normalizedLogs'][kind] = snapshot.verify_zip(path,kind,WINDOW)
+        make_tar(self.tar,self.manifest,self.payloads)
+
+    def test_v3_shared_bounds_and_quiet_store_roundtrip(self):
+        self.bounded_archive()
+        result = snapshot.verify_tar(self.tar,self.output,ARCHIVE)
+        self.assertEqual(result['normalizedLogWindow'],WINDOW)
+        self.assertEqual(result['normalizedLogs']['host']['records'],1)
+        self.assertEqual(result['normalizedLogs']['application']['records'],0)
+
+    def test_v3_rejects_zip_filter_different_from_outer_window(self):
+        self.bounded_archive(normalized_zip('application'))
+        with self.assertRaisesRegex(snapshot.SnapshotError,'ZIP_FILTER_CHANGED'):
+            snapshot.verify_tar(self.tar,self.output,ARCHIVE)
+
+    def test_v3_rejects_event_one_millisecond_after_window(self):
+        self.bounded_archive(normalized_zip('application',window=WINDOW,record_at='2026-11-08T09:00:00.001Z'))
+        with self.assertRaisesRegex(snapshot.SnapshotError,'ZIP_RECORD_OUTSIDE_WINDOW'):
+            snapshot.verify_tar(self.tar,self.output,ARCHIVE)
+
+    def test_v3_source_and_zip_limits_are_shared(self):
+        self.bounded_archive()
+        for proof in self.manifest['normalizedLogSources'].values():
+            proof['rawBytes'] = snapshot.MAX_WINDOW_RAW // 2 + 1
+        with self.assertRaisesRegex(snapshot.SnapshotError,'NORMALIZED_LOG_SOURCES_BOUND'):
+            snapshot.validate_manifest(self.manifest,ARCHIVE)
+        size = max(len(self.payloads[f'normalized/{kind}.zip']) for kind in ('host','application'))
+        with mock.patch.object(snapshot,'MAX_WINDOW_ZIP',size):
+            normalized = self.root/'normalized'
+            normalized.mkdir()
+            for kind in ('host','application'):
+                (normalized/(kind+'.zip')).write_bytes(self.payloads[f'normalized/{kind}.zip'])
+            with self.assertRaisesRegex(snapshot.SnapshotError,'NORMALIZED_ZIP_TOTAL_BOUND'):
+                snapshot.verify_normalized_logs(self.root,WINDOW)
 
     def test_legacy_archive_still_verifies(self):
         self.manifest.pop('applicationRelease')
@@ -263,6 +318,46 @@ class RestoreContract(unittest.TestCase):
                 self.assertEqual(copy_db.execute('SELECT COUNT(*),SUM(n) FROM t').fetchone(),(3000,4498500))
         finally:
             writer.close()
+
+
+@unittest.skipUnless(shutil.which('node'), 'Node required for canonical scope contract')
+class LogScope(unittest.TestCase):
+    def test_retained_history_drift_boundaries_budget_and_missing_raw_size(self):
+        exercise = r"""
+import assert from 'node:assert/strict';
+const end = '2026-11-08T09:00:00.000Z';
+const begin = '2026-11-07T09:00:00.000Z';
+const old = '2026-11-07T08:59:59.999Z';
+const midpoint = '2026-11-07T10:00:00.000Z';
+function segment(id, first, last, rawBytes=128) {
+  const n = String(id).padStart(16,'0');
+  return {file:'seg-'+n+'-'+n+'.jsonl.gz',first,last,bytes:64,rawBytes,schema:2,sha256:'a'.repeat(64)};
+}
+const host = {kind:'host',catalog:{segments:[segment(1,old,begin),segment(2,end,end)]}};
+const application = {kind:'application',catalog:{segments:[
+  ...Array.from({length:9000},(_,n)=>segment(n+1,old,old)),
+  ...Array.from({length:16000},(_,n)=>segment(n+9001,midpoint,midpoint)),
+]}};
+const input = [host,application];
+const plan = boundedPlan(input,end);
+assert.deepEqual(plan.window,{from:begin,to:end});
+assert.equal(plan.catalogs.host.segments,2);
+assert.equal(plan.catalogs.application.segments,16000);
+const future = '2026-11-08T09:00:00.001Z';
+application.catalog.segments.push(segment(25001,future,future));
+assert.deepEqual(logPlan(input,plan.window).catalogs,plan.catalogs);
+application.catalog.segments[9000].sha256 = 'b'.repeat(64);
+assert.notEqual(logPlan(input,plan.window).catalogs.application.sha256,plan.catalogs.application.sha256);
+for (let n=9000;n<25000;n++) delete application.catalog.segments[n].rawBytes;
+assert.equal(boundedPlan(input,end).window.from,'2026-11-07T21:00:00.000Z');
+application.catalog.segments.push(...Array.from({length:130},(_,n)=>segment(n+25002,end,end,MAX_SEGMENT)));
+assert.throws(()=>boundedPlan(input,end),/WINDOW_LIMIT/);
+host.catalog.segments[0].file = '../../escape';
+assert.throws(()=>logPlan(input,plan.window),/SEGMENT_METADATA/);
+"""
+        result = subprocess.run(['node','--input-type=module','-e',snapshot.log_worker(snapshot.LOG_SCOPE_JS + exercise)],
+                                check=False,text=True,capture_output=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr)
 
 
 class ConfigurationNamespace(unittest.TestCase):
