@@ -12,15 +12,19 @@
     "localSocketOnly": true,
     "separateMountPidNetworkNamespaces": true
   },
-  "linuxFilesystemTransitionScenarios": 10,
+  "linuxFilesystemTransitionScenarios": 11,
   "lostResponseAfterNativeDisable": "PASS",
+  "nativeEnableLostPersistenceAfterInMemoryRegistration": "PASS",
+  "nativeRecoveryPreservedOriginalSchedulesAndHistory": true,
+  "recoveryRequiresLaterAttestedAgent": true,
+  "retryPreservesPriorTransitionHistory": true,
   "nativeEnabledCronEntriesRegisteredBeforeTransition": 2,
   "nativeFixtureBoundaries": [
     "legacy systemd",
     "ASA application inventory",
     "settings runner readiness"
   ],
-  "nativePanelCandidate": "208f8117ed8128512f5d2fcfc1e3ef7835533ce5",
+  "nativePanelCandidate": "dc537e8828ebdf053c17c462c399e923700831cb",
   "nativeRollback": "PASS",
   "observedOnMoscowDate": "2026-11-14",
   "oldLogBytesAndInodesPreserved": true,
