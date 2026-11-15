@@ -154,7 +154,15 @@ def install_tools(source, targets, previous, wrapper):
             for path, mode in reversed(adjusted):
                 subprocess.run(owner + ['/usr/bin/chmod', f'{mode:o}', str(path)], check=True, timeout=15)
             raise
-        (stage / 'asa').replace(TOOLS_BIN / 'asa')
+        target = TOOLS_BIN / 'asa'
+        try:
+            trusted_path(target, directory=False)
+        except FileNotFoundError:
+            pass
+        else:
+            if target.read_bytes().splitlines()[1:2] != [b'# ASA Lab production launcher (install-asa-command.sh)']:
+                raise SystemExit('Найдена другая команда в каталоге обновлятора H03')
+        (stage / 'asa').replace(target)
     atomic_command(BIN / 'asa', wrapper)
     atomic_command(BIN / 'asa-test', wrapper)
 
