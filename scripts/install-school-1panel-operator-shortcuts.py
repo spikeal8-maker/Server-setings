@@ -57,6 +57,7 @@ OLD_GROUPS = {
 }
 ARCHIVE = "ASA 90 · Архив старых команд"
 UPDATE_GROUP = "ASA Lab · Обновление"
+UPDATE_ACTIONS = {"Проверить обновления": "check", "Установить обновление": "update"}
 RETIRED_RETURN = "Посмотреть план возврата"
 PREVIOUS_COMMANDS = {
     "Проверить обновления": "sudo -- /usr/local/sbin/asa-school-operator check-update",
@@ -67,10 +68,7 @@ PREVIOUS_COMMANDS = {
 }
 
 MENU = {
-    UPDATE_GROUP: (
-        ("Проверить обновления", f"{ASA} check"),
-        ("Установить обновление", f"{ASA} update"),
-    ),
+    UPDATE_GROUP: tuple((name, f"sudo asa {action}") for name, action in UPDATE_ACTIONS.items()),
     "ASA Lab · Резервные копии": (
         ("Посмотреть состояние копий", f"{GFS} status"),
         ("Проверить доступ к Яндекс Диску", f"{GFS} check"),
@@ -159,7 +157,7 @@ def verify_menu(api, desired):
 def reconcile(api, legacy, apply):
     groups, commands = snapshot(api)
     obsolete = old_commands(groups, commands, legacy)
-    desired = {name: (group, school(command))
+    desired = {name: (group, command if group == UPDATE_GROUP else school(command))
                for group, entries in MENU.items() for name, command in entries}
     replacements = {}
     for name, (group, command) in desired.items():
@@ -169,7 +167,10 @@ def reconcile(api, legacy, apply):
         if entry["groupID"] != groups.get(group, {}).get("id"):
             raise SystemExit(f"Команда с таким именем уже отличается: {name}")
         if entry["command"] != command:
-            if name not in PREVIOUS_COMMANDS or entry["command"] != school(PREVIOUS_COMMANDS[name]):
+            previous = {school(PREVIOUS_COMMANDS[name])} if name in PREVIOUS_COMMANDS else set()
+            if name in UPDATE_ACTIONS:
+                previous.add(school(f"{ASA} {UPDATE_ACTIONS[name]}"))
+            if entry["command"] not in previous:
                 raise SystemExit(f"Команда с таким именем уже отличается: {name}")
             replacements[name] = entry
     missing_groups = [group for group in MENU if group not in groups]
@@ -233,6 +234,10 @@ def require_canonical_updater():
                                capture_output=True, encoding="utf-8", check=True, timeout=30)
         if check.stdout.strip() != "ASA_LAUNCHER_FORWARD_V1":
             raise SystemExit(message)
+        lookup = subprocess.run(["/usr/bin/sudo", "--", "/bin/sh", "-c", "command -v asa"],
+                                capture_output=True, encoding="utf-8", check=True, timeout=15)
+        if lookup.stdout.strip() != str(LAUNCHER):
+            raise SystemExit("Команда sudo asa должна запускать /usr/local/bin/asa")
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError) as exc:
         raise SystemExit(message) from exc
 

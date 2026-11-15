@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-11-15T19:19:00Z",
+  "host": "asa-school-01",
+  "source": "1Panel local terminal API and read-only PostgreSQL/MinIO checks",
+  "previousSchema": 319,
+  "installedSchema": 324,
+  "installedRevision": "739ebe6fd37606c183bc2d66ea621c20d5be2f07",
+  "publishedDeployment": "sha256:aea23adba850edf4fe64304435152fd27ab8bc0046b986fc318647dba185ae82",
+  "publishedAt": "2026-11-15T19:12:07Z",
+  "cloudCopyAt": "2026-11-14T21:22:25.081257Z",
+  "cloudFullReadbackSha256": true,
+  "freshLocalCopyVerified": true,
+  "postgresIdentityPreserved": true,
+  "postgresAndMinioVolumesPreserved": true,
+  "projectsBefore": 3355,
+  "projectsMissing": 0,
+  "portalStatus": 200,
+  "publicScratchStatus": 200,
+  "settingsBackupCheck": "PASS",
+  "h03": {
+    "schemaFrom": 319,
+    "schemaTo": 324,
+    "postgresRestore": "PASS",
+    "minioRestore": "PASS"
+  },
+  "sourceReceipt": "https://github.com/spikeal8-maker/asa-lab/pull/1197#issuecomment-6899901649"
+}

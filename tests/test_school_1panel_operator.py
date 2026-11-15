@@ -32,10 +32,19 @@ class OperatorMenuTests(unittest.TestCase):
         with patch.object(menu, "snapshot", return_value=(groups, commands)), patch("builtins.print") as report:
             menu.reconcile(api, {}, apply=False)
             self.assertIn("commands_to_update=1", report.call_args.args[0])
+            commands[name]["command"] = menu.school(f"{menu.ASA} update")
+            menu.reconcile(api, {}, apply=False)
+            self.assertIn("commands_to_update=1", report.call_args.args[0])
             api.request.assert_not_called()
             commands[name]["command"] = "custom command"
             with self.assertRaisesRegex(SystemExit, "уже отличается"):
                 menu.reconcile(api, {}, apply=False)
+
+    def test_update_buttons_store_the_same_short_commands_as_the_terminal(self):
+        self.assertEqual(dict(menu.MENU[menu.UPDATE_GROUP]), {
+            "Проверить обновления": "sudo asa check",
+            "Установить обновление": "sudo asa update",
+        })
 
     def test_only_managed_return_button_is_archived(self):
         group, name = menu.UPDATE_GROUP, menu.RETIRED_RETURN
