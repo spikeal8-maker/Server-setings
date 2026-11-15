@@ -1,7 +1,10 @@
 import hashlib
 import importlib.util
 from pathlib import Path
+import os
+import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -40,11 +43,32 @@ class OperatorMenuTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "уже отличается"):
                 menu.reconcile(api, {}, apply=False)
 
-    def test_update_buttons_store_the_same_short_commands_as_the_terminal(self):
+    def test_update_buttons_store_short_commands_for_the_school_host(self):
         self.assertEqual(dict(menu.MENU[menu.UPDATE_GROUP]), {
-            "Проверить обновления": "sudo asa check",
-            "Установить обновление": "sudo asa update",
+            "Проверить обновления": "sudo asa-school check",
+            "Установить обновление": "sudo asa-school update",
         })
+
+    @unittest.skipUnless(os.name == "posix", "Tests the Ubuntu shell launcher")
+    def test_school_launcher_refuses_to_update_another_1panel_terminal_host(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            hostname = root / "hostname"
+            engine = root / "engine"
+            hostname.write_text('#!/bin/sh\nprintf "%s\\n" "$TEST_HOST"\n')
+            engine.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
+            for path in (hostname, engine):
+                path.chmod(0o755)
+            wrapper = root / "asa-school"
+            wrapper.write_text(menu.SCHOOL_LAUNCHER_SOURCE.read_text()
+                               .replace("/usr/bin/hostname", str(hostname))
+                               .replace("/usr/local/bin/asa", str(engine)))
+            for host, expected in (("asa-school-01", 0), ("admins-MS-7D22", 2)):
+                with self.subTest(host=host):
+                    result = subprocess.run(["sh", str(wrapper), "update"], env={**os.environ, "TEST_HOST": host},
+                                            capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode, expected)
+                    self.assertEqual(result.stdout, "update\n" if expected == 0 else "")
 
     def test_only_managed_return_button_is_archived(self):
         group, name = menu.UPDATE_GROUP, menu.RETIRED_RETURN

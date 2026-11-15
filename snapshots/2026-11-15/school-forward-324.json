@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-15T19:19:00Z",
+  "capturedAt": "2026-11-15T19:18:53.669112+00:00",
   "host": "asa-school-01",
   "source": "1Panel local terminal API and read-only PostgreSQL/MinIO checks",
   "previousSchema": 319,
@@ -23,5 +23,6 @@
     "postgresRestore": "PASS",
     "minioRestore": "PASS"
   },
-  "sourceReceipt": "https://github.com/spikeal8-maker/asa-lab/pull/1197#issuecomment-6899901649"
+  "sourceReceipt": "https://github.com/spikeal8-maker/asa-lab/pull/1197#issuecomment-6899901649",
+  "installedAt": "2026-11-15T19:18:21.647616+00:00"
 }

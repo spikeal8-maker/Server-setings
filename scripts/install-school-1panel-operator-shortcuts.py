@@ -20,6 +20,8 @@ ASA = "sudo -- /usr/local/bin/asa"
 LOGS = "sudo -- /usr/bin/python3 -E -s -B /srv/asa-lab/tools/asa_status.py logs"
 GFS = "sudo -- /usr/local/bin/asa-school-gfs"
 LAUNCHER = Path("/usr/local/bin/asa")
+SCHOOL_LAUNCHER = LAUNCHER.with_name("asa-school")
+SCHOOL_LAUNCHER_SOURCE = Path(__file__).with_name("asa-school-update-command.sh")
 INSTALLATION = Path("/srv/asa-lab/.asa/installation.json")
 OFFSITE_RECEIPT = "/var/backups/asa-school-gfs/receipts/latest-full.json"
 HISTORY = Path("/var/lib/server-settings/1panel-shortcuts-history")
@@ -68,7 +70,7 @@ PREVIOUS_COMMANDS = {
 }
 
 MENU = {
-    UPDATE_GROUP: tuple((name, f"sudo asa {action}") for name, action in UPDATE_ACTIONS.items()),
+    UPDATE_GROUP: tuple((name, f"sudo asa-school {action}") for name, action in UPDATE_ACTIONS.items()),
     "ASA Lab · Резервные копии": (
         ("Посмотреть состояние копий", f"{GFS} status"),
         ("Проверить доступ к Яндекс Диску", f"{GFS} check"),
@@ -234,12 +236,43 @@ def require_canonical_updater():
                                capture_output=True, encoding="utf-8", check=True, timeout=30)
         if check.stdout.strip() != "ASA_LAUNCHER_FORWARD_V1":
             raise SystemExit(message)
-        lookup = subprocess.run(["/usr/bin/sudo", "--", "/bin/sh", "-c", "command -v asa"],
-                                capture_output=True, encoding="utf-8", check=True, timeout=15)
-        if lookup.stdout.strip() != str(LAUNCHER):
-            raise SystemExit("Команда sudo asa должна запускать /usr/local/bin/asa")
+        verify_short_launcher(LAUNCHER.name)
+
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError) as exc:
         raise SystemExit(message) from exc
+
+
+def verify_short_launcher(command):
+    verified = subprocess.run(["/usr/bin/sudo", "-n", "--", command, "--launcher-verify",
+                               INSTALLATION.parents[1].as_posix()],
+                              capture_output=True, encoding="utf-8", check=True, timeout=15)
+    if verified.stdout.strip() != "ASA_LAUNCHER_FORWARD_V1":
+        raise SystemExit("Не подтверждена постоянная команда " + command)
+
+
+def install_school_launcher():
+    body = SCHOOL_LAUNCHER_SOURCE.read_bytes()
+    try:
+        metadata = SCHOOL_LAUNCHER.lstat()
+    except FileNotFoundError:
+        metadata = None
+    if metadata is not None:
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != 0
+                or stat.S_IMODE(metadata.st_mode) != 0o755 or SCHOOL_LAUNCHER.read_bytes() != body):
+            raise SystemExit("Найдена другая команда asa-school")
+    else:
+        with tempfile.NamedTemporaryFile(dir=SCHOOL_LAUNCHER.parent, delete=False) as temporary:
+            path = Path(temporary.name)
+            try:
+                temporary.write(body)
+                temporary.flush()
+                os.fchmod(temporary.fileno(), 0o755)
+                os.fsync(temporary.fileno())
+                # Publish without overwriting a command created concurrently.
+                os.link(path, SCHOOL_LAUNCHER)
+            finally:
+                path.unlink()
+    verify_short_launcher(SCHOOL_LAUNCHER.name)
 
 
 def main():
@@ -261,6 +294,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.apply:
             require_canonical_updater()
+            install_school_launcher()
         reconcile(api, legacy, args.apply)
 
 
