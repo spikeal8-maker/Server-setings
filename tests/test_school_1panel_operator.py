@@ -70,6 +70,17 @@ class OperatorMenuTests(unittest.TestCase):
                     self.assertEqual(result.returncode, expected)
                     self.assertEqual(result.stdout, "update\n" if expected == 0 else "")
 
+    def test_h03_shortcut_plan_does_not_archive_an_existing_school_group(self):
+        group, name = menu.UPDATE_GROUP, menu.RETIRED_RETURN
+        groups = {"Default": {"id": 1, "isDefault": True}, group: {"id": 2, "isDefault": False}}
+        prior = {name: {"groupID": 2, "command": menu.school(f"{menu.ASA} rollback-plan")}}
+        h03 = {group: tuple((label, "sudo asa-test " + action) for label, action in menu.UPDATE_ACTIONS.items())}
+        api = Mock()
+        with patch.object(menu, "snapshot", return_value=(groups, prior)), patch("builtins.print") as report:
+            menu.reconcile(api, {}, apply=False, menu=h03)
+            self.assertIn("commands_to_add=2 old_commands_to_remove=0", report.call_args.args[0])
+            api.request.assert_not_called()
+
     def test_only_managed_return_button_is_archived(self):
         group, name = menu.UPDATE_GROUP, menu.RETIRED_RETURN
         groups = {"Default": {"id": 1, "isDefault": True}, group: {"id": 2, "isDefault": False}}

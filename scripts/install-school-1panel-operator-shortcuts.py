@@ -156,11 +156,12 @@ def verify_menu(api, desired):
             raise SystemExit(f"Команда отсутствует в меню терминала: {name}")
 
 
-def reconcile(api, legacy, apply):
+def reconcile(api, legacy, apply, menu=MENU):
     groups, commands = snapshot(api)
-    obsolete = old_commands(groups, commands, legacy)
+    school_menu = menu is MENU
+    obsolete = old_commands(groups, commands, legacy) if school_menu else {}
     desired = {name: (group, command if group == UPDATE_GROUP else school(command))
-               for group, entries in MENU.items() for name, command in entries}
+               for group, entries in menu.items() for name, command in entries}
     replacements = {}
     for name, (group, command) in desired.items():
         if name not in commands:
@@ -172,10 +173,10 @@ def reconcile(api, legacy, apply):
             previous = {school(PREVIOUS_COMMANDS[name])} if name in PREVIOUS_COMMANDS else set()
             if name in UPDATE_ACTIONS:
                 previous.add(school(f"{ASA} {UPDATE_ACTIONS[name]}"))
-            if entry["command"] not in previous:
+            if not school_menu or entry["command"] not in previous:
                 raise SystemExit(f"Команда с таким именем уже отличается: {name}")
             replacements[name] = entry
-    missing_groups = [group for group in MENU if group not in groups]
+    missing_groups = [group for group in menu if group not in groups]
     missing = {name: spec for name, spec in desired.items() if name not in commands}
     print(f"groups_to_add={len(missing_groups)} commands_to_add={len(missing)} old_commands_to_remove={len(obsolete)} "
           f"commands_to_update={len(replacements)}")
@@ -208,7 +209,7 @@ def reconcile(api, legacy, apply):
         api.request("POST", "/core/commands/del", {"ids": [row["id"] for row in obsolete.values()]})
     final_groups, final = snapshot(api)
     used_group_ids = {row["groupID"] for row in final.values()}
-    for name in (*OLD_GROUPS, ARCHIVE):
+    for name in (*OLD_GROUPS, ARCHIVE) if school_menu else ():
         if name in final_groups and final_groups[name]["id"] not in used_group_ids:
             api.request("POST", "/core/groups/del", {"id": final_groups[name]["id"]})
     _, final = snapshot(api)
@@ -218,7 +219,7 @@ def reconcile(api, legacy, apply):
            if name not in obsolete and name not in replacements):
         raise SystemExit("Одна из сторонних записей изменилась во время установки меню")
     verify_menu(api, desired)
-    print(f"terminal_verified={len(desired)} groups_verified={len(MENU)} old_removed={len(obsolete)}")
+    print(f"terminal_verified={len(desired)} groups_verified={len(menu)} old_removed={len(obsolete)}")
 
 
 def require_canonical_updater():
