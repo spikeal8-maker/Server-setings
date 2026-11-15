@@ -78,28 +78,32 @@ def atomic_command(path, content):
             stage.unlink(missing_ok=True)
 
 
-def install_tools(source, targets, previous, wrapper):
-    TOOLS_BIN.mkdir(mode=0o755, exist_ok=True)
-    # The upstream installer validates the separate root-owned checkout, canonical
-    # origin and Git revision before publishing the pinned tool launcher.
-    subprocess.run([str(source / 'tools/install-asa-command.sh'), '--production'],
-                   env={**os.environ, 'ASA_INSTALL_ROOT': str(ROOT), 'ASA_BIN_DIR': str(TOOLS_BIN)},
-                   check=True, timeout=45)
-    owner = ['/usr/bin/sudo', '-n', '-H', '-u', 'admins', '--']
-    adjusted = []
-    try:
-        for path, mode in targets.items():
-            subprocess.run(owner + ['/usr/bin/chmod', f'{mode & ~0o022:o}', str(path)], check=True, timeout=15)
-            adjusted.append((path, mode))
-        command = owner + [str(TOOLS_BIN / 'asa')]
-        verification = subprocess.check_output(command + ['--launcher-verify', str(ROOT)], text=True, timeout=30)
-        if verification.strip() != 'ASA_LAUNCHER_FORWARD_V1':
-            raise SystemExit('Не подтверждён постоянный обновлятор H03')
-        subprocess.run(command + ['check'], check=True, timeout=160)
-    except (OSError, subprocess.SubprocessError, SystemExit):
-        for path, mode in reversed(adjusted):
-            subprocess.run(owner + ['/usr/bin/chmod', f'{mode:o}', str(path)], check=True, timeout=15)
-        raise
+def trusted_path(path, directory):
+    info = path.lstat()
+    valid_type = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
+    if not valid_type or info.st_uid != 0 or info.st_mode & 0o022:
+        raise SystemExit(f'Небезопасный путь инструментов H03 {path}')
+
+
+def verified_installer(source):
+    for directory in (*source.parents, source, source / '.git', source / 'tools'):
+        trusted_path(directory, directory=True)
+    installer = source / 'tools/install-asa-command.sh'
+    trusted_path(installer, directory=False)
+    git = ['/usr/bin/git', '-C', str(source)]
+    clean_env = {'PATH': '/usr/bin:/bin', 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null'}
+    origin = subprocess.check_output(git + ['config', '--local', '--get', 'remote.origin.url'],
+                                     env=clean_env, text=True, timeout=15).strip()
+    if origin != 'https://github.com/spikeal8-maker/asa-lab.git':
+        raise SystemExit('Требуется официальный репозиторий ASA Lab')
+    subprocess.run(git + ['merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/main'],
+                   env=clean_env, check=True, timeout=15)
+    subprocess.run(git + ['diff', '--no-ext-diff', '--quiet', 'HEAD', '--', 'tools/install-asa-command.sh'],
+                   env=clean_env, check=True, timeout=15)
+    return installer
+
+
+def archive_previous(previous, wrapper):
     if previous is not None and previous != wrapper:
         HISTORY.mkdir(mode=0o700, exist_ok=True)
         info = HISTORY.lstat()
@@ -109,8 +113,39 @@ def install_tools(source, targets, previous, wrapper):
         if not saved.exists():
             with saved.open('xb') as stream:
                 stream.write(previous)
-        elif saved.read_bytes() != previous:
-            raise SystemExit('Архив предыдущей команды H03 не совпадает')
+        else:
+            trusted_path(saved, directory=False)
+            if saved.read_bytes() != previous:
+                raise SystemExit('Архив предыдущей команды H03 не совпадает')
+
+
+def install_tools(source, targets, previous, wrapper):
+    installer = verified_installer(source)
+    archive_previous(previous, wrapper)
+    TOOLS_BIN.mkdir(mode=0o755, exist_ok=True)
+    trusted_path(TOOLS_BIN, directory=True)
+    owner = ['/usr/bin/sudo', '-n', '-H', '-u', 'admins', '--']
+    adjusted = []
+    with tempfile.TemporaryDirectory(dir=TOOLS_BIN, prefix='verify-') as folder:
+        stage = Path(folder)
+        stage.chmod(0o755)
+        subprocess.run([str(installer), '--production'],
+                       env={**os.environ, 'ASA_INSTALL_ROOT': str(ROOT), 'ASA_BIN_DIR': str(stage)},
+                       check=True, timeout=45)
+        try:
+            for path, mode in targets.items():
+                subprocess.run(owner + ['/usr/bin/chmod', f'{mode & ~0o022:o}', str(path)], check=True, timeout=15)
+                adjusted.append((path, mode))
+            command = owner + [str(stage / 'asa')]
+            verification = subprocess.check_output(command + ['--launcher-verify', str(ROOT)], text=True, timeout=30)
+            if verification.strip() != 'ASA_LAUNCHER_FORWARD_V1':
+                raise SystemExit('Не подтверждён постоянный обновлятор H03')
+            subprocess.run(command + ['check'], check=True, timeout=160)
+        except (OSError, subprocess.SubprocessError, SystemExit):
+            for path, mode in reversed(adjusted):
+                subprocess.run(owner + ['/usr/bin/chmod', f'{mode:o}', str(path)], check=True, timeout=15)
+            raise
+        (stage / 'asa').replace(TOOLS_BIN / 'asa')
     atomic_command(BIN / 'asa', wrapper)
     atomic_command(BIN / 'asa-test', wrapper)
 
