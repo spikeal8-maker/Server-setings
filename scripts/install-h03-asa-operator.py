@@ -88,6 +88,13 @@ def trusted_path(path, directory):
 def verified_installer(source):
     for directory in (*source.parents, source, source / '.git', source / 'tools'):
         trusted_path(directory, directory=True)
+    git_files = subprocess.check_output([
+        '/usr/bin/find', '-P', str(source / '.git'), '(',
+        '!', '-uid', '0', '-o', '-perm', '/022', '-o', '(', '!', '-type', 'd', '!', '-type', 'f', ')',
+        ')', '-print', '-quit',
+    ], timeout=15)
+    if git_files:
+        raise SystemExit('Небезопасная конфигурация Git в каталоге инструментов H03')
     installer = source / 'tools/install-asa-command.sh'
     trusted_path(installer, directory=False)
     git = ['/usr/bin/git', '-C', str(source)]
@@ -98,8 +105,10 @@ def verified_installer(source):
         raise SystemExit('Требуется официальный репозиторий ASA Lab')
     subprocess.run(git + ['merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/main'],
                    env=clean_env, check=True, timeout=15)
-    subprocess.run(git + ['diff', '--no-ext-diff', '--quiet', 'HEAD', '--', 'tools/install-asa-command.sh'],
-                   env=clean_env, check=True, timeout=15)
+    approved = subprocess.check_output(git + ['show', 'HEAD:tools/install-asa-command.sh'],
+                                       env=clean_env, timeout=15)
+    if installer.read_bytes() != approved:
+        raise SystemExit('Установщик не совпадает с подтверждённым коммитом ASA Lab')
     return installer
 
 
