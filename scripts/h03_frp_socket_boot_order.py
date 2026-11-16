@@ -146,7 +146,9 @@ def apply() -> None:
         state = run("systemctl", "show", name, "-p", "ActiveState", "-p", "UnitFileState")
         require("UnitFileState=enabled" in state, "Unowned disabled socket")
         _, service = UNIT_ENDPOINTS[name]
-        require(run("systemctl", "is-active", service).strip() in ("inactive", "failed"),
+        status = subprocess.run(["systemctl", "is-active", service], capture_output=True,
+                                text=True, timeout=15, check=False)
+        require(status.returncode in (3, 4) and status.stdout.strip() in ("inactive", "failed", "unknown"),
                 "Private proxy currently active: " + service)
     established = run("ss", "-Htan", "state", "established")
     for address, _ in UNIT_ENDPOINTS.values():
