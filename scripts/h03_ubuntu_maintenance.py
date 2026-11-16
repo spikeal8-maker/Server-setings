@@ -226,9 +226,14 @@ def security_apply() -> None:
     backup_preflight()
     confirm()
     # Serialize with any manual ASA maintenance; never seize an existing lock.
-    with LOCK.open("a+b") as lock:
+    lock_fd = os.open(LOCK, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    with os.fdopen(lock_fd, "a+b") as lock:
+        metadata = os.fstat(lock.fileno())
+        require(metadata.st_uid == 0 and stat.S_IMODE(metadata.st_mode) == 0o600,
+                "Небезопасный файл блокировки Ubuntu")
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        with (STATE / "operation.lock").open("a+b") as asa:
+        state_fd = os.open(STATE / "operation.lock", os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
+        with os.fdopen(state_fd, "r+b") as asa:
             fcntl.flock(asa, fcntl.LOCK_EX | fcntl.LOCK_NB)
             audit = AUDIT / ("ubuntu-security-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + ".log")
             descriptor = os.open(audit, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
