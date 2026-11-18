@@ -38,8 +38,14 @@ class H03MenuTests(unittest.TestCase):
         self.assertEqual(
             installer.HARDENED_UPDATE_COMMAND,
             "sudo -n -H -u admins -- /bin/sh -c "
-            "'umask 0077; exec /usr/local/bin/asa-test update'",
+            "'umask 0077; "
+            "export XDG_RUNTIME_DIR=/run/user/1000 "
+            "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; "
+            "exec /usr/local/bin/asa-test update'",
         )
+        self.assertIn("DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus", installer.HARDENED_UPDATE_COMMAND)
+        self.assertIn("XDG_RUNTIME_DIR=/run/user/1000", installer.HARDENED_UPDATE_COMMAND)
+        self.assertIn("umask 0077;", installer.HARDENED_UPDATE_COMMAND)
         self.assertNotIn("--no-backup", installer.HARDENED_UPDATE_COMMAND)
         self.assertNotIn("--force", installer.HARDENED_UPDATE_COMMAND)
         for title, command in entries[2:]:
@@ -68,6 +74,11 @@ class H03MenuTests(unittest.TestCase):
             "groupID": 9, "command": installer.HARDENED_UPDATE_COMMAND,
         }
         self.assertEqual(installer.managed_commands(groups, complete)[0], desired)
+        previous = dict(commands)
+        previous["Установить обновление"] = {
+            "groupID": 9, "command": installer.PREVIOUS_HARDENED_UPDATE_COMMAND,
+        }
+        self.assertEqual(installer.managed_commands(groups, previous)[0], desired)
         broken = dict(commands)
         broken["Установить обновление"] = {
             "groupID": 9, "command": "sudo asa-test update --no-backup",
