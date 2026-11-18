@@ -33,8 +33,15 @@ class H03MenuTests(unittest.TestCase):
         self.assertEqual(len(set(title for title, _ in entries)), 17)
         self.assertEqual(installer.MENU[installer.BASE_GROUP], (
             ("Проверить обновления", "sudo asa-test check"),
-            ("Установить обновление", "sudo asa-test update"),
+            ("Установить обновление", installer.HARDENED_UPDATE_COMMAND),
         ))
+        self.assertEqual(
+            installer.HARDENED_UPDATE_COMMAND,
+            "sudo -n -H -u admins -- /bin/sh -c "
+            "'umask 0077; exec /usr/local/bin/asa-test update'",
+        )
+        self.assertNotIn("--no-backup", installer.HARDENED_UPDATE_COMMAND)
+        self.assertNotIn("--force", installer.HARDENED_UPDATE_COMMAND)
         for title, command in entries[2:]:
             self.assertTrue(command.startswith("sudo -- /usr/bin/python3 -I -B /usr/local/libexec/asa-h03/asa-menu.py "))
             action = command.rsplit(" ", 1)[-1]
@@ -56,6 +63,17 @@ class H03MenuTests(unittest.TestCase):
         desired, old = installer.managed_commands(groups, commands)
         self.assertEqual(len(desired), 17)
         self.assertEqual(list(old), ["Обновление"])
+        complete = dict(commands)
+        complete["Установить обновление"] = {
+            "groupID": 9, "command": installer.HARDENED_UPDATE_COMMAND,
+        }
+        self.assertEqual(installer.managed_commands(groups, complete)[0], desired)
+        broken = dict(commands)
+        broken["Установить обновление"] = {
+            "groupID": 9, "command": "sudo asa-test update --no-backup",
+        }
+        with self.assertRaises(installer.MenuConflict):
+            installer.managed_commands(groups, broken)
         bad = dict(commands)
         bad["Обновление"] = {"groupID": 3, "command": "sudo asa update --force"}
         with self.assertRaises(installer.MenuConflict):
