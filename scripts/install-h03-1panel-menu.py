@@ -26,6 +26,14 @@ HISTORY = Path("/var/lib/server-settings/h03-1panel-menu-history")
 API_KEY = "/etc/server-settings/panel-domain-publisher.key"
 API_URL = "http://127.0.0.1:19192"
 BASE_GROUP = "ASA Lab · Обновление"
+# H03 mitigation until the upstream state writer from issue #1222 is released:
+# sudo resets umask to 0002 for admins; set 0077 AFTER switching user.
+# The trusted root-owned launcher and all of its checks are preserved.
+LEGACY_UPDATE_COMMAND = "sudo asa-test update"
+HARDENED_UPDATE_COMMAND = (
+    "sudo -n -H -u admins -- /bin/sh -c "
+    "'umask 0077; exec /usr/local/bin/asa-test update'"
+)
 LEGACY_SHA256 = {
     "Обновление": "7e9f5399c27405a93feda3fc956094446eb2e984499f6e6128b731143bee0fe0",
     "Статус обновлений": "9c89b79100d7c4bc7b193e3c66f739a63543b09e4f1a4540499f58c1549fc193",
@@ -41,7 +49,7 @@ def menu_call(action: str) -> str:
 MENU = {
     BASE_GROUP: (
         ("Проверить обновления", "sudo asa-test check"),
-        ("Установить обновление", "sudo asa-test update"),
+        ("Установить обновление", HARDENED_UPDATE_COMMAND),
     ),
     "ASA Lab · Резервные копии": (
         ("Состояние резервных копий", menu_call("backups-status")),
@@ -114,7 +122,10 @@ def managed_commands(groups: dict, commands: dict) -> tuple[dict, dict]:
     for name, (group, body) in desired.items():
         if name in commands:
             actual = commands[name]
-            ensure(by_id.get(actual["groupID"]) == group and actual["command"] == body,
+            valid_body = actual["command"] == body or (
+                name == "Установить обновление" and actual["command"] == LEGACY_UPDATE_COMMAND
+            )
+            ensure(by_id.get(actual["groupID"]) == group and valid_body,
                    "Действующая команда отличается от утверждённой: " + name)
     retired = {}
     for name, digest in LEGACY_SHA256.items():
@@ -186,8 +197,17 @@ def apply(api: PanelAPI) -> None:
     desired, obsolete = managed_commands(groups, current)
     missing_groups = [name for name in MENU if name not in groups]
     missing_commands = [title for title in desired if title not in current]
+    update_candidates = {
+        title: (group, body)
+        for title, (group, body) in desired.items()
+        if title in current and current[title]["command"] != body
+    }
+    ensure(set(update_candidates).issubset({"Установить обновление"}),
+           "Отказ от неожиданного редактирования существующих команд")
     print("PLAN groups_to_add=", len(missing_groups),
-          "commands_to_add=", len(missing_commands), "legacy_to_archive=", len(obsolete))
+          "commands_to_add=", len(missing_commands),
+          "commands_to_update=", len(update_candidates),
+          "legacy_to_archive=", len(obsolete))
     archived = save_snapshot(groups, current)
     print("OWNER_MENU_BACKUP", archived)
     install_dispatcher()
@@ -201,6 +221,15 @@ def apply(api: PanelAPI) -> None:
             "id": 0, "type": "command", "groupID": new_groups[group]["id"],
             "name": title, "command": body,
         })
+    for title, (group, body) in update_candidates.items():
+        old = current[title]
+        ensure(new_current.get(title) == old,
+               "Конкурирующее изменение команды " + title)
+        api.request("POST", "/core/commands/update", {
+            "id": old["id"], "type": old["type"],
+            "groupID": new_groups[group]["id"],
+            "name": title, "command": body,
+        })
     verify_tree(api, desired)
     _, before_delete = get_snapshot(api)
     for title, previous in obsolete.items():
@@ -212,7 +241,8 @@ def apply(api: PanelAPI) -> None:
     ensure(not retired, "Старые команды не удалены")
     ensure(all(title in final_commands for title in final_desired), "Неполное меню")
     ensure(all(final_commands.get(title) == row for title, row in current.items()
-               if title not in obsolete), "Посторонние команды изменены")
+               if title not in obsolete and title not in update_candidates),
+           "Посторонние команды изменены")
     verify_tree(api, desired)
     print("MENU_VERIFIED", "groups", len(MENU), "commands", len(desired),
           "old_removed", len(obsolete))
@@ -233,7 +263,11 @@ def main() -> None:
         print("PLAN_ONLY" if not args.apply else "APPLY",
               "add_groups", len([g for g in MENU if g not in groups]),
               "add_commands", len([n for n in desired if n not in current]),
-              "retire_legacy", len(obsolete))
+              "retire_legacy", len(obsolete),
+              "update_commands", sum(
+                  title in current and current[title]["command"] != body
+                  for title, (group, body) in desired.items()
+              ))
         if args.apply:
             apply(api)
         else:
