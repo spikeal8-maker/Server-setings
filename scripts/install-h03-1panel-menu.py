@@ -30,9 +30,19 @@ BASE_GROUP = "ASA Lab · Обновление"
 # sudo resets umask to 0002 for admins; set 0077 AFTER switching user.
 # The trusted root-owned launcher and all of its checks are preserved.
 LEGACY_UPDATE_COMMAND = "sudo asa-test update"
-HARDENED_UPDATE_COMMAND = (
+PREVIOUS_HARDENED_UPDATE_COMMAND = (
     "sudo -n -H -u admins -- /bin/sh -c "
     "'umask 0077; exec /usr/local/bin/asa-test update'"
+)
+# User service collector must connect to admins' lingering systemd user bus.
+# sudo -u does not preserve XDG_RUNTIME_DIR/DBUS_SESSION_BUS_ADDRESS.
+# Only this pinned H03 user (UID 1000) and private local bus are accepted.
+HARDENED_UPDATE_COMMAND = (
+    "sudo -n -H -u admins -- /bin/sh -c "
+    "'umask 0077; "
+    "export XDG_RUNTIME_DIR=/run/user/1000 "
+    "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus; "
+    "exec /usr/local/bin/asa-test update'"
 )
 LEGACY_SHA256 = {
     "Обновление": "7e9f5399c27405a93feda3fc956094446eb2e984499f6e6128b731143bee0fe0",
@@ -123,7 +133,9 @@ def managed_commands(groups: dict, commands: dict) -> tuple[dict, dict]:
         if name in commands:
             actual = commands[name]
             valid_body = actual["command"] == body or (
-                name == "Установить обновление" and actual["command"] == LEGACY_UPDATE_COMMAND
+                name == "Установить обновление" and actual["command"] in (
+                    LEGACY_UPDATE_COMMAND, PREVIOUS_HARDENED_UPDATE_COMMAND
+                )
             )
             ensure(by_id.get(actual["groupID"]) == group and valid_body,
                    "Действующая команда отличается от утверждённой: " + name)
